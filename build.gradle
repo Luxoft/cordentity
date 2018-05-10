@@ -1,0 +1,166 @@
+buildscript {
+    ext.corda_release_group = 'net.corda'
+    ext.corda_release_version = '3.1-corda'
+    ext.corda_gradle_plugins_version = '3.0.9'
+    ext.quasar_version = '0.7.9'
+    ext.junit_version = '4.12'
+    ext.kotlin_version = '1.2.30'
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlin_version}"
+        classpath "net.corda.plugins:cordapp:${corda_gradle_plugins_version}"
+        classpath "net.corda.plugins:cordformation:${corda_gradle_plugins_version}"
+        classpath "net.corda.plugins:quasar-utils:${corda_gradle_plugins_version}"
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.2'
+    }
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+    maven { url 'https://jitpack.io' }
+    maven { url 'https://ci-artifactory.corda.r3cev.com/artifactory/corda-releases' }
+    maven { url 'https://repo.evernym.com/artifactory/libindy-maven-local' }
+}
+
+apply plugin: 'kotlin'
+apply plugin: 'idea'
+apply plugin: 'net.corda.plugins.cordapp'
+apply plugin: 'net.corda.plugins.cordformation'
+apply plugin: 'net.corda.plugins.quasar-utils'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+sourceSets {
+    main {
+        resources {
+            srcDir "config/dev"
+        }
+    }
+    test {
+        resources {
+            srcDir "config/test"
+        }
+    }
+}
+
+dependencies {
+
+    compile project(':indy-utils')
+
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_version}"
+    compile "org.jetbrains.kotlin:kotlin-reflect:${kotlin_version}"
+
+    compile 'com.github.alexeykoren:konfig:2.0.4'
+
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.21'
+    compile group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+
+    // Corda integration dependencies
+    cordaCompile "${corda_release_group}:corda-core:${corda_release_version}"
+    cordaCompile "${corda_release_group}:corda-finance:${corda_release_version}"
+    cordaCompile "${corda_release_group}:corda-rpc:${corda_release_version}"
+    cordaCompile "${corda_release_group}:corda-node-api:${corda_release_version}"
+    cordaRuntime "${corda_release_group}:corda:${corda_release_version}"
+
+    testCompile "$corda_release_group:corda-node-driver:${corda_release_version}"
+    testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
+    testCompile "junit:junit:$junit_version"
+}
+
+task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['shadowJar']) {
+    directory "./build/nodes"
+
+    node {
+        name "O=Issuer,L=London,C=GB"
+        notary = [validating : true]
+        p2pPort 10001
+        rpcSettings {
+            address("localhost:10002")
+            adminAddress("localhost:10003")
+        }
+        cordapps = []
+        rpcUsers = [[user: "user1", "password": "test", "permissions": ["ALL"]]]
+    }
+
+    node {
+        name "O=Prover,L=London,C=GB"
+        p2pPort 10101
+        rpcSettings {
+            address("localhost:10102")
+            adminAddress("localhost:10103")
+        }
+        cordapps = []
+        rpcUsers = [[user: "user1", "password": "test", "permissions": ["ALL"]]]
+    }
+
+    node {
+        name "O=Verifier,L=London,C=GB"
+        p2pPort 10201
+        rpcSettings {
+            address("localhost:10202")
+            adminAddress("localhost:10203")
+        }
+        cordapps = []
+        rpcUsers = [[user: "user1", "password": "test", "permissions": [ "ALL" ]]]
+    }
+
+}
+
+task runNodes(type: Exec) {
+    workingDir 'build/nodes'
+    executable './runnodes'
+}
+
+// TODO check dependencies
+tasks {
+    shadowJar {
+        mergeServiceFiles()
+
+        // Place your shaded packages here!
+        relocate 'org.apache.commons.io', 'shadow.org.apache.commons.io'
+
+        configurations = [project.configurations.compile]
+        baseName = jar.baseName + "-" + jar.version
+        classifier = null
+        version = null
+        dependencies {
+            include(dependency(".*:.*:.*"))
+            exclude(dependency('org.jetbrains.kotlin:.*:.*'))
+            exclude(dependency('net.corda:.*:.*'))
+            exclude(dependency('org.apache.logging.*:.*:.*'))
+            exclude(dependency('org.apache.activemq:.*:.*'))
+            exclude(dependency('com.google.*:.*:.*'))
+            exclude(dependency('io.reactivex:.*:.*'))
+            exclude(dependency('org.bouncycastle.*:.*:.*'))
+            exclude(dependency('org.glassfish.*:.*:.*'))
+            exclude(dependency('co.paralleluniverse.*:.*:.*'))
+            exclude(dependency('co.paralleluniverse.*:.*:.*'))
+            exclude(dependency('com.typesafe.*:.*:.*'))
+            exclude(dependency('com.esotericsoftware.*:.*:.*'))
+            exclude(dependency('org.qpid.*:.*:.*'))
+        }
+    }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = "1.8"
+        javaParameters = true   // Useful for reflection.
+    }
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+

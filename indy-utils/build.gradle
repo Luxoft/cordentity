@@ -1,0 +1,57 @@
+buildscript {
+    ext.indy_version = "1.3.1-dev-406"
+
+    repositories {
+        mavenCentral()
+        maven { url 'https://repo.evernym.com/artifactory/libindy-maven-local' }
+    }
+}
+
+plugins {
+    id 'com.palantir.docker-run' version '0.19.2'
+}
+
+
+version '0.1'
+
+apply plugin: 'kotlin'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+    maven {
+        url 'https://repo.evernym.com/artifactory/libindy-maven-local'
+    }
+}
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+
+    compile group: 'org.hyperledger', name: 'indy', version: "$indy_version"
+
+    compile group: 'org.json', name: 'json', version: '20140107'
+    compile group: 'commons-io', name: 'commons-io', version: '2.5'
+
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.21'
+    compile group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+}
+
+dockerRun {
+    name "indy-pool"
+    image "teamblockchain/indy-pool:$indy_version"
+    ports '9701:9701','9702:9702','9703:9703','9704:9704','9705:9705','9706:9706','9707:9707','9708:9708'
+    daemonize true
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+task cleanDefaultPool(type: Exec) {
+    commandLine 'sh', '-c', 'rm -r ~/.indy_client/'
+}
