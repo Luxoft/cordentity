@@ -3,6 +3,7 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.flows.*
+import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.utilities.unwrap
@@ -20,13 +21,13 @@ object AssignPermissionsFlow {
     open class Issuer(
             private val alias: String? = null,
             private val role: String? = null,
-            private val authority: String
+            private val authority: CordaX500Name
     ) : FlowLogic<Unit>() {
 
         @Suspendable
         override fun call() {
             try {
-                val otherSide: Party = serviceHub.identityService.partiesFromName(authority, true).single()
+                val otherSide: Party = whoIs(authority)
                 val flowSession: FlowSession = initiateFlow(otherSide)
 
                 flowSession.send(IndyPermissionsRequest(indyUser().did, indyUser().verkey, role, alias))

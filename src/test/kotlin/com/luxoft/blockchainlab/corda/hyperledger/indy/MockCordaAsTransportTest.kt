@@ -15,6 +15,7 @@ import net.corda.testing.node.internal.InternalMockNetwork
 import net.corda.testing.node.internal.InternalMockNetwork.MockNode
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
+import net.corda.testing.core.singleIdentity
 import net.corda.testing.node.internal.startFlow
 import org.junit.*
 import java.time.Duration
@@ -103,7 +104,7 @@ class MockCordaAsTransportTest {
     private fun setPermissions(issuer: StartedNode<MockNode>,
                                authority: StartedNode<MockNode>) {
         val permissionsFuture = issuer.services.startFlow(AssignPermissionsFlow.Issuer(
-                authority = authority.info.legalIdentities.first().name.organisation)).resultFuture
+                authority = authority.info.singleIdentity().name)).resultFuture
 
         net.runNetwork()
         permissionsFuture.getOrThrow(Duration.ofSeconds(30))
@@ -140,7 +141,7 @@ class MockCordaAsTransportTest {
                            schema: Schema) {
 
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
-        val claimIssuer = claimIssuer.info.legalIdentities.first().name.organisation
+        val claimIssuer = claimIssuer.info.singleIdentity().name
 
         val schemaDetails = IndyUser.SchemaDetails(schema.getSchemaName(), schema.getSchemaVersion(), schemaOwnerDid)
         val claimFuture = claimProver.services.startFlow(
@@ -166,7 +167,7 @@ class MockCordaAsTransportTest {
                 VerifyClaimFlow.Verifier(
                         attributes,
                         predicates,
-                        prover.info.legalIdentities.first().name.organisation)).resultFuture
+                        prover.info.singleIdentity().name)).resultFuture
 
         net.runNetwork()
         val proofCheckResult = proofCheckResultFuture.getOrThrow(Duration.ofSeconds(30))

@@ -5,6 +5,7 @@ import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.luxoft.blockchainlab.hyperledger.indy.model.Proof
 import com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq
 import net.corda.core.flows.*
+import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.utilities.unwrap
 
@@ -15,13 +16,13 @@ object VerifyClaimFlow {
     open class Verifier (
             private val attributes: List<IndyUser.ProofAttribute>,
             private val predicates: List<IndyUser.ProofPredicate>,
-            private val prover: String
+            private val prover: CordaX500Name
     ) : FlowLogic<Boolean>() {
 
         @Suspendable
         override fun call(): Boolean {
             return try {
-                val otherSide: Party = serviceHub.identityService.partiesFromName(prover, true).single()
+                val otherSide: Party = whoIs(prover)
                 val flowSession: FlowSession = initiateFlow(otherSide)
 
                 val proofRequest = indyUser().createProofReq(attributes, predicates)

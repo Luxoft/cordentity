@@ -13,6 +13,7 @@ import net.corda.core.flows.FlowException
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
 import net.corda.node.internal.StartedNode
+import net.corda.testing.core.singleIdentity
 import net.corda.testing.node.internal.InternalMockNetwork
 import net.corda.testing.node.internal.startFlow
 import org.junit.*
@@ -136,7 +137,7 @@ class MockVerifyClaimInContractTest {
                         claimProposal,
                         // TODO: Master Secret should be used from the outside
                         schemaOwner.services.cordaService(IndyService::class.java).indyUser.masterSecret,
-                        claimIssuer.info.legalIdentities.first().name.organisation)
+                        claimIssuer.info.singleIdentity().name)
         ).resultFuture
 
         net.runNetwork()

@@ -5,6 +5,7 @@ import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.luxoft.blockchainlab.hyperledger.indy.model.Claim
 import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimOffer
 import net.corda.core.flows.*
+import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.utilities.unwrap
@@ -22,12 +23,12 @@ object IssueClaimFlow {
     open class Prover(private val schemaDetails: IndyUser.SchemaDetails,
                       private val claimProposal: String = "",
                       private var masterSecret: String,
-                      private val authority: String) : FlowLogic<Claim>() {
+                      private val authority: CordaX500Name) : FlowLogic<Claim>() {
 
         @Suspendable
         override fun call(): Claim {
             try {
-                val otherSide: Party = serviceHub.identityService.partiesFromName(authority, true).single()
+                val otherSide: Party = whoIs(authority)
                 val flowSession: FlowSession = initiateFlow(otherSide)
 
                 val sessionDid = subFlow(CreatePairwiseFlow.Prover(authority))
