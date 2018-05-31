@@ -20,7 +20,7 @@ object GetDidFlow {
                 val otherSide: Party = serviceHub.identityService.partiesFromName(authority, true).single()
                 val flowSession: FlowSession = initiateFlow(otherSide)
 
-                return flowSession.receive<String>().unwrap { it }
+                return flowSession.receive<String>().unwrap { IndyUser.IdentityDetails(it).did }
 
             } catch (ex: Exception) {
                 logger.error("", ex)
@@ -35,7 +35,7 @@ object GetDidFlow {
         @Suspendable
         override fun call() {
             try {
-                flowSession.send("indyUser().getIdentity().getIdentityRecord()")
+                flowSession.send(indyUser().getIdentity().getIdentityRecord())
             } catch (e: Exception) {
                 logger.error("", e)
                 throw FlowException(e.message)
