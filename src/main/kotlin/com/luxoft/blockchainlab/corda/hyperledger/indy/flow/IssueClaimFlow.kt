@@ -19,9 +19,7 @@ object IssueClaimFlow {
 
     @InitiatingFlow
     @StartableByRPC
-    open class Prover(private val schemaOwner: String = "",
-                      private val schemaName:  String = "",
-                      private val schemaVersion: String = "",
+    open class Prover(private val schemaDetails: IndyUser.SchemaDetails,
                       private val claimProposal: String = "",
                       private var masterSecret: String,
                       private val authority: String) : FlowLogic<Claim>() {
@@ -33,8 +31,6 @@ object IssueClaimFlow {
                 val flowSession: FlowSession = initiateFlow(otherSide)
 
                 val sessionDid = subFlow(CreatePairwiseFlow.Prover(authority))
-
-                val schemaDetails = IndyUser.SchemaDetails(schemaName, schemaVersion, schemaOwner)
 
                 val indyClaimOfferReq = IndyClaimOfferRequest(schemaDetails.schemaKey, sessionDid)
                 val indyClaimReq = flowSession.sendAndReceive<ClaimOffer>(indyClaimOfferReq).unwrap { indyClaimOffer ->

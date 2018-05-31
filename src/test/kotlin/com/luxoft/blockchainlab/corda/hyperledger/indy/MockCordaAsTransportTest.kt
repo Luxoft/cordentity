@@ -142,11 +142,10 @@ class MockCordaAsTransportTest {
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
         val claimIssuer = claimIssuer.info.legalIdentities.first().name.organisation
 
+        val schemaDetails = IndyUser.SchemaDetails(schema.getSchemaName(), schema.getSchemaVersion(), schemaOwnerDid)
         val claimFuture = claimProver.services.startFlow(
                 IssueClaimFlow.Prover(
-                        schemaOwnerDid,
-                        schema.getSchemaName(),
-                        schema.getSchemaVersion(),
+                        schemaDetails,
                         claimProposal,
                         // TODO: Master Secret should be used from the outside
                         schemaOwner.services.cordaService(IndyService::class.java).indyUser.masterSecret,

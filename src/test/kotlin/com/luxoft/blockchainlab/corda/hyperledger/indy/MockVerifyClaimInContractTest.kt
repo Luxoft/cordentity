@@ -5,6 +5,7 @@ import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
 import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.Schema
 import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.SchemaHappiness
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
+import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.natpryce.konfig.Configuration
 import com.natpryce.konfig.ConfigurationMap
 import com.natpryce.konfig.TestConfigurationsProvider
@@ -128,11 +129,10 @@ class MockVerifyClaimInContractTest {
 
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
 
+        val schemaDetails = IndyUser.SchemaDetails(schema.getSchemaName(), schema.getSchemaVersion(), schemaOwnerDid)
         val claimFuture = claimProver.services.startFlow(
                 IssueClaimFlow.Prover(
-                        schemaOwnerDid,
-                        schema.getSchemaName(),
-                        schema.getSchemaVersion(),
+                        schemaDetails,
                         claimProposal,
                         // TODO: Master Secret should be used from the outside
                         schemaOwner.services.cordaService(IndyService::class.java).indyUser.masterSecret,

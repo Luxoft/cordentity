@@ -164,3 +164,24 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
 
+task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
+}
+
+apply plugin: 'maven-publish'
+publishing {
+    repositories {
+        maven {
+            url "http://172.26.147.116:8081/repository/luxoft.blockchainlab/"
+        }
+    }
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
+        }
+    }
+}
