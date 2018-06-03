@@ -1,7 +1,7 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.demo.contract
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.ClaimProofState
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.ClaimState
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.ClaimProof
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.Claim
 import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.state.SimpleStringState
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.contracts.*
@@ -16,7 +16,7 @@ class DemoClaimContract : Contract {
 
             requireThat {
 
-                val claimStates = tx.outputsOfType<ClaimProofState>()
+                val claimStates = tx.outputsOfType<ClaimProof>()
 
                 claimStates.forEach( {claimProof ->
                     "All of the participants must be signers." using (command.signers.containsAll(claimProof.participants.map { it.owningKey }))
@@ -37,7 +37,7 @@ class DemoClaimContract : Contract {
 
             requireThat {
 
-                val claimStates = tx.outputsOfType<ClaimState>()
+                val claimStates = tx.outputsOfType<Claim>()
 
                 claimStates.forEach( {claim ->
                     "All of the participants must be signers." using (command.signers.containsAll(claim.participants.map { it.owningKey }))

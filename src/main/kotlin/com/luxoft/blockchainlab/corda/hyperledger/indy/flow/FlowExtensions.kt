@@ -12,6 +12,10 @@ fun FlowLogic<Any>.whoIs(x509: CordaX500Name): Party {
     return serviceHub.identityService.wellKnownPartyFromX500Name(x509)!!
 }
 
+fun FlowLogic<Any>.whoIsNotary(): Party {
+    return serviceHub.networkMapCache.notaryIdentities.single()
+}
+
 fun FlowLogic<Any>.indyUser(): IndyUser {
 
     return serviceHub.cordaService(IndyService::class.java).indyUser

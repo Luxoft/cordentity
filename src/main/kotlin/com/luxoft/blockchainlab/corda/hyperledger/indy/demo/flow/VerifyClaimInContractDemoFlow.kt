@@ -1,7 +1,7 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.demo.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.ClaimProofState
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.ClaimProof
 import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.contract.DemoClaimContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.indyUser
 import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.SchemaHappiness
@@ -38,14 +38,14 @@ object VerifyClaimInContractDemoFlow {
                 val schemaDetails = IndyUser.SchemaDetails(schema.getSchemaName(), schema.getSchemaVersion(), issuerDid)
 
                 // Love doesn't care about age
-                val attributes = listOf( IndyUser.ProofAttribute(schemaDetails, schema.schemaAttrForKiss) )
+                val attributes = listOf( IndyUser.ProofAttribute(schemaDetails, schema.schemaAttrForKiss,"value"))
                 // But you can drink only after 21
                 val predicates = listOf( IndyUser.ProofPredicate(schemaDetails, schema.schemaAttrForDrink, 21) )
 
                 val proofRequest = indyUser().createProofReq(attributes, predicates)
                 val proof = flowSession.sendAndReceive<Proof>(proofRequest).unwrap { it }
 
-                val claimProofInput = StateAndContract(ClaimProofState(proofRequest, proof, listOf(ourIdentity, otherSide)), DemoClaimContract::class.java.name)
+                val claimProofInput = StateAndContract(ClaimProof(proofRequest, proof, listOf(ourIdentity, otherSide)), DemoClaimContract::class.java.name)
                 val kissState = StateAndContract(SimpleStringState("moi-moi-moi", otherSide), DemoClaimContract::class.java.name)
                 val drinkState = StateAndContract(SimpleStringState("gulp", otherSide), DemoClaimContract::class.java.name)
 

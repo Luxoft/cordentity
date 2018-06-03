@@ -1,12 +1,18 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.ClaimProof
+import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimVerification
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.luxoft.blockchainlab.hyperledger.indy.model.Proof
 import com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq
+import net.corda.core.contracts.Command
+import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
+import net.corda.core.transactions.SignedTransaction
+import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
 
 object VerifyClaimFlow {
@@ -16,23 +22,42 @@ object VerifyClaimFlow {
     open class Verifier (
             private val attributes: List<IndyUser.ProofAttribute>,
             private val predicates: List<IndyUser.ProofPredicate>,
-            private val prover: CordaX500Name
-    ) : FlowLogic<Boolean>() {
+            private val proverName: CordaX500Name
+    ) : FlowLogic<Unit>() {
 
         @Suspendable
-        override fun call(): Boolean {
-            return try {
-                val otherSide: Party = whoIs(prover)
-                val flowSession: FlowSession = initiateFlow(otherSide)
+        override fun call() {
+            val prover: Party = whoIs(proverName)
+            val flowSession: FlowSession = initiateFlow(prover)
 
-                val proofRequest = indyUser().createProofReq(attributes, predicates)
+            val proofRequest = indyUser().createProofReq(attributes, predicates)
 
-                flowSession.sendAndReceive<Proof>(proofRequest).unwrap { proof -> IndyUser.verifyProof(proofRequest, proof) }
-
-            } catch (e: Exception) {
-                logger.error("", e)
-                throw FlowException(e.message)
+            val verifyClaimOut = flowSession.sendAndReceive<Proof>(proofRequest).unwrap { proof ->
+                val claimProofOut = ClaimProof(proofRequest, proof, listOf(ourIdentity, prover))
+                StateAndContract(claimProofOut, ClaimVerification::class.java.name)
             }
+
+            val expectedAttrs = attributes.associateBy({ it.field }, {it.value}).map {
+                ClaimVerification.ExpectedAttr(it.key, it.value)
+            }
+
+            val verifyClaimData = ClaimVerification.Commands.Verify(expectedAttrs)
+            val verifyClaimSigners = listOf(ourIdentity.owningKey, prover.owningKey)
+
+            val verifyClaimCmd = Command(verifyClaimData, verifyClaimSigners)
+
+            val trxBuilder = TransactionBuilder(whoIsNotary())
+                    .withItems(verifyClaimOut, verifyClaimCmd)
+
+            trxBuilder.toWireTransaction(serviceHub)
+                    .toLedgerTransaction(serviceHub)
+                    .verify()
+
+            val selfSignedTx = serviceHub.signInitialTransaction(trxBuilder)
+            val signedTrx = subFlow(CollectSignaturesFlow(selfSignedTx, listOf(flowSession)))
+
+            // Notarise and record the transaction in both parties' vaults.
+            subFlow(FinalityFlow(signedTrx))
         }
     }
 
@@ -46,6 +71,13 @@ object VerifyClaimFlow {
                     val masterSecret = indyUser().masterSecret
                     flowSession.send(indyUser().createProof(indyProofReq, masterSecret))
                 }
+
+                val flow = object : SignTransactionFlow(flowSession) {
+                    // TODO: Add some checks here.
+                    override fun checkTransaction(stx: SignedTransaction) = Unit
+                }
+
+                subFlow(flow)
 
             } catch (e: Exception) {
                 logger.error("", e)

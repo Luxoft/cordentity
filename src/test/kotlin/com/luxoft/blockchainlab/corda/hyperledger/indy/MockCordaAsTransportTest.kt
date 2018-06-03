@@ -170,8 +170,7 @@ class MockCordaAsTransportTest {
                         prover.info.singleIdentity().name)).resultFuture
 
         net.runNetwork()
-        val proofCheckResult = proofCheckResultFuture.getOrThrow(Duration.ofSeconds(30))
-        assertion(proofCheckResult)
+        proofCheckResultFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
     private fun multipleClaimsByDiffIssuers(schema1AttrInt: String,
@@ -208,8 +207,8 @@ class MockCordaAsTransportTest {
         val schemaEducationDetails = IndyUser.SchemaDetails(schemaEducation.getSchemaName(), schemaEducation.getSchemaVersion(), schemaOwner)
 
         val attributes = listOf(
-                IndyUser.ProofAttribute(schemaPersonDetails, schemaPerson.schemaAttr1),
-                IndyUser.ProofAttribute(schemaEducationDetails, schemaPerson.schemaAttr1)
+                IndyUser.ProofAttribute(schemaPersonDetails, schemaPerson.schemaAttr1,"John Smith"),
+                IndyUser.ProofAttribute(schemaEducationDetails, schemaEducation.schemaAttr1, "University")
         )
 
         val predicates = listOf(
@@ -271,7 +270,7 @@ class MockCordaAsTransportTest {
         val schemaDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
 
         val attributes = listOf(
-                IndyUser.ProofAttribute(schemaDetails, schemaPerson.schemaAttr1))
+                IndyUser.ProofAttribute(schemaDetails, schemaPerson.schemaAttr1, "John Smith"))
 
         val predicates = listOf(
                 // -10 to check >=
@@ -309,8 +308,8 @@ class MockCordaAsTransportTest {
         val schemaEducationDetails = IndyUser.SchemaDetails(schemaEducation.getSchemaName(), schemaEducation.getSchemaVersion(), schemaOwner)
 
         val attributes = listOf(
-                IndyUser.ProofAttribute(schemaPersonDetails, schemaPerson.schemaAttr1),
-                IndyUser.ProofAttribute(schemaEducationDetails,  schemaPerson.schemaAttr1)
+                IndyUser.ProofAttribute(schemaPersonDetails, schemaPerson.schemaAttr1, "John Smith"),
+                IndyUser.ProofAttribute(schemaEducationDetails,  schemaEducation.schemaAttr1, "University")
         )
 
         val predicates = listOf(
