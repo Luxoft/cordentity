@@ -5,7 +5,7 @@ import net.corda.core.contracts.Contract
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.LedgerTransaction
 
-class ClaimVerification : Contract {
+class ClaimChecker : Contract {
 
     @CordaSerializable
     data class ExpectedAttr<N, V:Any>(val name: N, val value: V)

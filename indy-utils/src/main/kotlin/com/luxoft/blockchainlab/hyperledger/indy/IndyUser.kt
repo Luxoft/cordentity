@@ -196,7 +196,7 @@ open class IndyUser {
 
     fun createClaimOffer(proverDid: String, schemaDetails: SchemaDetails): ClaimOffer {
         val schema = getSchema(schemaDetails)
-        return ClaimOffer(Anoncreds.issuerCreateClaimOffer(wallet, schema.json, did, proverDid).get())
+        return ClaimOffer(Anoncreds.issuerCreateClaimOffer(wallet, schema.json, did, proverDid).get(), proverDid)
     }
 
     fun receiveClaimOffer(claimOffer: ClaimOffer)  {
@@ -212,13 +212,13 @@ open class IndyUser {
                 wallet, sessionDid, claimOffer.json, claimDef.json, masterSecret).get())
     }
 
-    fun issueClaim(claimReq: String, claim: String, revokIdx: Int): Claim {
-        val createClaimResult = Anoncreds.issuerCreateClaim(wallet, claimReq, claim, revokIdx).get()
+    fun issueClaim(claimReq: ClaimReq, proposal: String, revokIdx: Int): Claim {
+        val createClaimResult = Anoncreds.issuerCreateClaim(wallet, claimReq.json, proposal, revokIdx).get()
         return Claim(createClaimResult.claimJson)
     }
 
-    fun issueClaim(claimReq: String, claim: String): Claim {
-        return issueClaim(claimReq, claim, -1)
+    fun issueClaim(claimReq: ClaimReq, proposal: String): Claim {
+        return issueClaim(claimReq, proposal, -1)
     }
 
     fun receiveClaim(claim: Claim)  {
@@ -413,7 +413,7 @@ open class IndyUser {
         val claimOffersObject = JSONArray(claimOffersJson)
 
         val claimOfferObject = claimOffersObject.getJSONObject(0)
-        return ClaimOffer(claimOfferObject.toString())
+        return ClaimOffer(claimOfferObject.toString(), did)
     }
 
     companion object {

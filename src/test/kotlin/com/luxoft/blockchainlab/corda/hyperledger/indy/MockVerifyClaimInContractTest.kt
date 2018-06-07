@@ -130,14 +130,16 @@ class MockVerifyClaimInContractTest {
 
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
 
-        val schemaDetails = IndyUser.SchemaDetails(schema.getSchemaName(), schema.getSchemaVersion(), schemaOwnerDid)
-        val claimFuture = claimProver.services.startFlow(
-                IssueClaimFlow.Prover(
+        val schemaDetails = IndyUser.SchemaDetails(
+                schema.getSchemaName(),
+                schema.getSchemaVersion(),
+                schemaOwnerDid)
+
+        val claimFuture = claimIssuer.services.startFlow(
+                IssueClaimFlow.Issuer(
                         schemaDetails,
                         claimProposal,
-                        // TODO: Master Secret should be used from the outside
-                        schemaOwner.services.cordaService(IndyService::class.java).indyUser.masterSecret,
-                        claimIssuer.info.singleIdentity().name)
+                        claimProver.info.singleIdentity().name)
         ).resultFuture
 
         net.runNetwork()

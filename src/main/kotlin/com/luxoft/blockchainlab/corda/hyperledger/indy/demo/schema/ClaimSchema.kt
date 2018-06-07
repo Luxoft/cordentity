@@ -45,8 +45,8 @@ class SchemaEducation: Schema {
 
     private val schemaName = "schema_education"
     private val schemaVersion = "1.0"
-    val schemaAttr1 = "attr1"
-    val schemaAttr2 = "attr2"
+    val schemaAttr1 = "attrX"
+    val schemaAttr2 = "attrY"
 
     private val schemaProposal = "{" +
             "\"${schemaAttr1}\":[\"%s\",\"%s\"]," +

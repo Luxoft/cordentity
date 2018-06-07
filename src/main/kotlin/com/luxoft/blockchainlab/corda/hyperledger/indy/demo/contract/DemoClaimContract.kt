@@ -1,7 +1,7 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.demo.contract
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.ClaimProof
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.Claim
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
 import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.state.SimpleStringState
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.contracts.*
@@ -16,11 +16,11 @@ class DemoClaimContract : Contract {
 
             requireThat {
 
-                val claimStates = tx.outputsOfType<ClaimProof>()
+                val claimStates = tx.outputsOfType<IndyClaimProof>()
 
                 claimStates.forEach( {claimProof ->
                     "All of the participants must be signers." using (command.signers.containsAll(claimProof.participants.map { it.owningKey }))
-                    "Claim should be verified." using (IndyUser.verifyProof(claimProof.proofReq, claimProof.proof))
+                    "IndyClaim should be verified." using (IndyUser.verifyProof(claimProof.proofReq, claimProof.proof))
 
                     // I got lucky
                     assert(tx.outputsOfType<SimpleStringState>().filter { it.data == "moi-moi-moi" }.size == 1)
@@ -37,7 +37,7 @@ class DemoClaimContract : Contract {
 
             requireThat {
 
-                val claimStates = tx.outputsOfType<Claim>()
+                val claimStates = tx.outputsOfType<IndyClaim>()
 
                 claimStates.forEach( {claim ->
                     "All of the participants must be signers." using (command.signers.containsAll(claim.participants.map { it.owningKey }))

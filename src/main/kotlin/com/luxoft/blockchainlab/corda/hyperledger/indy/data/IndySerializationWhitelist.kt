@@ -8,6 +8,7 @@ class IndySerializationWhitelist : SerializationWhitelist {
         get() = listOf(
                 com.luxoft.blockchainlab.hyperledger.indy.model.Did::class.java,
                 com.luxoft.blockchainlab.hyperledger.indy.model.ClaimOffer::class.java,
+                com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq::class.java,
                 com.luxoft.blockchainlab.hyperledger.indy.model.Claim::class.java,
                 com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq::class.java,
                 com.luxoft.blockchainlab.hyperledger.indy.model.Proof::class.java

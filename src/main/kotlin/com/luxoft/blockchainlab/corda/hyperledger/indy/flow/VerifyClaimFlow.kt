@@ -1,8 +1,8 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.ClaimProof
-import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimVerification
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
+import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.luxoft.blockchainlab.hyperledger.indy.model.Proof
 import com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq
@@ -33,15 +33,15 @@ object VerifyClaimFlow {
             val proofRequest = indyUser().createProofReq(attributes, predicates)
 
             val verifyClaimOut = flowSession.sendAndReceive<Proof>(proofRequest).unwrap { proof ->
-                val claimProofOut = ClaimProof(proofRequest, proof, listOf(ourIdentity, prover))
-                StateAndContract(claimProofOut, ClaimVerification::class.java.name)
+                val claimProofOut = IndyClaimProof(proofRequest, proof, listOf(ourIdentity, prover))
+                StateAndContract(claimProofOut, ClaimChecker::class.java.name)
             }
 
             val expectedAttrs = attributes.associateBy({ it.field }, {it.value}).map {
-                ClaimVerification.ExpectedAttr(it.key, it.value)
+                ClaimChecker.ExpectedAttr(it.key, it.value)
             }
 
-            val verifyClaimData = ClaimVerification.Commands.Verify(expectedAttrs)
+            val verifyClaimData = ClaimChecker.Commands.Verify(expectedAttrs)
             val verifyClaimSigners = listOf(ourIdentity.owningKey, prover.owningKey)
 
             val verifyClaimCmd = Command(verifyClaimData, verifyClaimSigners)

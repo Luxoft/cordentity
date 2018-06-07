@@ -2,6 +2,7 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.service
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
+import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
 import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
 import com.natpryce.konfig.*
 import net.corda.core.node.AppServiceHub
@@ -61,7 +62,7 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
          * e.g. age of counterparty is really 21 in your trusted database
          * @return true if attribute values are ok and Issuer can sign claim
          */
-        fun verifyRequestedClaimAttributes(claimRequest: IssueClaimFlow.IndyClaimRequest): Boolean {
+        fun verifyRequestedClaimAttributes(claimRequest: ClaimReq): Boolean {
             // do nothing in default implementation
             return true
         }

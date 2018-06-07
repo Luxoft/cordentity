@@ -1,7 +1,7 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.demo.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.ClaimProof
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
 import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.contract.DemoClaimContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.indyUser
 import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.SchemaHappiness
@@ -45,7 +45,7 @@ object VerifyClaimInContractDemoFlow {
                 val proofRequest = indyUser().createProofReq(attributes, predicates)
                 val proof = flowSession.sendAndReceive<Proof>(proofRequest).unwrap { it }
 
-                val claimProofInput = StateAndContract(ClaimProof(proofRequest, proof, listOf(ourIdentity, otherSide)), DemoClaimContract::class.java.name)
+                val claimProofInput = StateAndContract(IndyClaimProof(proofRequest, proof, listOf(ourIdentity, otherSide)), DemoClaimContract::class.java.name)
                 val kissState = StateAndContract(SimpleStringState("moi-moi-moi", otherSide), DemoClaimContract::class.java.name)
                 val drinkState = StateAndContract(SimpleStringState("gulp", otherSide), DemoClaimContract::class.java.name)
 

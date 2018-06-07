@@ -66,7 +66,7 @@ class MockCordaAsTransportTest {
         parties.forEach {
             it.registerInitiatedFlow(AssignPermissionsFlow.Authority::class.java)
             it.registerInitiatedFlow(CreatePairwiseFlow.Issuer::class.java)
-            it.registerInitiatedFlow(IssueClaimFlow.Issuer::class.java)
+            it.registerInitiatedFlow(IssueClaimFlow.Prover::class.java)
             it.registerInitiatedFlow(VerifyClaimFlow.Prover::class.java)
         }
 //        net.registerIdentities()
@@ -141,16 +141,17 @@ class MockCordaAsTransportTest {
                            schema: Schema) {
 
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
-        val claimIssuer = claimIssuer.info.singleIdentity().name
 
-        val schemaDetails = IndyUser.SchemaDetails(schema.getSchemaName(), schema.getSchemaVersion(), schemaOwnerDid)
-        val claimFuture = claimProver.services.startFlow(
-                IssueClaimFlow.Prover(
+        val schemaDetails = IndyUser.SchemaDetails(
+                schema.getSchemaName(),
+                schema.getSchemaVersion(),
+                schemaOwnerDid)
+
+        val claimFuture = claimIssuer.services.startFlow(
+                IssueClaimFlow.Issuer(
                         schemaDetails,
                         claimProposal,
-                        // TODO: Master Secret should be used from the outside
-                        schemaOwner.services.cordaService(IndyService::class.java).indyUser.masterSecret,
-                        claimIssuer)
+                        claimProver.info.singleIdentity().name)
         ).resultFuture
 
         net.runNetwork()

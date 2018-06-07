@@ -8,9 +8,9 @@ import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
 
-open class ClaimProof(val proofReq: ProofReq,
-                      val proof: Proof,
-                      override val participants: List<AbstractParty>): QueryableState {
+open class IndyClaimProof(val proofReq: ProofReq,
+                          val proof: Proof,
+                          override val participants: List<AbstractParty>): QueryableState {
 
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
         return when(schema) {

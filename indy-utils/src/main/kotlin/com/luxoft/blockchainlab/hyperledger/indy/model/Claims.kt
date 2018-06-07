@@ -33,7 +33,7 @@ data class ClaimDef(val json: String) {
     }
 }
 
-data class ClaimOffer(val json: String) {
+data class ClaimOffer(val json: String, val proverDid: String) {
     val issuerDid = JSONObject(json).get("issuer_did").toString()
     val schemaKey = JSONObject(json).get("schema_key").toString()
 }
