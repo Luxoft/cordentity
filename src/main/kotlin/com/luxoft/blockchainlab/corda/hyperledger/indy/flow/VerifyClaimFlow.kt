@@ -23,41 +23,49 @@ object VerifyClaimFlow {
             private val attributes: List<IndyUser.ProofAttribute>,
             private val predicates: List<IndyUser.ProofPredicate>,
             private val proverName: CordaX500Name
-    ) : FlowLogic<Unit>() {
+    ) : FlowLogic<Boolean>() {
 
         @Suspendable
-        override fun call() {
-            val prover: Party = whoIs(proverName)
-            val flowSession: FlowSession = initiateFlow(prover)
+        override fun call(): Boolean  {
+            try {
+                val prover: Party = whoIs(proverName)
+                val flowSession: FlowSession = initiateFlow(prover)
 
-            val proofRequest = indyUser().createProofReq(attributes, predicates)
+                val proofRequest = indyUser().createProofReq(attributes, predicates)
 
-            val verifyClaimOut = flowSession.sendAndReceive<Proof>(proofRequest).unwrap { proof ->
-                val claimProofOut = IndyClaimProof(proofRequest, proof, listOf(ourIdentity, prover))
-                StateAndContract(claimProofOut, ClaimChecker::class.java.name)
+                val verifyClaimOut = flowSession.sendAndReceive<Proof>(proofRequest).unwrap { proof ->
+                    val claimProofOut = IndyClaimProof(proofRequest, proof, listOf(ourIdentity, prover))
+                    StateAndContract(claimProofOut, ClaimChecker::class.java.name)
+                }
+
+                val expectedAttrs = attributes.associateBy({ it.field }, { it.value }).map {
+                    ClaimChecker.ExpectedAttr(it.key, it.value)
+                }
+
+                val verifyClaimData = ClaimChecker.Commands.Verify(expectedAttrs)
+                val verifyClaimSigners = listOf(ourIdentity.owningKey, prover.owningKey)
+
+                val verifyClaimCmd = Command(verifyClaimData, verifyClaimSigners)
+
+                val trxBuilder = TransactionBuilder(whoIsNotary())
+                        .withItems(verifyClaimOut, verifyClaimCmd)
+
+                trxBuilder.toWireTransaction(serviceHub)
+                        .toLedgerTransaction(serviceHub)
+                        .verify()
+
+                val selfSignedTx = serviceHub.signInitialTransaction(trxBuilder)
+                val signedTrx = subFlow(CollectSignaturesFlow(selfSignedTx, listOf(flowSession)))
+
+                // Notarise and record the transaction in both parties' vaults.
+                subFlow(FinalityFlow(signedTrx))
+
+                return true
+
+            } catch (e: Exception) {
+                logger.error("", e)
+                return false
             }
-
-            val expectedAttrs = attributes.associateBy({ it.field }, {it.value}).map {
-                ClaimChecker.ExpectedAttr(it.key, it.value)
-            }
-
-            val verifyClaimData = ClaimChecker.Commands.Verify(expectedAttrs)
-            val verifyClaimSigners = listOf(ourIdentity.owningKey, prover.owningKey)
-
-            val verifyClaimCmd = Command(verifyClaimData, verifyClaimSigners)
-
-            val trxBuilder = TransactionBuilder(whoIsNotary())
-                    .withItems(verifyClaimOut, verifyClaimCmd)
-
-            trxBuilder.toWireTransaction(serviceHub)
-                    .toLedgerTransaction(serviceHub)
-                    .verify()
-
-            val selfSignedTx = serviceHub.signInitialTransaction(trxBuilder)
-            val signedTrx = subFlow(CollectSignaturesFlow(selfSignedTx, listOf(flowSession)))
-
-            // Notarise and record the transaction in both parties' vaults.
-            subFlow(FinalityFlow(signedTrx))
         }
     }
 

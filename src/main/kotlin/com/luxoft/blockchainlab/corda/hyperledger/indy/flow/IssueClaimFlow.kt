@@ -4,11 +4,9 @@ import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
-import com.luxoft.blockchainlab.hyperledger.indy.model.Claim
 import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimOffer
 import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
 import net.corda.core.contracts.Command
-import net.corda.core.contracts.ContractState
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
 import net.corda.core.identity.CordaX500Name

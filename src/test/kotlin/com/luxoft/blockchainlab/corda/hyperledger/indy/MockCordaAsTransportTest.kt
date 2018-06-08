@@ -171,13 +171,11 @@ class MockCordaAsTransportTest {
                         prover.info.singleIdentity().name)).resultFuture
 
         net.runNetwork()
-        proofCheckResultFuture.getOrThrow(Duration.ofSeconds(30))
+        assertion(proofCheckResultFuture.getOrThrow(Duration.ofSeconds(30)))
     }
 
-    private fun multipleClaimsByDiffIssuers(schema1AttrInt: String,
-                                            schema2AttrInt: String,
-                                            valueToProofSchema1AttrInt: String,
-                                            valueToProofSchema2AttrInt: String,
+    private fun multipleClaimsByDiffIssuers(attrs: Map<String, String>,
+                                            preds: Map<String, String>,
                                             assertion: (actual: Boolean) -> Unit) {
 
         // Request permissions from trustee to write on ledger
@@ -192,13 +190,13 @@ class MockCordaAsTransportTest {
 
         // Issue claim #1
         var claimProposal = String.format(schemaPerson.getSchemaProposal(),
-                "John Smith", "119191919", schema1AttrInt, schema1AttrInt)
+                attrs.map{ it.key }[0], "119191919", preds.map{ it.key }[0], preds.map{ it.key }[0])
 
         issueClaim(alice, issuer, issuer, claimProposal, schemaPerson)
 
         // Issue claim #2
         claimProposal = String.format(schemaEducation.getSchemaProposal(),
-                "University", "119191918", schema2AttrInt, schema2AttrInt)
+                attrs.map{ it.key }[1], "119191918", preds.map{ it.key }[1], preds.map{ it.key }[1])
 
         issueClaim(alice, bob, issuer, claimProposal, schemaEducation)
 
@@ -208,47 +206,52 @@ class MockCordaAsTransportTest {
         val schemaEducationDetails = IndyUser.SchemaDetails(schemaEducation.getSchemaName(), schemaEducation.getSchemaVersion(), schemaOwner)
 
         val attributes = listOf(
-                IndyUser.ProofAttribute(schemaPersonDetails, schemaPerson.schemaAttr1,"John Smith"),
-                IndyUser.ProofAttribute(schemaEducationDetails, schemaEducation.schemaAttr1, "University")
+                IndyUser.ProofAttribute(schemaPersonDetails, schemaPerson.schemaAttr1, attrs.map{ it.value }[0]),
+                IndyUser.ProofAttribute(schemaEducationDetails, schemaEducation.schemaAttr1, attrs.map{ it.value }[1])
         )
 
         val predicates = listOf(
-                IndyUser.ProofPredicate(schemaPersonDetails, schemaPerson.schemaAttr2, valueToProofSchema1AttrInt.toInt()),
-                IndyUser.ProofPredicate(schemaEducationDetails, schemaEducation.schemaAttr2, valueToProofSchema2AttrInt.toInt()))
+                IndyUser.ProofPredicate(schemaPersonDetails, schemaPerson.schemaAttr2,  preds.map{ it.value }[0].toInt()),
+                IndyUser.ProofPredicate(schemaEducationDetails, schemaEducation.schemaAttr2, preds.map{ it.value }[1].toInt())
+        )
 
         verifyClaim(bob, alice, attributes, predicates, assertion)
     }
 
     @Test
     fun validMultipleClaimsByDiffIssuers() {
+        val attributes = mapOf(
+                "John Smith" to "John Smith",
+                "University" to "University")
+        val predicates = mapOf(
+                "1988" to "1978",
+                "2016" to "2006")
 
-        val schema1AttrInt = "1988"
-        val valueToCheckSchema1AttrInt = "1978"
-        val schema2AttrInt = "2016"
-        val valueToCheckSchema2AttrInt = "2006"
-
-        multipleClaimsByDiffIssuers(
-                schema1AttrInt,
-                schema2AttrInt,
-                valueToCheckSchema1AttrInt,
-                valueToCheckSchema2AttrInt,
-                { res -> assertTrue(res) })
+        multipleClaimsByDiffIssuers(attributes, predicates, { res -> assertTrue(res) })
     }
 
     @Test
-    fun invalidMultipleClaimsByDiffIssuers() {
+    fun `invalid predicates of multiple claims issued by diff authorities`() {
+        val attributes = mapOf(
+                "John Smith" to "John Smith",
+                "University" to "University")
+        val predicates = mapOf(
+                "1988" to "1978",
+                "2016" to "2026")
 
-        val schema1AttrInt = "1988"
-        val valueToCheckSchema1AttrInt = "1978"
-        val schema2AttrInt = "2016"
-        val valueToCheckSchema2AttrInt = "2026"
+        multipleClaimsByDiffIssuers(attributes, predicates, { res -> assertFalse(res) })
+    }
 
-        multipleClaimsByDiffIssuers(
-                schema1AttrInt,
-                schema2AttrInt,
-                valueToCheckSchema1AttrInt,
-                valueToCheckSchema2AttrInt,
-                { res -> assertFalse(res) })
+    @Test
+    fun `invalid attributes of multiple claims issued by diff authorities`() {
+        val attributes = mapOf(
+                "John Smith" to "Vanga",
+                "University" to "University")
+        val predicates = mapOf(
+                "1988" to "1978",
+                "2016" to "2006")
+
+        multipleClaimsByDiffIssuers(attributes, predicates, { res -> assertFalse(res) })
     }
 
     @Test

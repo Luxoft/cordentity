@@ -1,5 +1,6 @@
 package com.luxoft.blockchainlab.hyperledger.indy.model
 
+import org.json.JSONArray
 import org.json.JSONObject
 
 data class Did(val json: String)
@@ -71,4 +72,19 @@ data class ProofReq(val json: String) {
     }
 }
 
-data class Proof(val json: String, val usedSchemas: String, val usedClaimDefs: String)
+data class Proof(val json: String, val usedSchemas: String, val usedClaimDefs: String) {
+
+    private val revealedAttrs = JSONObject(json)
+            .getJSONObject("requested_proof")
+            .getJSONObject("revealed_attrs")
+            .toString()
+
+    fun isAttributeExist(attr: String): Boolean {
+        val attrs = JSONObject(revealedAttrs)
+        val keys = attrs.keySet()
+
+        return keys.map { attrs.get(it.toString()) as JSONArray }
+                .associateBy { it.get(1) }
+                .containsKey(attr)
+    }
+}
