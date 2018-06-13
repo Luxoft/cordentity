@@ -32,7 +32,7 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
 
     init {
         val walletName = try { config[indyuser.walletName] } catch (e: Exception) { services.myInfo.legalIdentities.first().name.organisation }
-        
+
         try {
             Wallet.createWallet(POOL_NAME, walletName, "default", null, null).get()
         } catch (ex: Exception) {

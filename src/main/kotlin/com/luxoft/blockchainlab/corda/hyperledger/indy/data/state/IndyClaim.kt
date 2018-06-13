@@ -1,6 +1,5 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.data.state
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.ClaimProofSchemaV1
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.ClaimSchemaV1
 import com.luxoft.blockchainlab.hyperledger.indy.model.Claim
 import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
@@ -20,13 +19,13 @@ open class IndyClaim(val claimReq: ClaimReq,
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
         return when(schema) {
             is ClaimSchemaV1 -> ClaimSchemaV1.PersistentClaim(
-                    claimPlainText = claim.json,
-                    issuerDid = claim.issuerDid,
-                    schemaKey = claim.schemaKey
+                    claimReq = claimReq.json,
+                    claim = claim.json,
+                    issuerDid = claim.issuerDid
             )
             else ->  throw IllegalArgumentException("Unrecognised schema $schema")
         }
     }
 
-    override fun supportedSchemas(): Iterable<MappedSchema> = listOf(ClaimProofSchemaV1)
+    override fun supportedSchemas(): Iterable<MappedSchema> = listOf(ClaimSchemaV1)
 }

@@ -10,17 +10,23 @@ import javax.persistence.Table
 object ClaimSchema
 
 object ClaimSchemaV1 : MappedSchema(
-        schemaFamily = ClaimSchema.javaClass,
         version = 1,
+        schemaFamily = ClaimSchema.javaClass,
         mappedTypes = listOf(PersistentClaim::class.java)) {
 
     @Entity
     @Table(name = "claims")
     class PersistentClaim(
-            @Column var claimPlainText: String = "",
+
+            @Column(name = "claimReq", length = 200000)
+            var claimReq: String,
+
+            @Column(name = "claim", length = 200000)
+            var claim: String,
 
             // IssuerDid and Schema are contained in plainText but desirable for better search
-            @Column var issuerDid: String = "",
-            @Column var schemaKey: String = ""
+            @Column
+            var issuerDid: String
+
     ) : PersistentState()
 }
