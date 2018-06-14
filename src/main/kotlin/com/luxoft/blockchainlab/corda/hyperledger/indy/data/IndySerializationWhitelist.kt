@@ -11,6 +11,7 @@ class IndySerializationWhitelist : SerializationWhitelist {
                 com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq::class.java,
                 com.luxoft.blockchainlab.hyperledger.indy.model.Claim::class.java,
                 com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq::class.java,
-                com.luxoft.blockchainlab.hyperledger.indy.model.Proof::class.java
+                com.luxoft.blockchainlab.hyperledger.indy.model.Proof::class.java,
+                com.luxoft.blockchainlab.hyperledger.indy.IndyUser.SchemaDetails::class.java
         )
 }

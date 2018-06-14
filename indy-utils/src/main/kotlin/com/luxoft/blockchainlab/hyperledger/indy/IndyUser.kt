@@ -23,6 +23,8 @@ open class IndyUser {
 
         var schemaKey: String = ""
 
+        constructor()
+
         constructor(schemaKey: String) {
             this.schemaKey = schemaKey
         }

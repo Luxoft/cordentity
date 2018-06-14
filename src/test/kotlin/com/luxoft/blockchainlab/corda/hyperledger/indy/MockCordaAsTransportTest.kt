@@ -2,9 +2,6 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy
 
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
-import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.Schema
-import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.SchemaEducation
-import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.SchemaPerson
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.natpryce.konfig.Configuration
