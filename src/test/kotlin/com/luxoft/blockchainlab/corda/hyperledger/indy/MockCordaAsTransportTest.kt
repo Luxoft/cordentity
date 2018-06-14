@@ -19,6 +19,7 @@ import net.corda.testing.core.singleIdentity
 import net.corda.testing.node.internal.startFlow
 import org.junit.*
 import java.time.Duration
+import java.util.*
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -139,6 +140,7 @@ class MockCordaAsTransportTest {
                            schemaOwner: StartedNode<MockNode>,
                            claimProposal: String,
                            schema: Schema) {
+        val identifier = UUID.randomUUID().toString()
 
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
 
@@ -149,6 +151,7 @@ class MockCordaAsTransportTest {
 
         val claimFuture = claimIssuer.services.startFlow(
                 IssueClaimFlow.Issuer(
+                        identifier,
                         schemaDetails,
                         claimProposal,
                         claimProver.info.singleIdentity().name)
@@ -163,9 +166,11 @@ class MockCordaAsTransportTest {
                             attributes: List<IndyUser.ProofAttribute>,
                             predicates: List<IndyUser.ProofPredicate>,
                             assertion: (actual: Boolean) -> Unit) {
+        val identifier = UUID.randomUUID().toString()
 
         val proofCheckResultFuture = verifier.services.startFlow(
                 VerifyClaimFlow.Verifier(
+                        identifier,
                         attributes,
                         predicates,
                         prover.info.singleIdentity().name)).resultFuture

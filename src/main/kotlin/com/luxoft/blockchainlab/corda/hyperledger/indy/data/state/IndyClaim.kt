@@ -10,7 +10,8 @@ import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
 
-open class IndyClaim(val claimReq: ClaimReq,
+open class IndyClaim(val id: String,
+                     val claimReq: ClaimReq,
                      val claim: Claim,
                      override val participants: List<AbstractParty>): LinearState, QueryableState {
 
@@ -19,6 +20,7 @@ open class IndyClaim(val claimReq: ClaimReq,
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
         return when(schema) {
             is ClaimSchemaV1 -> ClaimSchemaV1.PersistentClaim(
+                    id = id,
                     claimReq = claimReq.json,
                     claim = claim.json,
                     issuerDid = claim.issuerDid

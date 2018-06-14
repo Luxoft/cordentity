@@ -18,6 +18,7 @@ import net.corda.testing.node.internal.InternalMockNetwork
 import net.corda.testing.node.internal.startFlow
 import org.junit.*
 import java.time.Duration
+import java.util.*
 import kotlin.test.fail
 
 
@@ -127,6 +128,7 @@ class MockVerifyClaimInContractTest {
                            schemaOwner: StartedNode<InternalMockNetwork.MockNode>,
                            claimProposal: String,
                            schema: Schema) {
+        val identifier = UUID.randomUUID().toString()
 
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
 
@@ -137,6 +139,7 @@ class MockVerifyClaimInContractTest {
 
         val claimFuture = claimIssuer.services.startFlow(
                 IssueClaimFlow.Issuer(
+                        identifier,
                         schemaDetails,
                         claimProposal,
                         claimProver.info.singleIdentity().name)

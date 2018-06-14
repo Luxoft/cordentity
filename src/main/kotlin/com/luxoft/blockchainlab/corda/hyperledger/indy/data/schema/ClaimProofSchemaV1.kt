@@ -18,12 +18,13 @@ object ClaimProofSchemaV1 : MappedSchema(
     @Entity
     @Table(name = "claim_proofs")
     class ClaimProofRecord (
+            @Column(name = "id")
+            val id: String,
 
-        @Column(name = "proofReq", length = 200000)
-        var proofReq: String,
+            @Column(name = "proofReq", length = 200000)
+            var proofReq: String,
 
-        @Column(name = "proof", length = 200000)
-        var proof: String
-
+            @Column(name = "proof", length = 200000)
+            var proof: String
     ) : PersistentState()
 }

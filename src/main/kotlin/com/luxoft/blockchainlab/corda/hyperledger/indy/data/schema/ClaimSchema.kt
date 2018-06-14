@@ -18,6 +18,9 @@ object ClaimSchemaV1 : MappedSchema(
     @Table(name = "claims")
     class PersistentClaim(
 
+            @Column(name = "id")
+            var id: String,
+
             @Column(name = "claimReq", length = 200000)
             var claimReq: String,
 

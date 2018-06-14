@@ -8,6 +8,7 @@ import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimOffer
 import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
+import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.flows.*
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
@@ -19,7 +20,8 @@ object IssueClaimFlow {
 
     @InitiatingFlow
     @StartableByRPC
-    open class Issuer(private val schema: IndyUser.SchemaDetails,
+    open class Issuer(private val identifier: String,
+                      private val schema: IndyUser.SchemaDetails,
                       private val proposal: String,
                       private val proverName: CordaX500Name) : FlowLogic<Unit>() {
 
@@ -36,7 +38,7 @@ object IssueClaimFlow {
                 val newClaimOut = flowSession.sendAndReceive<ClaimReq>(offer).unwrap { claimReq ->
                     verifyClaimAttributeValues(claimReq)
                     val claim = indyUser().issueClaim(claimReq, proposal)
-                    val claimOut = IndyClaim(claimReq, claim, listOf(prover))
+                    val claimOut = IndyClaim(identifier, claimReq, claim, listOf(prover))
                     StateAndContract(claimOut, ClaimChecker::class.java.name)
                 }
 
