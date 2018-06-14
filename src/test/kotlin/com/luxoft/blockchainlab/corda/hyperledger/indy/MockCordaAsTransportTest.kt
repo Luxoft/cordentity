@@ -323,4 +323,30 @@ class MockCordaAsTransportTest {
 
         verifyClaim(bob, alice, attributes, predicates, { res -> assertTrue(res) })
     }
+
+    @Test
+    fun `empty Predicates on verification for single issued claim`() {
+
+        val schemaPerson = SchemaPerson()
+
+        // Verify ClaimSchema & Defs
+        issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+
+        // Issue claim
+        val schemaAttrInt = "1988"
+        val claimProposal = String.format(schemaPerson.getSchemaProposal(),
+                "John Smith", "119191919", schemaAttrInt, schemaAttrInt)
+
+        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson)
+
+        // Verify claim
+        val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
+        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
+
+        val attributes = listOf(
+                IndyUser.ProofAttribute(schemaDetails, schemaPerson.schemaAttr1, "John Smith")
+        )
+
+        verifyClaim(bob, alice, attributes, emptyList(), { res -> assertTrue(res) })
+    }
 }

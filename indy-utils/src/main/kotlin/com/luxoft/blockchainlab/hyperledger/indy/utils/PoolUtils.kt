@@ -1,6 +1,6 @@
 package com.luxoft.blockchainlab.hyperledger.indy.utils
 
-import org.apache.commons.io.FileUtils
+//import org.apache.commons.io.FileUtils
 import org.hyperledger.indy.sdk.IndyException
 import org.hyperledger.indy.sdk.pool.Pool
 import org.hyperledger.indy.sdk.pool.PoolJSONParameters
@@ -9,15 +9,25 @@ import org.hyperledger.indy.sdk.pool.PoolLedgerConfigExistsException
 import java.io.File
 import java.io.FileWriter
 import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 object PoolUtils {
 
     private val DEFAULT_POOL_NAME = "default_pool"
 
 
+    private fun forceMakeDir(path: Path) {
+        if (Files.exists(path)) {
+            Files.delete(path)
+        }
+        Files.createDirectories(path.parent)
+    }
+
     @Throws(IOException::class)
     private fun createGenesisTxnFile(filename: String): File {
-        val path = EnvironmentUtils.getTmpPath(filename)
+        val path = Paths.get(EnvironmentUtils.tmpPath + filename)
         val testPoolIp = EnvironmentUtils.testPoolIP
 
         val defaultTxns = arrayOf(
@@ -27,9 +37,11 @@ object PoolUtils {
             String.format("{\"data\":{\"alias\":\"Node3\",\"blskey\":\"3WFpdbg7C5cnLYZwFZevJqhubkFALBfCBBok15GdrKMUhUjGsk3jV6QKj6MZgEubF7oqCafxNdkm7eswgA4sdKTRc82tLGzZBd6vNqU8dupzup6uYUf32KTHTPQbuUM8Yk4QFXjEf2Usu2TJcNkdgpyeUSX42u5LqdDDpNSWUK5deC5\",\"client_ip\":\"%s\",\"client_port\":9706,\"node_ip\":\"%s\",\"node_port\":9705,\"services\":[\"VALIDATOR\"]},\"dest\":\"DKVxG2fXXTU8yT5N7hGEbXB3dfdAnYv1JczDUHpmDxya\",\"identifier\":\"4cU41vWW82ArfxJxHkzXPG\",\"txnId\":\"7e9f355dffa78ed24668f0e0e369fd8c224076571c51e2ea8be5f26479edebe4\",\"type\":\"0\"}", testPoolIp, testPoolIp),
             String.format("{\"data\":{\"alias\":\"Node4\",\"blskey\":\"2zN3bHM1m4rLz54MJHYSwvqzPchYp8jkHswveCLAEJVcX6Mm1wHQD1SkPYMzUDTZvWvhuE6VNAkK3KxVeEmsanSmvjVkReDeBEMxeDaayjcZjFGPydyey1qxBHmTvAnBKoPydvuTAqx5f7YNNRAdeLmUi99gERUU7TD8KfAa6MpQ9bw\",\"client_ip\":\"%s\",\"client_port\":9708,\"node_ip\":\"%s\",\"node_port\":9707,\"services\":[\"VALIDATOR\"]},\"dest\":\"4PS3EDQ3dW1tci1Bp6543CfuuebjFrg36kLAUcskGfaA\",\"identifier\":\"TWwCRQRZ2ZHMJFn9TzLp7W\",\"txnId\":\"aa5e817d7cc626170eca175822029339a444eb0ee8f0bd20d3b0b76e566fb008\",\"type\":\"0\"}", testPoolIp, testPoolIp))
 
-        val file = File(path)
 
-        FileUtils.forceMkdirParent(file)
+        forceMakeDir(path)
+        val file = Files.createFile(path).toFile()
+
+        //FileUtils.forceMkdirParent(file)
 
         val fw = FileWriter(file)
         for (defaultTxn in defaultTxns) {
