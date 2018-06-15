@@ -184,23 +184,25 @@ open class IndyUser {
             return
 
         // 2. Create ClaimDef
-        val claimTemplate = Anoncreds.issuerCreateAndStoreClaimDef(
-                wallet, did, schema.json, SIGNATURE_TYPE, false).get()
+        val claimTemplate = Anoncreds.issuerCreateAndStoreCredentialDef(
+                wallet, did, schema.json, "tag1", SIGNATURE_TYPE, "{}").get()
 
         // 3. Publish ClaimDef to public ledfger
         val claimDef = JSONObject(claimTemplate).getJSONObject("data").toString()
-        val claimDefReq = Ledger.buildClaimDefTxn(did, schema.id.toInt(), SIGNATURE_TYPE, claimDef).get()
+        val claimDefReq = Ledger.buildCredDefRequest(did, claimDef).get()
 
         Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get()
     }
 
     fun createClaimOffer(proverDid: String, schemaDetails: SchemaDetails): ClaimOffer {
         val schema = getSchema(schemaDetails)
+        //fixme: never was??  `public int indy_issuer_create_claim_offer(int command_handle, int wallet_handle, String schema_json, String issuer_did, String prover_did, Callback cb);`
         return ClaimOffer(Anoncreds.issuerCreateClaimOffer(wallet, schema.json, did, proverDid).get(), proverDid)
     }
 
     fun receiveClaimOffer(claimOffer: ClaimOffer)  {
-        Anoncreds.proverStoreClaimOffer(wallet, claimOffer.json).get()
+        //todo: indy_prover_store_claim_offer was DELETED
+
     }
 
     fun createClaimReq(schemaDetails: SchemaDetails, issuerDid: String, sessionDid: String, masterSecret: String): ClaimReq {
@@ -208,12 +210,12 @@ open class IndyUser {
         val claimOffer = getClaimOffer(issuerDid)
 
         createMasterSecret(masterSecret)
-        return ClaimReq(Anoncreds.proverCreateAndStoreClaimReq(
-                wallet, sessionDid, claimOffer.json, claimDef.json, masterSecret).get())
+        return ClaimReq(Anoncreds.proverCreateCredentialReq(
+                wallet, sessionDid, claimOffer.json, claimDef.json, masterSecret).get().credentialRequestJson)
     }
 
     fun issueClaim(claimReq: ClaimReq, proposal: String, revokIdx: Int): Claim {
-        val createClaimResult = Anoncreds.issuerCreateClaim(wallet, claimReq.json, proposal, revokIdx).get()
+        val createClaimResult = Anoncreds.issuerCreateCredential(wallet, claimReq.json, proposal, revokIdx).get()
         return Claim(createClaimResult.claimJson)
     }
 
@@ -222,7 +224,7 @@ open class IndyUser {
     }
 
     fun receiveClaim(claim: Claim)  {
-        Anoncreds.proverStoreClaim(wallet, claim.json, null).get()
+        Anoncreds.proverStoreCredential(wallet, claim.json, null).get()
     }
 
     /**
@@ -273,7 +275,7 @@ open class IndyUser {
 
         logger.debug("proofReq = " + proofReq)
 
-        val requiredClaimsForProof = JSONObject(Anoncreds.proverGetClaimsForProofReq(wallet, proofReq.json).get())
+        val requiredClaimsForProof = JSONObject(Anoncreds.proverGetCredentialsForProofReq(wallet, proofReq.json).get())
 
         val extractClaimFor: (String, String, String?, (String, String) -> Unit) -> Unit = { fieldType, dataFilter, schemaId, generator ->
             val claims = requiredClaimsForProof.getJSONObject(fieldType)?.getJSONArray(dataFilter)?.
@@ -391,11 +393,7 @@ open class IndyUser {
     protected fun getClaimDef(schemaDetails: SchemaDetails, claimDefOwner: String): ClaimDef {
         val schema = getSchema(schemaDetails)
 
-        val claimDefReq = Ledger.buildGetClaimDefTxn(
-                schemaDetails.getOwner(),
-                schema.id.toInt(),
-                SIGNATURE_TYPE,
-                claimDefOwner).get()
+        val claimDefReq = Ledger.buildGetCredDefRequest(schemaDetails.getOwner(), schema.id).get()
 
         val claimDefRes = Ledger.submitRequest(pool, claimDefReq).get()
         return ClaimDef(JSONObject(claimDefRes).getJSONObject("result").toString())
@@ -408,6 +406,7 @@ open class IndyUser {
     private fun getClaimOffer(issuerDid: String): ClaimOffer {
 
         val claimOfferFilter = String.format("{\"issuer_did\":\"%s\"}", issuerDid)
+        // fixme: indy_prover_get_claim_offers DELETED
         val claimOffersJson = Anoncreds.proverGetClaimOffers(wallet, claimOfferFilter).get()
 
         val claimOffersObject = JSONArray(claimOffersJson)

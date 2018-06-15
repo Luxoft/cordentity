@@ -11,6 +11,7 @@ import net.corda.core.flows.FlowException
 import net.corda.core.messaging.CordaRPCOps
 import net.corda.core.utilities.NetworkHostAndPort.Companion.parse
 import org.junit.BeforeClass
+import org.junit.Ignore
 import org.junit.Test
 import java.util.concurrent.TimeUnit
 import kotlin.test.assert
@@ -18,7 +19,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
-
+@Ignore("TODO: migrate or delete")
 class RPCVerifyClaimInContractTest {
 
 

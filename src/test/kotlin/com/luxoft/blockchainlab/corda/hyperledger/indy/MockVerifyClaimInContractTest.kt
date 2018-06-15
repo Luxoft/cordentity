@@ -20,7 +20,7 @@ import org.junit.*
 import java.time.Duration
 import kotlin.test.fail
 
-
+@Ignore("TODO: migrate or delete")
 class MockVerifyClaimInContractTest {
 
     private lateinit var net: InternalMockNetwork
