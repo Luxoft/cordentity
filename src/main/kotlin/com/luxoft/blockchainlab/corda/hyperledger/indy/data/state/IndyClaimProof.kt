@@ -18,9 +18,7 @@ open class IndyClaimProof(val id: String,
 
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
         return when(schema) {
-            is ClaimProofSchemaV1 -> ClaimProofSchemaV1.PersistentClaim(
-                    id = id
-            )
+            is ClaimProofSchemaV1 -> ClaimProofSchemaV1.PersistentClaim(this)
             else ->  throw IllegalArgumentException("Unrecognised schema $schema")
         }
     }

@@ -1,5 +1,6 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema
 
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
 import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import net.corda.core.serialization.CordaSerializable
@@ -17,12 +18,13 @@ object ClaimSchemaV1 : MappedSchema(
     @Entity
     @Table(name = "claims")
     class PersistentClaim(
-
             @Column(name = "id")
             var id: String,
-
             @Column(name = "issuerDid")
             var issuerDid: String
 
-    ) : PersistentState()
+    ) : PersistentState() {
+        constructor(indyClaim: IndyClaim): this(indyClaim.id, indyClaim.claim.issuerDid)
+        constructor(): this("","")
+    }
 }
