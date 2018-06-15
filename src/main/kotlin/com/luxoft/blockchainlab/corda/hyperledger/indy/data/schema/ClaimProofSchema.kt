@@ -13,18 +13,12 @@ object ClaimProofSchema
 object ClaimProofSchemaV1 : MappedSchema(
         version = 1,
         schemaFamily = ClaimProofSchema.javaClass,
-        mappedTypes = listOf(ClaimProofRecord::class.java)) {
+        mappedTypes = listOf(PersistentClaim::class.java)) {
 
     @Entity
-    @Table(name = "claim_proofs")
-    class ClaimProofRecord (
+    @Table(name = "proofs")
+    class PersistentClaim(
             @Column(name = "id")
-            val id: String,
-
-            @Column(name = "proofReq", length = 200000)
-            var proofReq: String,
-
-            @Column(name = "proof", length = 200000)
-            var proof: String
+            val id: String
     ) : PersistentState()
 }

@@ -172,7 +172,7 @@ publishing {
         }
     }
     publications {
-        shadowJar(MavenPublication) {
+        mavenJava(MavenPublication) {
             from components.java
         }
     }
