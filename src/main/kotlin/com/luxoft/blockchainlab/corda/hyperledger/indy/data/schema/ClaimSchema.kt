@@ -21,14 +21,7 @@ object ClaimSchemaV1 : MappedSchema(
             @Column(name = "id")
             var id: String,
 
-            @Column(name = "claimReq", length = 200000)
-            var claimReq: String,
-
-            @Column(name = "claim", length = 200000)
-            var claim: String,
-
-            // IssuerDid and Schema are contained in plainText but desirable for better search
-            @Column
+            @Column(name = "issuerDid")
             var issuerDid: String
 
     ) : PersistentState()

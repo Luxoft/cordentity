@@ -21,8 +21,6 @@ open class IndyClaim(val id: String,
         return when(schema) {
             is ClaimSchemaV1 -> ClaimSchemaV1.PersistentClaim(
                     id = id,
-                    claimReq = claimReq.json,
-                    claim = claim.json,
                     issuerDid = claim.issuerDid
             )
             else ->  throw IllegalArgumentException("Unrecognised schema $schema")
