@@ -41,7 +41,7 @@ object VerifyClaimFlow {
                 }
 
                 val expectedAttrs = attributes
-                        .filter { it.value.isEmpty() }
+                        .filter { it.value.isNotEmpty() }
                         .associateBy({ it.field }, { it.value })
                         .map { ClaimChecker.ExpectedAttr(it.key, it.value) }
 
