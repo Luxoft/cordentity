@@ -87,4 +87,12 @@ data class Proof(val json: String, val usedSchemas: String, val usedClaimDefs: S
                 .associateBy { it.get(1) }
                 .containsKey(attr)
     }
+
+    fun getAttributeValue(attr: String): String? {
+        val attrs = JSONObject(revealedAttrs)
+        val keys = attrs.keySet()
+
+        return keys.map { attrs.get(it.toString()) as JSONArray }
+                .associateBy { it.get(1) }.get(attr)?.get(1).toString()
+    }
 }

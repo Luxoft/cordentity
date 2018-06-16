@@ -31,14 +31,12 @@ object IssueClaimFlow {
             val flowSession: FlowSession = initiateFlow(prover)
 
             try {
-                logger.error("-----------------LOG---------------")
                 val offer = flowSession.receive<String>().unwrap { sessionalDid ->
                     indyUser().createClaimOffer(sessionalDid, schema)
                 }
 
                 val newClaimOut = flowSession.sendAndReceive<ClaimReq>(offer).unwrap { claimReq ->
                     verifyClaimAttributeValues(claimReq)
-                    logger.error("-----------------LOG-CLAIM-ISSUE---------------")
                     val claim = indyUser().issueClaim(claimReq, proposal)
                     val claimOut = IndyClaim(identifier, claimReq, claim, listOf(ourIdentity, prover))
                     StateAndContract(claimOut, ClaimChecker::class.java.name)
@@ -49,24 +47,18 @@ object IssueClaimFlow {
 
                 val newClaimCmd = Command(newClaimData, newClaimSigners)
 
-                logger.error("-----------------LOG-TRANSACTION-CREATE----------------")
                 val trxBuilder = TransactionBuilder(whoIsNotary())
                         .withItems(newClaimOut, newClaimCmd)
 
-                logger.error("-----------------LOG-TRANSACTION-VERIFICATION----------------")
                 trxBuilder.toWireTransaction(serviceHub)
                         .toLedgerTransaction(serviceHub)
                         .verify()
 
-                logger.error("-----------------LOG-SIGNING----------------")
                 val selfSignedTx = serviceHub.signInitialTransaction(trxBuilder, ourIdentity.owningKey)
                 val signedTrx = subFlow(CollectSignaturesFlow(selfSignedTx, listOf(flowSession)))
 
                 // Notarise and record the transaction in both parties' vaults.
-                logger.error("-----------------LOG-FIN----------------")
                 subFlow(FinalityFlow(signedTrx))
-
-                logger.error("-----------------LOG-BYE-BYE----------------")
 
             } catch(ex: Exception) {
                 logger.error("", ex)
@@ -94,19 +86,15 @@ object IssueClaimFlow {
 
                 val claimReq = indyUser().createClaimReq(schema, issuerDid, sessionDid, "master")
                 flowSession.send(claimReq)
-                logger.error("-----------------LOG-PROVER-SENT----------------")
 
                 val flow = object : SignTransactionFlow(flowSession) {
                     override fun checkTransaction(stx: SignedTransaction) {
-                        logger.error("-----------------LOG-PROVER-SIGNING----------------")
                         val output = stx.tx.toLedgerTransaction(serviceHub).outputs.singleOrNull()
                         val state = output!!.data
                         when(state) {
                             is IndyClaim -> {
-                                logger.error("-----------------LOG-PROVER-VERIFICATION----------------")
                                 require(state.claimReq == claimReq) { "Received incorrected ClaimReq"}
                                 indyUser().receiveClaim(state.claim)
-                                logger.error("-----------------LOG-PROVER-BYE-BYE----------------")
                             }
                             else -> throw FlowException("invalid output state. IndyClaim is expected")
                         }
