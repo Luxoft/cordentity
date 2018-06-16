@@ -40,9 +40,10 @@ object VerifyClaimFlow {
                     StateAndContract(claimProofOut, ClaimChecker::class.java.name)
                 }
 
-                val expectedAttrs = attributes.associateBy({ it.field }, { it.value }).map {
-                    ClaimChecker.ExpectedAttr(it.key, it.value)
-                }
+                val expectedAttrs = attributes
+                        .filter { it.value.isEmpty() }
+                        .associateBy({ it.field }, { it.value })
+                        .map { ClaimChecker.ExpectedAttr(it.key, it.value) }
 
                 val verifyClaimData = ClaimChecker.Commands.Verify(expectedAttrs)
                 val verifyClaimSigners = listOf(ourIdentity.owningKey, prover.owningKey)

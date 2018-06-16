@@ -61,7 +61,10 @@ open class IndyUser {
         }
     }
 
-    data class ProofAttribute(val schema: SchemaDetails, val field: String, val value: String)
+    data class ProofAttribute(val schema: SchemaDetails, val field: String, val value: String) {
+        constructor(schema: SchemaDetails, field: String): this(schema, field, "")
+    }
+    
     data class ProofPredicate(val schema: SchemaDetails, val field: String, val value: Int)
 
     private val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
