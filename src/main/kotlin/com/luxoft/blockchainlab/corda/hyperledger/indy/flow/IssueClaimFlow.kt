@@ -59,7 +59,7 @@ object IssueClaimFlow {
                         .verify()
 
                 logger.error("-----------------LOG-SIGNING----------------")
-                val selfSignedTx = serviceHub.signInitialTransaction(trxBuilder)
+                val selfSignedTx = serviceHub.signInitialTransaction(trxBuilder, ourIdentity.owningKey)
                 val signedTrx = subFlow(CollectSignaturesFlow(selfSignedTx, listOf(flowSession)))
 
                 // Notarise and record the transaction in both parties' vaults.
@@ -98,6 +98,7 @@ object IssueClaimFlow {
 
                 val flow = object : SignTransactionFlow(flowSession) {
                     override fun checkTransaction(stx: SignedTransaction) {
+                        logger.error("-----------------LOG-PROVER-SIGNING----------------")
                         val output = stx.tx.toLedgerTransaction(serviceHub).outputs.singleOrNull()
                         val state = output!!.data
                         when(state) {
@@ -105,7 +106,7 @@ object IssueClaimFlow {
                                 logger.error("-----------------LOG-PROVER-VERIFICATION----------------")
                                 require(state.claimReq == claimReq) { "Received incorrected ClaimReq"}
                                 indyUser().receiveClaim(state.claim)
-                                logger.error("-----------------LOG-PROVER-SAVED----------------")
+                                logger.error("-----------------LOG-PROVER-BYE-BYE----------------")
                             }
                             else -> throw FlowException("invalid output state. IndyClaim is expected")
                         }
