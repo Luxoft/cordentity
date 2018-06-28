@@ -1,7 +1,5 @@
 package com.luxoft.blockchainlab.hyperledger.indy.utils
 
-import org.apache.commons.io.FileUtils
-
 internal object EnvironmentUtils {
     val testPoolIP: String
         get() {
@@ -10,9 +8,5 @@ internal object EnvironmentUtils {
         }
 
     val tmpPath: String
-        get() = FileUtils.getTempDirectoryPath() + "/indy/"
-
-    fun getTmpPath(filename: String): String {
-        return tmpPath + filename
-    }
+        get() = System.getProperty("java.io.tmpdir") + "/indy/"
 }

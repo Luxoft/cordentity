@@ -2,9 +2,6 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy
 
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
-import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.Schema
-import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.SchemaEducation
-import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.SchemaPerson
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.natpryce.konfig.Configuration
@@ -19,6 +16,7 @@ import net.corda.testing.core.singleIdentity
 import net.corda.testing.node.internal.startFlow
 import org.junit.*
 import java.time.Duration
+import java.util.*
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -139,6 +137,7 @@ class MockCordaAsTransportTest {
                            schemaOwner: StartedNode<MockNode>,
                            claimProposal: String,
                            schema: Schema) {
+        val identifier = UUID.randomUUID().toString()
 
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
 
@@ -149,6 +148,7 @@ class MockCordaAsTransportTest {
 
         val claimFuture = claimIssuer.services.startFlow(
                 IssueClaimFlow.Issuer(
+                        identifier,
                         schemaDetails,
                         claimProposal,
                         claimProver.info.singleIdentity().name)
@@ -163,9 +163,11 @@ class MockCordaAsTransportTest {
                             attributes: List<IndyUser.ProofAttribute>,
                             predicates: List<IndyUser.ProofPredicate>,
                             assertion: (actual: Boolean) -> Unit) {
+        val identifier = UUID.randomUUID().toString()
 
         val proofCheckResultFuture = verifier.services.startFlow(
                 VerifyClaimFlow.Verifier(
+                        identifier,
                         attributes,
                         predicates,
                         prover.info.singleIdentity().name)).resultFuture
@@ -322,5 +324,58 @@ class MockCordaAsTransportTest {
                 IndyUser.ProofPredicate(schemaEducationDetails, schemaEducation.schemaAttr2, schemaEducationAttrInt.toInt() - 10))
 
         verifyClaim(bob, alice, attributes, predicates, { res -> assertTrue(res) })
+    }
+
+    @Test
+    fun `empty Predicates on verification for single issued claim`() {
+
+        val schemaPerson = SchemaPerson()
+
+        // Verify ClaimSchema & Defs
+        issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+
+        // Issue claim
+        val schemaAttrInt = "1988"
+        val claimProposal = String.format(schemaPerson.getSchemaProposal(),
+                "John Smith", "119191919", schemaAttrInt, schemaAttrInt)
+
+        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson)
+
+        // Verify claim
+        val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
+        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
+
+        val attributes = listOf(
+                IndyUser.ProofAttribute(schemaDetails, schemaPerson.schemaAttr1, "John Smith")
+        )
+
+        verifyClaim(bob, alice, attributes, emptyList(), { res -> assertTrue(res) })
+    }
+
+    @Test
+    fun `not all attributes to verify`() {
+
+        val schemaPerson = SchemaPerson()
+
+        // Verify ClaimSchema & Defs
+        issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+
+        // Issue claim
+        val schemaAttrInt = "1988"
+        val claimProposal = String.format(schemaPerson.getSchemaProposal(),
+                "John Smith", "119191919", schemaAttrInt, schemaAttrInt)
+
+        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson)
+
+        // Verify claim
+        val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
+        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
+
+        val attributes = listOf(
+                IndyUser.ProofAttribute(schemaDetails, schemaPerson.schemaAttr1, "John Smith"),
+                IndyUser.ProofAttribute(schemaDetails, schemaPerson.schemaAttr2)
+        )
+
+        verifyClaim(bob, alice, attributes, emptyList(), { res -> assertTrue(res) })
     }
 }

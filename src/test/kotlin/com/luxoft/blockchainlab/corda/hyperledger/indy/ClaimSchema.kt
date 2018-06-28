@@ -1,4 +1,4 @@
-package com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema
+package com.luxoft.blockchainlab.corda.hyperledger.indy
 
 interface Schema {
     fun getSchemaName():String

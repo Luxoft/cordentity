@@ -1,9 +1,6 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.flow.VerifyClaimInContractDemoFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
-import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.Schema
-import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.SchemaHappiness
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.natpryce.konfig.Configuration
@@ -18,6 +15,7 @@ import net.corda.testing.node.internal.InternalMockNetwork
 import net.corda.testing.node.internal.startFlow
 import org.junit.*
 import java.time.Duration
+import java.util.*
 import kotlin.test.fail
 
 @Ignore("TODO: migrate or delete")
@@ -127,6 +125,7 @@ class MockVerifyClaimInContractTest {
                            schemaOwner: StartedNode<InternalMockNetwork.MockNode>,
                            claimProposal: String,
                            schema: Schema) {
+        val identifier = UUID.randomUUID().toString()
 
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
 
@@ -137,6 +136,7 @@ class MockVerifyClaimInContractTest {
 
         val claimFuture = claimIssuer.services.startFlow(
                 IssueClaimFlow.Issuer(
+                        identifier,
                         schemaDetails,
                         claimProposal,
                         claimProver.info.singleIdentity().name)
@@ -145,68 +145,4 @@ class MockVerifyClaimInContractTest {
         net.runNetwork()
         claimFuture.getOrThrow(Duration.ofSeconds(30))
     }
-
-    private fun verifyClaim(verifier: StartedNode<InternalMockNetwork.MockNode>,
-                             prover: StartedNode<InternalMockNetwork.MockNode>) {
-
-        val proofCheckResultFuture = verifier.services.startFlow(
-                VerifyClaimInContractDemoFlow.Verifier(
-                        prover.info.legalIdentities.first().name.organisation,
-                        issuer.services.cordaService(IndyService::class.java).indyUser.did
-                )
-        ).resultFuture
-
-        net.runNetwork()
-        proofCheckResultFuture.getOrThrow(Duration.ofSeconds(30))
-    }
-
-
-    @Test
-    fun validClaim() {
-
-        val schema = SchemaHappiness()
-
-        // Verify ClaimSchema & Defs
-        issueSchemaAndClaimDef(issuer, issuer, schema)
-
-        // Issue claim
-        val schemaAttrInt = "22"
-        val claimProposal = String.format(schema.getSchemaProposal(),
-                "yes", "119191919", schemaAttrInt, schemaAttrInt)
-
-        issueClaim(alice, issuer, issuer, claimProposal, schema)
-
-        // Verify claim
-        verifyClaim(bob, alice)
-    }
-
-
-    @Test
-    fun invalidClaim() {
-
-        val schema = SchemaHappiness()
-
-        // Verify ClaimSchema & Defs
-        issueSchemaAndClaimDef(issuer, issuer, schema)
-
-        // Issue claim
-        val schemaAttrInt = "20"
-        val claimProposal = String.format(schema.getSchemaProposal(),
-                "yes", "119191919", schemaAttrInt, schemaAttrInt)
-
-        issueClaim(alice, issuer, issuer, claimProposal, schema)
-
-        // Verify claim
-        try {
-            verifyClaim(bob, alice)
-            fail("Verification should fail")
-        } catch (e: FlowException) {
-            // Expected exception
-        }  catch (e: Exception) {
-            // Unexpected exception
-            e.printStackTrace()
-            fail(e.message)
-        }
-    }
-
 }

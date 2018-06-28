@@ -125,7 +125,7 @@ tasks {
         mergeServiceFiles()
 
         // Place your shaded packages here!
-        relocate 'org.apache.commons.io', 'shadow.org.apache.commons.io'
+        //relocate 'org.apache.commons.io', 'shadow.org.apache.commons.io'
 
         configurations = [project.configurations.compile]
         baseName = jar.baseName + "-" + jar.version

@@ -87,4 +87,20 @@ data class Proof(val json: String, val usedSchemas: String, val usedClaimDefs: S
                 .associateBy { it.get(1) }
                 .containsKey(attr)
     }
+
+    fun getAttributeValue(attr: String, proofReq: String): String? {
+
+        val attributesMapping = JSONObject(ProofReq(proofReq).attributes)
+        val groupedByAttr = attributesMapping.keySet()
+                .associateBy { attributesMapping[it as String] to it }
+                .keys.map { (it.first as JSONObject)["name"] to it.second }.toMap()
+
+        val idx = groupedByAttr[attr]
+
+        return (JSONObject(revealedAttrs).get(idx) as JSONArray)
+                .get(1).toString()
+
+        //val mapping = grouped.keys.map { (it.first as JSONObject)["name"] to it.second }.toMap()
+        // val idx = JSONObject(mapping)[tion.name]
+    }
 }

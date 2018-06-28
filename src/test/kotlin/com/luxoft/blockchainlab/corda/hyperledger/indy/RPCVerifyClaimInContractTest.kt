@@ -1,11 +1,8 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.flow.VerifyClaimInContractDemoFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateClaimDefFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateSchemaFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow
-import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.Schema
-import com.luxoft.blockchainlab.corda.hyperledger.indy.demo.schema.SchemaHappiness
 import net.corda.client.rpc.CordaRPCClient
 import net.corda.core.flows.FlowException
 import net.corda.core.messaging.CordaRPCOps
@@ -14,7 +11,6 @@ import org.junit.BeforeClass
 import org.junit.Ignore
 import org.junit.Test
 import java.util.concurrent.TimeUnit
-import kotlin.test.assert
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -88,65 +84,4 @@ class RPCVerifyClaimInContractTest {
                         "master",
                         claimIssuer.nodeInfo().legalIdentities.first().name.organisation).returnValue.get(30, TimeUnit.SECONDS)
     }
-
-    private fun verifyClaim(verifier: CordaRPCOps, prover: CordaRPCOps): Boolean? {
-
-        return verifier.startFlowDynamic(
-                VerifyClaimInContractDemoFlow.Verifier::class.java,
-                        prover.nodeInfo().legalIdentities.first().name.organisation,
-                        schemaOwnerDid
-                ).returnValue.get(30, TimeUnit.SECONDS)
-    }
-
-
-    @Test
-    fun validClaim() {
-
-        val schema = SchemaHappiness()
-
-        // Verify ClaimSchema & Defs
-        issueSchemaAndClaimDef(issuer, issuer, schema)
-
-        // Issue claim
-        val schemaAttrInt = "22"
-        val claimProposal = String.format(schema.getSchemaProposal(),
-                "yes", "119191919", schemaAttrInt, schemaAttrInt)
-
-        issueClaim(prover, issuer, claimProposal, schema)
-
-        // Verify claim
-        val result = verifyClaim(verifier, prover) ?: fail("NULL not expected")
-
-        assertTrue(result, "Verification should pass")
-    }
-
-
-    @Test
-    fun invalidClaim() {
-
-        val schema = SchemaHappiness()
-
-        // Verify ClaimSchema & Defs
-        issueSchemaAndClaimDef(issuer, issuer, schema)
-
-        // Issue claim
-        val schemaAttrInt = "20"
-        val claimProposal = String.format(schema.getSchemaProposal(),
-                "yes", "119191919", schemaAttrInt, schemaAttrInt)
-
-        issueClaim(prover, issuer, claimProposal, schema)
-
-        // Verify claim
-        try {
-            val result = verifyClaim(verifier, prover) ?: fail("NULL not expected")
-            assertFalse(result, "Verification should fail")
-        } catch (e: FlowException) {
-            // Expected exception
-        }  catch (e: Exception) {
-            // Unexpected exception
-            e.printStackTrace()
-            fail(e.message)
-        }
-    }
-
 }

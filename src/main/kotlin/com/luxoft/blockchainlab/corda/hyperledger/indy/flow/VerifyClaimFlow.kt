@@ -8,6 +8,7 @@ import com.luxoft.blockchainlab.hyperledger.indy.model.Proof
 import com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
+import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.flows.*
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
@@ -20,6 +21,7 @@ object VerifyClaimFlow {
     @InitiatingFlow
     @StartableByRPC
     open class Verifier (
+            private val identifier: String,
             private val attributes: List<IndyUser.ProofAttribute>,
             private val predicates: List<IndyUser.ProofPredicate>,
             private val proverName: CordaX500Name
@@ -34,13 +36,14 @@ object VerifyClaimFlow {
                 val proofRequest = indyUser().createProofReq(attributes, predicates)
 
                 val verifyClaimOut = flowSession.sendAndReceive<Proof>(proofRequest).unwrap { proof ->
-                    val claimProofOut = IndyClaimProof(proofRequest, proof, listOf(ourIdentity, prover))
+                    val claimProofOut = IndyClaimProof(identifier, proofRequest, proof, listOf(ourIdentity, prover))
                     StateAndContract(claimProofOut, ClaimChecker::class.java.name)
                 }
 
-                val expectedAttrs = attributes.associateBy({ it.field }, { it.value }).map {
-                    ClaimChecker.ExpectedAttr(it.key, it.value)
-                }
+                val expectedAttrs = attributes
+                        .filter { it.value.isNotEmpty() }
+                        .associateBy({ it.field }, { it.value })
+                        .map { ClaimChecker.ExpectedAttr(it.key, it.value) }
 
                 val verifyClaimData = ClaimChecker.Commands.Verify(expectedAttrs)
                 val verifyClaimSigners = listOf(ourIdentity.owningKey, prover.owningKey)
