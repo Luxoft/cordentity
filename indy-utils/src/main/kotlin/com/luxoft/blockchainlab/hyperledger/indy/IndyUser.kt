@@ -53,8 +53,8 @@ open class IndyUser {
     private val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
 
     val masterSecret = "master"
-    var did: String
-    var verkey: String
+    val did: String
+    val verkey: String
 
     protected val wallet: Wallet
 
@@ -68,23 +68,29 @@ open class IndyUser {
         this.pool = pool
         this.wallet = wallet
 
+        var _did: String
+        var _verkey: String
+
         if(did != null) {
             try {
-                this.did = did
-                verkey = Did.keyForLocalDid(wallet, did).get()
+                _did = did
+                _verkey = Did.keyForLocalDid(wallet, did).get()
 
             } catch (ex: Exception) {
                 if (getRootCause(ex) !is WalletValueNotFoundException) throw ex else {
                     val didResult = Did.createAndStoreMyDid(wallet, didConfig).get()
-                    this.did = didResult.did
-                    verkey = didResult.verkey
+                    _did = didResult.did
+                    _verkey = didResult.verkey
                 }
             }
         } else {
             val didResult = Did.createAndStoreMyDid(wallet, didConfig).get()
-            this.did = didResult.did
-            verkey = didResult.verkey
+            _did = didResult.did
+            _verkey = didResult.verkey
         }
+
+        this.did = _did
+        this.verkey = _verkey
     }
 
     fun close() {
