@@ -201,8 +201,9 @@ open class IndyUser {
 
     fun createClaimOffer(proverDid: String, schemaDetails: SchemaDetails): ClaimOffer {
         val schema = getSchema(schemaDetails)
-        //fixme: never was??  `public int indy_issuer_create_claim_offer(int command_handle, int wallet_handle, String schema_json, String issuer_did, String prover_did, Callback cb);`
-        return ClaimOffer(Anoncreds.issuerCreateClaimOffer(wallet, schema.json, did, proverDid).get(), proverDid)
+        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json, "tag1", null, "{}").get()
+        val credOffer = Anoncreds.issuerCreateCredentialOffer(wallet, credDef.credDefId).get()
+        return ClaimOffer(credOffer, proverDid)
     }
 
     fun receiveClaimOffer(claimOffer: ClaimOffer)  {
