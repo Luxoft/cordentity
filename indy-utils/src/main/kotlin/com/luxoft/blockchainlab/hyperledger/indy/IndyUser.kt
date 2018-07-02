@@ -404,7 +404,7 @@ open class IndyUser {
 
         fun verifyProof(proofReq: ProofReq, proof: Proof): Boolean {
             return Anoncreds.verifierVerifyProof(
-                    proofReq.json, proof.json, proof.usedSchemas, proof.usedClaimDefs, "{}").get()
+                    proofReq.json, proof.json, proof.usedSchemas, proof.usedClaimDefs, "{}", "{}").get()
         }
     }
 }
