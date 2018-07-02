@@ -169,7 +169,13 @@ open class IndyUser {
             if(idx < (schemaAttributes.size - 1)) attrs.append(",")
         }
 
-        val schema = """{"name":"${schemaDetails.name}","version":"${schemaDetails.version}","attr_names":[$attrs]}"""
+        val schema = """
+            {
+                "id":"$SCHEMA_ID",
+                "name":"${schemaDetails.name}",
+                "version":"${schemaDetails.version}",
+                "attr_names":[$attrs]
+            }""".trimIndent()
 
         val schemaRequest = Ledger.buildSchemaRequest(did, schema).get()
         Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get()
@@ -393,7 +399,7 @@ open class IndyUser {
     }
 
     protected fun getSchema(schemaDetails: SchemaDetails): ClaimSchema {
-        val schemaReq = Ledger.buildGetSchemaRequest(did, schemaDetails.owner, schemaDetails.filter).get()
+        val schemaReq = Ledger.buildGetSchemaRequest(did, SCHEMA_ID).get()
         val schemaRes = Ledger.submitRequest(pool, schemaReq).get()
 
         return ClaimSchema(JSONObject(schemaRes).getJSONObject("result").toString())
