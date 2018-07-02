@@ -37,7 +37,7 @@ object IssueClaimFlow {
 
                 val newClaimOut = flowSession.sendAndReceive<ClaimReq>(offer).unwrap { claimReq ->
                     verifyClaimAttributeValues(claimReq)
-                    val claim = indyUser().issueClaim(claimReq, proposal)
+                    val claim = indyUser().issueClaim(claimReq, proposal, schema)
                     val claimOut = IndyClaim(identifier, claimReq, claim, listOf(ourIdentity, prover))
                     StateAndContract(claimOut, ClaimChecker::class.java.name)
                 }
