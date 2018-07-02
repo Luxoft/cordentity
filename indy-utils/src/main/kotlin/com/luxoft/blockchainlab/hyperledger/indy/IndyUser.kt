@@ -389,10 +389,9 @@ open class IndyUser {
     }
 
     private fun getClaimOffer(issuerDid: String): ClaimOffer {
+        val claimOfferFilter = """{"issuer_did":"$issuerDid"}"""
 
-        val claimOfferFilter = String.format("{\"issuer_did\":\"%s\"}", issuerDid)
-        // fixme: indy_prover_get_claim_offers DELETED
-        val claimOffersJson = Anoncreds.proverGetClaimOffers(wallet, claimOfferFilter).get()
+        val claimOffersJson = Anoncreds.proverGetCredentials(wallet, claimOfferFilter).get()
 
         val claimOffersObject = JSONArray(claimOffersJson)
 
