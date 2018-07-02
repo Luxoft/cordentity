@@ -6,6 +6,7 @@ import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
 import org.hyperledger.indy.sdk.IndyException
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredentialOffer
+import org.hyperledger.indy.sdk.anoncreds.DuplicateMasterSecretNameException
 import org.hyperledger.indy.sdk.blob_storage.BlobStorageWriter
 import org.hyperledger.indy.sdk.did.Did
 import org.hyperledger.indy.sdk.ledger.Ledger
@@ -128,14 +129,13 @@ open class IndyUser {
     fun createMasterSecret(masterSecret: String): String {
         try {
             return Anoncreds.proverCreateMasterSecret(wallet, masterSecret).get()
-        } catch (e: Exception) {
-            val cause = e.cause
-            // fixme: sdkErrorCode is Int
-            if (cause is IndyException && cause.sdkErrorCode.toString() == "AnoncredsMasterSecretDuplicateNameError") {
+        } catch (e: IndyException) {
+            val indyEx = IndyException.fromSdkError(e.sdkErrorCode)
+
+            if(indyEx is DuplicateMasterSecretNameException)
                 throw RuntimeException("MasterSecret `$masterSecret` already exists, continuing")
-            } else {
-                throw e
-            }
+            else
+                throw indyEx
         }
     }
 
