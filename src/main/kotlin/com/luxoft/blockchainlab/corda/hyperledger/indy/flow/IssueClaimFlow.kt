@@ -79,7 +79,7 @@ object IssueClaimFlow {
 
                 val schema = flowSession.sendAndReceive<ClaimOffer>(sessionDid).unwrap { offer ->
                     indyUser().receiveClaimOffer(offer)
-                    IndyUser.SchemaDetails(offer.schemaKey)
+                    IndyUser.SchemaDetails.fromSchemaKey(offer.schemaKey)
                 }
 
                 val issuerDid = subFlow(GetDidFlow.Initiator(issuer))

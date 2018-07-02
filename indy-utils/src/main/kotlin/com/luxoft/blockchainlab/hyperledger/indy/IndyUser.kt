@@ -19,35 +19,16 @@ import kotlin.collections.LinkedHashMap
 
 open class IndyUser {
 
-    class SchemaDetails {
+    class SchemaDetails(val name: String, val version: String, val owner: String) {
+        val filter: String get() = """{"name":"$name","version":"$version"}"""
 
-        var schemaKey: String = ""
+        constructor() : this("", "", "")
 
-        constructor()
-
-        constructor(schemaKey: String) {
-            this.schemaKey = schemaKey
-        }
-
-        constructor(name: String, version: String, owner: String) {
-            this.schemaKey = String.format(
-                    "{\"name\":\"%s\",\"version\":\"%s\", did:\"%s\"}", name, version, owner)
-        }
-
-        fun getName(): String {
-            return JSONObject(schemaKey).getString("name")
-        }
-
-        fun getVersion(): String {
-            return JSONObject(schemaKey).getString("version")
-        }
-
-        fun getOwner(): String {
-            return JSONObject(schemaKey).getString("did")
-        }
-
-        fun getFilter(): String {
-            return String.format("{\"name\":\"%s\",\"version\":\"%s\"}", getName(), getVersion())
+        companion object Build {
+            fun fromSchemaKey(schemaKeyJson: String): SchemaDetails {
+                val parsed = JSONObject(schemaKeyJson)
+                return SchemaDetails(parsed.getString("name"), parsed.getString("version"), parsed.getString("owner"))
+            }
         }
     }
 
@@ -174,9 +155,7 @@ open class IndyUser {
             if(idx < (schemaAttributes.size - 1)) attrs.append(",")
         }
 
-        val schema = String.format(
-                "{\"name\":\"%s\",\"version\":\"%s\",\"attr_names\":[%s]}",
-                schemaDetails.getName(), schemaDetails.getVersion(), attrs.toString())
+        val schema = """{"name":"${schemaDetails.name}","version":"${schemaDetails.version}","attr_names":[$attrs]}"""
 
         val schemaRequest = Ledger.buildSchemaRequest(did, schema).get()
         Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get()
@@ -290,7 +269,7 @@ open class IndyUser {
             claims?.also {indyClaims ->
                 for(i in 0..indyClaims.length() - 1) {
                     val indyClaimRef = ClaimRef(indyClaims.get(i).toString())
-                    val schemaDetails = SchemaDetails(indyClaimRef.schemaKey)
+                    val schemaDetails = SchemaDetails.fromSchemaKey(indyClaimRef.schemaKey)
                     val (schema, definition) = getSchemaAndDefinition(schemaDetails, indyClaimRef.issuerDid)
                             .takeIf { it -> schemaId == null || it.first.id == schemaId } ?: continue
 
@@ -390,7 +369,7 @@ open class IndyUser {
     }
 
     protected fun getSchema(schemaDetails: SchemaDetails): ClaimSchema {
-        val schemaReq = Ledger.buildGetSchemaRequest(did, schemaDetails.getOwner(), schemaDetails.getFilter()).get()
+        val schemaReq = Ledger.buildGetSchemaRequest(did, schemaDetails.owner, schemaDetails.filter).get()
         val schemaRes = Ledger.submitRequest(pool, schemaReq).get()
 
         return ClaimSchema(JSONObject(schemaRes).getJSONObject("result").toString())
@@ -399,7 +378,7 @@ open class IndyUser {
     protected fun getClaimDef(schemaDetails: SchemaDetails, claimDefOwner: String): ClaimDef {
         val schema = getSchema(schemaDetails)
 
-        val claimDefReq = Ledger.buildGetCredDefRequest(schemaDetails.getOwner(), schema.id).get()
+        val claimDefReq = Ledger.buildGetCredDefRequest(schemaDetails.owner, schema.id).get()
 
         val claimDefRes = Ledger.submitRequest(pool, claimDefReq).get()
         return ClaimDef(JSONObject(claimDefRes).getJSONObject("result").toString())
