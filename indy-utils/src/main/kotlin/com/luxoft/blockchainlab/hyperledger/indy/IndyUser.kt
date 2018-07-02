@@ -121,8 +121,8 @@ open class IndyUser {
 
     fun createRevokReg(schemaDetails: SchemaDetails, tailsWriter: BlobStorageWriter) {
         val schema = getSchema(schemaDetails)
-        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json, "tag1", null, "{}").get()
-        Anoncreds.issuerCreateAndStoreRevocReg(wallet, did, null, "tag1", credDef.credDefId, "{}", tailsWriter).get()
+        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json, TAG, null, "{}").get()
+        Anoncreds.issuerCreateAndStoreRevocReg(wallet, did, null, TAG, credDef.credDefId, "{}", tailsWriter).get()
     }
 
     fun createMasterSecret(masterSecret: String) {
@@ -178,7 +178,7 @@ open class IndyUser {
 
         // 2. Create ClaimDef
         val claimTemplate = Anoncreds.issuerCreateAndStoreCredentialDef(
-                wallet, did, schema.json, "tag1", SIGNATURE_TYPE, "{}").get()
+                wallet, did, schema.json, TAG, SIGNATURE_TYPE, "{}").get()
 
         // 3. Publish ClaimDef to public ledfger
         val claimDef = JSONObject(claimTemplate).getJSONObject("data").toString()
@@ -189,7 +189,7 @@ open class IndyUser {
 
     fun createClaimOffer(proverDid: String, schemaDetails: SchemaDetails): ClaimOffer {
         val schema = getSchema(schemaDetails)
-        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json, "tag1", null, "{}").get()
+        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json, TAG, null, "{}").get()
         val credOffer = Anoncreds.issuerCreateCredentialOffer(wallet, credDef.credDefId).get()
         return ClaimOffer(credOffer, proverDid)
     }
@@ -410,6 +410,8 @@ open class IndyUser {
 
     companion object {
         private const val SIGNATURE_TYPE = "CL"
+        private const val TAG = "tag1"
+        private const val SCHEMA_ID = "schema-id-1"
 
         fun verifyProof(proofReq: ProofReq, proof: Proof): Boolean {
             return Anoncreds.verifierVerifyProof(
