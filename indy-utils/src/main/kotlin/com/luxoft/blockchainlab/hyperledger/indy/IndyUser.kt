@@ -125,13 +125,14 @@ open class IndyUser {
         Anoncreds.issuerCreateAndStoreRevocReg(wallet, did, null, TAG, credDef.credDefId, "{}", tailsWriter).get()
     }
 
-    fun createMasterSecret(masterSecret: String) {
+    fun createMasterSecret(masterSecret: String): String {
         try {
-            Anoncreds.proverCreateMasterSecret(wallet, masterSecret)
+            return Anoncreds.proverCreateMasterSecret(wallet, masterSecret).get()
         } catch (e: Exception) {
-            if (e.cause!!::class.java.equals(IndyException::class.java)
-                    && (e.cause as IndyException).sdkErrorCode.toString() == "AnoncredsMasterSecretDuplicateNameError") {
-                logger.debug("MasterSecret already exists, continuing")
+            val cause = e.cause
+            // fixme: sdkErrorCode is Int
+            if (cause is IndyException && cause.sdkErrorCode.toString() == "AnoncredsMasterSecretDuplicateNameError") {
+                throw RuntimeException("MasterSecret `$masterSecret` already exists, continuing")
             } else {
                 throw e
             }
@@ -199,13 +200,12 @@ open class IndyUser {
 
     }
 
-    fun createClaimReq(schemaDetails: SchemaDetails, issuerDid: String, sessionDid: String, masterSecret: String): ClaimReq {
+    fun createClaimReq(schemaDetails: SchemaDetails, issuerDid: String, sessionDid: String, masterSecretId: String): ClaimReq {
         val claimDef = getClaimDef(schemaDetails, issuerDid)
         val claimOffer = getClaimOffer(issuerDid)
 
-        createMasterSecret(masterSecret)
-        return ClaimReq(Anoncreds.proverCreateCredentialReq(
-                wallet, sessionDid, claimOffer.json, claimDef.json, masterSecret).get().credentialRequestJson)
+        val credReq = Anoncreds.proverCreateCredentialReq(wallet, sessionDid, claimOffer.json, claimDef.json, masterSecretId).get()
+        return ClaimReq(credReq.credentialRequestJson)
     }
 
     fun issueClaim(claimReq: ClaimReq, proposal: String, revokIdx: Int): Claim {
@@ -268,7 +268,7 @@ open class IndyUser {
                 "}", requestedAttributes.toString(), requestedPredicates.toString()))
     }
 
-    fun createProof(proofReq: ProofReq, masterSecret: String): Proof {
+    fun createProof(proofReq: ProofReq, masterSecretId: String): Proof {
         val schemaForClaim: MutableMap<String, ClaimSchema> = LinkedHashMap()
         val claimDefForClaim: MutableMap<String, ClaimDef> = LinkedHashMap()
 
@@ -336,7 +336,7 @@ open class IndyUser {
 
         // 4. issue proof
         return Proof(Anoncreds.proverCreateProof(wallet, proofReq.json, createdClaim,
-                usedSchemas, masterSecret, usedClaimDef, "{}").get(), usedSchemas, usedClaimDef)
+                masterSecretId, usedSchemas, usedClaimDef, "{}").get(), usedSchemas, usedClaimDef)
     }
 
     private fun generateProofSelfAttestedAttrs(comma: String): String {

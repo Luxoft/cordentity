@@ -84,7 +84,8 @@ object IssueClaimFlow {
 
                 val issuerDid = subFlow(GetDidFlow.Initiator(issuer))
 
-                val claimReq = indyUser().createClaimReq(schema, issuerDid, sessionDid, "master")
+                val masterSecretId = indyUser().createMasterSecret("master")
+                val claimReq = indyUser().createClaimReq(schema, issuerDid, sessionDid, masterSecretId)
                 flowSession.send(claimReq)
 
                 val flow = object : SignTransactionFlow(flowSession) {

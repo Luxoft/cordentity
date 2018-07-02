@@ -80,7 +80,8 @@ object VerifyClaimFlow {
                 flowSession.receive(ProofReq::class.java).unwrap { indyProofReq ->
                     // TODO: Master Secret should be received from the outside
                     val masterSecret = indyUser().masterSecret
-                    flowSession.send(indyUser().createProof(indyProofReq, masterSecret))
+                    val masterSecretId = indyUser().createMasterSecret(masterSecret)
+                    flowSession.send(indyUser().createProof(indyProofReq, masterSecretId))
                 }
 
                 val flow = object : SignTransactionFlow(flowSession) {
