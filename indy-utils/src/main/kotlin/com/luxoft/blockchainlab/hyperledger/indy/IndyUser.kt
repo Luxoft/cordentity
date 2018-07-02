@@ -5,6 +5,8 @@ import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
 import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
 import org.hyperledger.indy.sdk.IndyException
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds
+import org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredentialOffer
+import org.hyperledger.indy.sdk.blob_storage.BlobStorageWriter
 import org.hyperledger.indy.sdk.did.Did
 import org.hyperledger.indy.sdk.ledger.Ledger
 import org.hyperledger.indy.sdk.pairwise.Pairwise
@@ -111,9 +113,10 @@ open class IndyUser {
         Ledger.signAndSubmitRequest(pool, wallet, did, nymRequest).get()
     }
 
-    fun createRevokReg(schemaDetails: SchemaDetails, claimsLimit: Int) {
+    fun createRevokReg(schemaDetails: SchemaDetails, tailsWriter: BlobStorageWriter) {
         val schema = getSchema(schemaDetails)
-        Anoncreds.issuerCreateAndStoreRevocReg(wallet, did, schema.json, claimsLimit).get();
+        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json, "tag1", null, "{}").get()
+        Anoncreds.issuerCreateAndStoreRevocReg(wallet, did, null, "tag1", credDef.credDefId, "{}", tailsWriter).get()
     }
 
     fun createMasterSecret(masterSecret: String) {
