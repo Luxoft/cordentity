@@ -218,7 +218,12 @@ open class IndyUser {
     }
 
     fun receiveClaim(claim: Claim)  {
-        Anoncreds.proverStoreCredential(wallet, claim.json, null).get()
+        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, claim.schemaKey, TAG, null, "{}").get()
+
+        val credOffer = Anoncreds.issuerCreateCredentialOffer(wallet, credDef.credDefId).get()
+        val credReqMeta = Anoncreds.proverCreateCredentialReq(wallet, claim.issuerDid, credOffer, credDef.credDefJson, masterSecret).get()
+
+        Anoncreds.proverStoreCredential(wallet, null, credReqMeta.credentialRequestMetadataJson, claim.json, credDef.credDefJson, "{}").get()
     }
 
     /**
