@@ -14,7 +14,7 @@ import org.hyperledger.indy.sdk.ledger.Ledger
 import org.hyperledger.indy.sdk.pairwise.Pairwise
 import org.hyperledger.indy.sdk.pool.Pool
 import org.hyperledger.indy.sdk.wallet.Wallet
-import org.hyperledger.indy.sdk.wallet.WalletValueNotFoundException
+import org.hyperledger.indy.sdk.wallet.WalletItemNotFoundException
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.json.JSONArray
@@ -79,7 +79,7 @@ open class IndyUser {
                 _verkey = Did.keyForLocalDid(wallet, did).get()
 
             } catch (ex: Exception) {
-                if (getRootCause(ex) !is WalletValueNotFoundException) throw ex else {
+                if (getRootCause(ex) !is WalletItemNotFoundException) throw ex else {
                     val didResult = Did.createAndStoreMyDid(wallet, didConfig).get()
                     _did = didResult.did
                     _verkey = didResult.verkey
