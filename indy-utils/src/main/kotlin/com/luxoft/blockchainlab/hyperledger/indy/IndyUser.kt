@@ -11,10 +11,9 @@ import org.hyperledger.indy.sdk.pairwise.Pairwise
 import org.hyperledger.indy.sdk.pool.Pool
 import org.hyperledger.indy.sdk.wallet.Wallet
 import org.hyperledger.indy.sdk.wallet.WalletValueNotFoundException
+import org.json.JSONArray
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
-import org.json.JSONArray
-import kotlin.collections.LinkedHashMap
 
 
 open class IndyUser {
@@ -132,7 +131,7 @@ open class IndyUser {
 
     fun createRevokReg(schemaDetails: SchemaDetails, claimsLimit: Int) {
         val schema = getSchema(schemaDetails)
-        Anoncreds.issuerCreateAndStoreRevocReg(wallet, did, schema.json, claimsLimit).get();
+        Anoncreds.issuerCreateAndStoreRevocReg(wallet, did, schema.json, claimsLimit).get()
     }
 
     fun createMasterSecret(masterSecret: String) {
@@ -210,7 +209,7 @@ open class IndyUser {
 
     fun createClaimReq(schemaDetails: SchemaDetails, issuerDid: String, sessionDid: String, masterSecret: String): ClaimReq {
         val claimDef = getClaimDef(schemaDetails, issuerDid)
-        val claimOffer = getClaimOffer(issuerDid)
+        val claimOffer = getClaimOffer(schemaDetails.schemaKey)
 
         createMasterSecret(masterSecret)
         return ClaimReq(Anoncreds.proverCreateAndStoreClaimReq(
@@ -410,9 +409,8 @@ open class IndyUser {
         return Pair(getSchema(schemaDetails), getClaimDef(schemaDetails, claimDefOwner))
     }
 
-    private fun getClaimOffer(issuerDid: String): ClaimOffer {
-
-        val claimOfferFilter = String.format("{\"issuer_did\":\"%s\"}", issuerDid)
+    private fun getClaimOffer(schemaKey: String): ClaimOffer {
+        val claimOfferFilter = String.format("{\"schema_key\":%s}", schemaKey)
         val claimOffersJson = Anoncreds.proverGetClaimOffers(wallet, claimOfferFilter).get()
 
         val claimOffersObject = JSONArray(claimOffersJson)
