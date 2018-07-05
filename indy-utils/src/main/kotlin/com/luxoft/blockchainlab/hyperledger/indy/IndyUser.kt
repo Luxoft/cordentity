@@ -24,7 +24,10 @@ import kotlin.collections.LinkedHashMap
 open class IndyUser {
 
     class SchemaDetails(val name: String, val version: String, val owner: String) {
-        val filter: String get() = """{"name":"$name","version":"$version"}"""
+        val id: String get() = """$owner:2:$name:$version"""  // todo: replace with sdk calls
+
+        fun json(schemaAttributes: List<String>): String =
+                """{"id":"$id", "name":"$name", "version":"$version", "attrNames":${schemaAttributes.map { "\"$it\"" }}, "ver":"1.0"}"""
 
         constructor() : this("", "", "")
 
@@ -126,7 +129,7 @@ open class IndyUser {
             tailsWriter: BlobStorageWriter = BlobStorageWriter.openWriter("default", "{}").get()
     ) {
         val schema = getSchema(schemaDetails)
-        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json, TAG, null, "{}").get()
+        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json.toString(), TAG, null, "{}").get()
         Anoncreds.issuerCreateAndStoreRevocReg(wallet, did, null, TAG, credDef.credDefId, "{}", tailsWriter).get()
     }
 
@@ -154,54 +157,31 @@ open class IndyUser {
     }
 
     fun createSchema(schemaDetails: SchemaDetails, schemaAttributes: List<String>) {
-        if(getSchema(schemaDetails).isValid())
+        if(hasSchema(schemaDetails))
             return
 
-        val attrs = StringBuilder()
-
-//        schemaAttributes.forEachIndexed {idx, attr ->
-//            attrs.append(String.format("\"%s\"", attr))
-//            if(idx < (schemaAttributes.size - 1)) attrs.append(",")
-//        }
-
-        for(idx in 0 until schemaAttributes.size) {
-            attrs.append(String.format("\"%s\"", schemaAttributes.get(idx)))
-            if(idx < (schemaAttributes.size - 1)) attrs.append(",")
-        }
-
-        val schema = """
-            {
-                "id":"$SCHEMA_ID",
-                "name":"${schemaDetails.name}",
-                "version":"${schemaDetails.version}",
-                "attr_names":[$attrs]
-            }""".trimIndent()
-
-        val schemaRequest = Ledger.buildSchemaRequest(did, schema).get()
+        val schemaRequest = Ledger.buildSchemaRequest(did, schemaDetails.json(schemaAttributes)).get()
         Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get()
     }
 
     fun createClaimDef(schemaDetails: SchemaDetails) {
+        if(hasSchema(schemaDetails))
+            return // todo: optimise calls to ledger 1/2
+
         // 1. Get ClaimSchema from public ledger
-        val (schema, definition) = getSchemaAndDefinition(schemaDetails, did)
-        if(definition.isValid())
-            return
+        val schema = getSchema(schemaDetails)  // todo: optimise calls to ledger 2/2
 
         // 2. Create ClaimDef
-        val claimTemplate = Anoncreds.issuerCreateAndStoreCredentialDef(
-                wallet, did, schema.json, TAG, SIGNATURE_TYPE, "{}").get()
+        val claimTemplate = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json.toString(), TAG, SIGNATURE_TYPE, null).get()
 
         // 3. Publish ClaimDef to public ledfger
-        val claimDef = JSONObject(claimTemplate).getJSONObject("data").toString()
-        val claimDefReq = Ledger.buildCredDefRequest(did, claimDef).get()
-
+        val claimDefReq = Ledger.buildCredDefRequest(did, claimTemplate.credDefJson).get()
         Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get()
     }
 
     fun createClaimOffer(proverDid: String, schemaDetails: SchemaDetails): ClaimOffer {
-        val schema = getSchema(schemaDetails)
-        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json, TAG, null, "{}").get()
-        val credOffer = Anoncreds.issuerCreateCredentialOffer(wallet, credDef.credDefId).get()
+        val (schema, credDef) = getSchemaAndDefinition(schemaDetails, did)
+        val credOffer = Anoncreds.issuerCreateCredentialOffer(wallet, credDef.id).get()
         return ClaimOffer(credOffer, proverDid)
     }
 
@@ -214,7 +194,7 @@ open class IndyUser {
         val claimDef = getClaimDef(schemaDetails, issuerDid)
         val claimOffer = getClaimOffer(issuerDid)
 
-        val credReq = Anoncreds.proverCreateCredentialReq(wallet, sessionDid, claimOffer.json, claimDef.json, masterSecretId).get()
+        val credReq = Anoncreds.proverCreateCredentialReq(wallet, sessionDid, claimOffer.json, claimDef.json.toString(), masterSecretId).get()
         return ClaimReq(credReq.credentialRequestJson)
     }
 
@@ -225,7 +205,7 @@ open class IndyUser {
                    storageReader: BlobStorageReader = BlobStorageReader.openReader("default", "{}").get()
     ): Claim {
         val schema = getSchema(schemaDetails)
-        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json, TAG, null, "{}").get()
+        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json.toString(), TAG, null, "{}").get()
         val credOffer = issuerCreateCredentialOffer(wallet, credDef.credDefId).get()
         val createClaimResult = Anoncreds.issuerCreateCredential(
                 wallet, credOffer, claimReq.json, proposal, revokIdx, storageReader.blobStorageReaderHandle).get()
@@ -254,18 +234,15 @@ open class IndyUser {
     fun createProofReq(attributes: List<ProofAttribute>, predicates: List<ProofPredicate>): ProofReq {
 
         // 1. Add attributes
-        val requestedAttributes = StringBuilder()
-        attributes.takeIf { data -> data.isNotEmpty() }?.forEachIndexed { idx, data ->
-            val schemaId = getSchema(data.schema).id
-            requestedAttributes.append(String.format(
-                    "\"attr%d_referent\":{\"name\":\"%s\", \"seqNo\":%s}", idx, data.field, schemaId))
-            if (idx != (attributes.size-1)) requestedAttributes.append(",")
+        val requestedAttributes = attributes.withIndex().joinToString { (idx, data) ->
+            val schemaSqNum = getSchema(data.schema).seqNo
+            """"attr${idx}_referent":{"name":"${data.field}", "seqNo":$schemaSqNum}"""
         }
 
         // 2. Add predicates
         val requestedPredicates = StringBuilder()
         predicates.takeIf { data -> data.isNotEmpty() }?.forEachIndexed {idx, data ->
-            val schemaId = getSchema(data.schema).id
+            val schemaId = getSchema(data.schema).seqNo
             requestedPredicates.append(String.format("\"predicate%d_referent\": {" +
                     "\"attr_name\":\"%s\"," +
                     "\"p_type\":\">=\"," +
@@ -281,12 +258,12 @@ open class IndyUser {
                 "    \"version\":\"0.1\",\n" +
                 "    \"requested_attrs\": {%s},\n" +
                 "    \"requested_predicates\": {%s}\n" +
-                "}", requestedAttributes.toString(), requestedPredicates.toString()))
+                "}", requestedAttributes, requestedPredicates.toString()))
     }
 
     fun createProof(proofReq: ProofReq, masterSecretId: String): Proof {
-        val schemaForClaim: MutableMap<String, ClaimSchema> = LinkedHashMap()
-        val claimDefForClaim: MutableMap<String, ClaimDef> = LinkedHashMap()
+        val schemaForClaim: MutableMap<String, Schema> = LinkedHashMap()
+        val claimDefForClaim: MutableMap<String, CredentialDefinition> = LinkedHashMap()
 
         logger.debug("proofReq = " + proofReq)
 
@@ -320,39 +297,18 @@ open class IndyUser {
 
         logger.debug("requiredClaimsForProof = " + requiredClaimsForProof)
 
-        val aggregatedClaim = StringBuilder()
+        val createdClaim = "{" +
+            generateProofAttrs(proofReq, extractClaimFor, ",") +
+            generateProofPreds(proofReq, extractClaimFor, ",") +
+            generateProofSelfAttestedAttrs("") + "}"
 
-        // 1. Prepare Attributes for proof
-        aggregatedClaim.append(generateProofAttrs(proofReq, extractClaimFor, ","))
 
-        // 2. Prepare Predicates for proof
-        aggregatedClaim.append(generateProofPreds(proofReq, extractClaimFor, ","))
-
-        // 3. Prepare SelfAttested Attributes for proof
-        aggregatedClaim.append(generateProofSelfAttestedAttrs(""))
-
-        // 4. Prepare used data for Proof
-        val aggregatedSchemas = StringBuilder()
-        schemaForClaim.asSequence().forEachIndexed { idx, pair ->
-            val value = String.format("{\"seqNo\":%s, \"dest\":\"%s\", \"data\":%s}",
-                    pair.value.id, pair.value.dest, pair.value.data)
-            aggregatedSchemas.append(String.format("\"%s\":%s", pair.key, value))
-            if(idx != (schemaForClaim.size - 1)) aggregatedSchemas.append(",")
-        }
-
-        val aggregatedClaimDefs = StringBuilder()
-        claimDefForClaim.asSequence().forEachIndexed { idx, pair ->
-            aggregatedClaimDefs.append(String.format("\"%s\":%s", pair.key, pair.value.json))
-            if(idx != (claimDefForClaim.size - 1)) aggregatedClaimDefs.append(",")
-        }
-
-        val usedSchemas  = String.format("{%s}", aggregatedSchemas.toString())
-        val usedClaimDef = String.format("{%s}", aggregatedClaimDefs.toString())
-        val createdClaim = String.format("{%s}", aggregatedClaim.toString())
+        val usedSchemas  = schemaForClaim.entries.joinToString(prefix = "{", postfix = "}") { (key, schema) -> """ ${schema.id}:${schema.json} """ }
+        val usedClaimDef = claimDefForClaim.entries.joinToString(prefix = "{", postfix = "}") { (key, schema) -> """ "$key":${schema.json} """ }
 
         // 4. issue proof
-        return Proof(Anoncreds.proverCreateProof(wallet, proofReq.json, createdClaim,
-                masterSecretId, usedSchemas, usedClaimDef, "{}").get(), usedSchemas, usedClaimDef)
+        val proverProof = Anoncreds.proverCreateProof(wallet, proofReq.json, createdClaim, masterSecretId, usedSchemas, usedClaimDef, "{}").get()
+        return Proof(proverProof, usedSchemas, usedClaimDef)
     }
 
     private fun generateProofSelfAttestedAttrs(comma: String): String {
@@ -398,23 +354,31 @@ open class IndyUser {
         return String.format("\"requested_predicates\":{%s}%s", claimsGroupByPreds.toString(), comma)
     }
 
-    protected fun getSchema(schemaDetails: SchemaDetails): ClaimSchema {
-        val schemaReq = Ledger.buildGetSchemaRequest(did, SCHEMA_ID).get()
+    protected fun getSchema(schemaDetails: SchemaDetails): Schema {
+        val schemaReq = Ledger.buildGetSchemaRequest(did, schemaDetails.id).get()
         val schemaRes = Ledger.submitRequest(pool, schemaReq).get()
-
-        return ClaimSchema(JSONObject(schemaRes).getJSONObject("result").toString())
+        val parsedRes = Ledger.parseGetSchemaResponse(schemaRes).get()
+        return Schema(parsedRes)
     }
 
-    protected fun getClaimDef(schemaDetails: SchemaDetails, claimDefOwner: String): ClaimDef {
-        val schema = getSchema(schemaDetails)
+    protected fun hasSchema(schemaDetails: SchemaDetails): Boolean = try {
+        getSchema(schemaDetails)
+        true
+    } catch (e: IndyException) {
+        false
+    }
 
+    protected fun getClaimDef(schemaDetails: SchemaDetails, claimDefOwner: String): CredentialDefinition {
+        val schema = getSchema(schemaDetails)
         val claimDefReq = Ledger.buildGetCredDefRequest(schemaDetails.owner, schema.id).get()
 
         val claimDefRes = Ledger.submitRequest(pool, claimDefReq).get()
-        return ClaimDef(JSONObject(claimDefRes).getJSONObject("result").toString())
+
+        val parsedRes = Ledger.parseGetCredDefResponse(claimDefRes).get()
+        return CredentialDefinition(parsedRes)
     }
 
-    private fun getSchemaAndDefinition(schemaDetails: SchemaDetails, claimDefOwner: String): Pair<ClaimSchema, ClaimDef> {
+    private fun getSchemaAndDefinition(schemaDetails: SchemaDetails, claimDefOwner: String): Pair<Schema, CredentialDefinition> {
         return Pair(getSchema(schemaDetails), getClaimDef(schemaDetails, claimDefOwner))
     }
 

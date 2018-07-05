@@ -1,37 +1,15 @@
 package com.luxoft.blockchainlab.hyperledger.indy.model
 
+import org.hyperledger.indy.sdk.ledger.LedgerResults
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.reflect.KProperty
 
 data class Did(val json: String)
 
 data class Pairwise(val json: String) {
     val did = JSONObject(json).get("my_did").toString()
     val metadata = JSONObject(json).get("metadata").toString()
-}
-
-data class ClaimSchema(val json: String) {
-
-    val id = JSONObject(json).get("seqNo").toString()
-    val dest = JSONObject(json).get("dest").toString()
-    val data = JSONObject(json).get("data").toString()
-    val txnTime = JSONObject(json).get("txnTime").toString()
-
-    fun isValid(): Boolean {
-        return ("null" != id) && ("null" != txnTime)
-    }
-}
-
-data class ClaimDef(val json: String) {
-
-    val id = JSONObject(json).get("seqNo").toString()
-    val txnTime = JSONObject(json).get("txnTime").toString()
-
-    val data = JSONObject(json).get("data").toString()
-
-    fun isValid(): Boolean {
-        return ("null" != id) && ("null" != txnTime)
-    }
 }
 
 data class ClaimOffer(val json: String, val proverDid: String) {
@@ -104,3 +82,65 @@ data class Proof(val json: String, val usedSchemas: String, val usedClaimDefs: S
         // val idx = JSONObject(mapping)[tion.name]
     }
 }
+
+
+
+/**
+ * {
+ *     id: identifier of schema
+ *     attrNames: array of attribute name strings
+ *     name: Schema's name string
+ *     version: Schema's version string
+ *     ver: Version of the Schema json
+ * }
+ * */
+class Schema(parseGetSchemaResponse: LedgerResults.ParseResponseResult) {
+    val json = JSONObject(parseGetSchemaResponse.objectJson)
+
+    val id by json
+    val name by json
+    val version by json
+    val ver by json
+
+    val attrNames: List<String> = json.getJSONArray("attrNames").toList()
+
+    /* "$did:3:$SIGNATURE_TYPE:${schema.id}:$TAG" */
+    val seqNo = id.split(":").get(3).toInt()
+}
+
+/**
+ * {
+ *     id: string - identifier of credential definition
+ *     schemaId: string - identifier of stored in ledger schema
+ *     type: string - type of the credential definition. CL is the only supported type now.
+ *     tag: string - allows to distinct between credential definitions for the same issuer and schema
+ *     value: Dictionary with Credential Definition's data: {
+ *         primary: primary credential public key,
+ *         Optional<revocation>: revocation credential public key
+ *     },
+ *     ver: Version of the Credential Definition json
+ * }
+ * */
+class CredentialDefinition(parseGetCredDefResponse: LedgerResults.ParseResponseResult) {
+    val json = JSONObject(parseGetCredDefResponse.objectJson)
+
+    val id by json
+    val schemaId by json
+    val type by json
+    val tag by json
+    val ver by json
+
+    val value = Data(json.getJSONObject("value"))
+
+    class Data(valueJson: JSONObject){
+       val primaryPubKey = valueJson.getString("primary")
+       val revocationPubKey = valueJson.getStringOrNull("revocation")
+    }
+}
+
+
+inline fun <reified E> JSONArray.toList(): List<E> = List(length()) { i -> get(i) as E }
+
+operator fun JSONObject.getValue(thisRef: Any?, property: KProperty<*>): String = getString(property.name)
+
+fun JSONObject.getStringOrNull(key: String) = if(has(key)) getString(key) else null
