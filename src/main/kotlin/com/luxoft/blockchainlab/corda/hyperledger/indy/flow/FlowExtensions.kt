@@ -8,7 +8,10 @@ import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 
 
-// Extension methods to reduce boilerplate code in Indy flows
+/**
+ * Extension methods to reduce boilerplate code in Indy flows
+ */
+
 fun FlowLogic<Any>.whoIs(x509: CordaX500Name): Party {
     return serviceHub.identityService.wellKnownPartyFromX500Name(x509)!!
 }

@@ -1,6 +1,5 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.contract
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.contracts.*
@@ -8,6 +7,11 @@ import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.LedgerTransaction
 import java.security.PublicKey
 
+/**
+ * Example contract with claim verification. Use responsibly
+ * as Corda will probably remove JNI support (i.e. Libindy calls)
+ * in near future in deterministic JVM
+ */
 class ClaimChecker : Contract {
 
     @CordaSerializable
@@ -27,7 +31,7 @@ class ClaimChecker : Contract {
     }
 
     private fun verification(tx: LedgerTransaction, signers: Set<PublicKey>, expectedAttrs: List<ExpectedAttr>) = requireThat {
-        // TODO: are you sure?
+
         "No inputs should be consumed when creating the proof." using (tx.inputStates.isEmpty())
         "Only one Proof should be created per verification session." using (tx.outputStates.size == 1)
 
@@ -43,7 +47,9 @@ class ClaimChecker : Contract {
 
     }
 
-    private fun creation(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {  }
+    private fun creation(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {
+        // Probably can check something here too...
+    }
 
     interface Commands : CommandData {
         data class Verify(val expectedAttrs: List<ExpectedAttr>) : Commands
