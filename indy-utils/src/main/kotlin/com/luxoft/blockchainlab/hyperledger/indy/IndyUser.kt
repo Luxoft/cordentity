@@ -395,8 +395,7 @@ open class IndyUser {
 
     companion object {
         private const val SIGNATURE_TYPE = "CL"
-        private const val TAG = "tag1"
-        private const val SCHEMA_ID = "schema-id-1"
+        private const val TAG = "TAG_1"
 
         fun verifyProof(proofReq: ProofReq, proof: Proof): Boolean {
             return Anoncreds.verifierVerifyProof(
