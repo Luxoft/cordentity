@@ -8,7 +8,6 @@ import com.luxoft.blockchainlab.hyperledger.indy.model.Proof
 import com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
-import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.flows.*
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
@@ -79,8 +78,7 @@ object VerifyClaimFlow {
             try {
                 flowSession.receive(ProofReq::class.java).unwrap { indyProofReq ->
                     // TODO: Master Secret should be received from the outside
-                    val masterSecret = indyUser().masterSecret
-                    val masterSecretId = indyUser().createMasterSecret(masterSecret)
+                    val masterSecretId = indyUser().defaultMasterSecretId
                     flowSession.send(indyUser().createProof(indyProofReq, masterSecretId))
                 }
 

@@ -57,7 +57,7 @@ open class IndyUser {
 
     private val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
 
-    val masterSecret = "master"
+    val defaultMasterSecretId = "master"
     val did: String
     val verkey: String
 
@@ -133,16 +133,11 @@ open class IndyUser {
         Anoncreds.issuerCreateAndStoreRevocReg(wallet, did, null, TAG, credDef.credDefId, "{}", tailsWriter).get()
     }
 
-    fun createMasterSecret(masterSecret: String): String {
+    fun createMasterSecret(masterSecretId: String) {
         try {
-            return Anoncreds.proverCreateMasterSecret(wallet, masterSecret).get()
-        } catch (e: IndyException) {
-            val indyEx = IndyException.fromSdkError(e.sdkErrorCode)
-
-            if(indyEx is DuplicateMasterSecretNameException)
-                throw RuntimeException("MasterSecret `$masterSecret` already exists, continuing")
-            else
-                throw indyEx
+            Anoncreds.proverCreateMasterSecret(wallet, masterSecretId).get()
+        } catch (e: DuplicateMasterSecretNameException) {
+            logger.debug("MasterSecret already exists, who cares, continuing")
         }
     }
 
@@ -190,10 +185,11 @@ open class IndyUser {
 
     }
 
-    fun createClaimReq(schemaDetails: SchemaDetails, issuerDid: String, sessionDid: String, masterSecretId: String): ClaimReq {
+    fun createClaimReq(schemaDetails: SchemaDetails, issuerDid: String, sessionDid: String, masterSecretId: String = defaultMasterSecretId): ClaimReq {
         val claimDef = getClaimDef(schemaDetails, issuerDid)
         val claimOffer = getClaimOffer(issuerDid)
 
+        createMasterSecret(masterSecretId)
         val credReq = Anoncreds.proverCreateCredentialReq(wallet, sessionDid, claimOffer.json, claimDef.json.toString(), masterSecretId).get()
         return ClaimReq(credReq.credentialRequestJson)
     }
@@ -217,7 +213,7 @@ open class IndyUser {
         val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, claim.schemaKey, TAG, null, "{}").get()
 
         val credOffer = Anoncreds.issuerCreateCredentialOffer(wallet, credDef.credDefId).get()
-        val credReqMeta = Anoncreds.proverCreateCredentialReq(wallet, claim.issuerDid, credOffer, credDef.credDefJson, masterSecret).get()
+        val credReqMeta = Anoncreds.proverCreateCredentialReq(wallet, claim.issuerDid, credOffer, credDef.credDefJson, defaultMasterSecretId).get()
 
         Anoncreds.proverStoreCredential(wallet, null, credReqMeta.credentialRequestMetadataJson, claim.json, credDef.credDefJson, "{}").get()
     }
@@ -261,7 +257,7 @@ open class IndyUser {
                 "}", requestedAttributes, requestedPredicates.toString()))
     }
 
-    fun createProof(proofReq: ProofReq, masterSecretId: String): Proof {
+    fun createProof(proofReq: ProofReq, masterSecretId: String = defaultMasterSecretId): Proof {
         val schemaForClaim: MutableMap<String, Schema> = LinkedHashMap()
         val claimDefForClaim: MutableMap<String, CredentialDefinition> = LinkedHashMap()
 
