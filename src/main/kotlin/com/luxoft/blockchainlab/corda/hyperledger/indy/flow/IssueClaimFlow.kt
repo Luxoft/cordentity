@@ -78,7 +78,6 @@ object IssueClaimFlow {
                 val sessionDid = subFlow(CreatePairwiseFlow.Prover(issuer))
 
                 val (schemaId, credDefId) = flowSession.sendAndReceive<ClaimOffer>(sessionDid).unwrap { offer ->
-                    indyUser().receiveClaimOffer(offer)
                     offer.schemaId to offer.credDefId
                 }
 

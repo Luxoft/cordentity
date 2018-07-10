@@ -173,11 +173,6 @@ open class IndyUser {
         return ClaimOffer(credOffer)
     }
 
-    fun receiveClaimOffer(claimOffer: ClaimOffer)  {
-        //todo: indy_prover_store_claim_offer was DELETED
-
-    }
-
     fun createClaimReq(issuerDid: String, sessionDid: String, credDefId: String, masterSecretId: String = defaultMasterSecretId): ClaimReq {
         val credDef = getClaimDef(credDefId)
         val credOffer = getClaimOffer(issuerDid)
