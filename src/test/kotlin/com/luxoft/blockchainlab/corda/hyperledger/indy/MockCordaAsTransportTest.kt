@@ -14,6 +14,7 @@ import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
 import net.corda.testing.core.singleIdentity
 import net.corda.testing.node.internal.startFlow
+import org.hyperledger.indy.sdk.pool.Pool
 import org.junit.*
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -37,6 +38,7 @@ class MockCordaAsTransportTest {
         @BeforeClass
         fun init() {
             //setCordappPackages("com.luxoft.blockchainlab.corda.hyperledger.indy")
+            Pool.setProtocolVersion(2).get()
         }
 
         @JvmStatic
