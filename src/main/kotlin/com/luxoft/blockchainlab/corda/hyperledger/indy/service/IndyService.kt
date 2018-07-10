@@ -19,6 +19,7 @@ import java.io.File
 class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
 
     private val POOL_NAME = "default_pool"
+    private val CREDENTIALS = """{"key": "key"}"""
 
     private val config = TestConfigurationsProvider.config(services.myInfo.legalIdentities.first().name.organisation) ?: EmptyConfiguration
             .ifNot(ConfigurationProperties.fromFileOrNull(File("indyconfig", "indy.properties")), indyuser) // file with common name if go for file-based config  in production
@@ -34,12 +35,12 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
         val walletName = try { config[indyuser.walletName] } catch (e: Exception) { services.myInfo.legalIdentities.first().name.organisation }
 
         try {
-            Wallet.createWallet(POOL_NAME, walletName, "default", null, null).get()
+            Wallet.createWallet(POOL_NAME, walletName, "default", null, CREDENTIALS).get()
         } catch (ex: Exception) {
             if (getRootCause(ex) !is WalletExistsException) throw ex else logger.debug("Wallet already exists")
         }
 
-        val wallet = Wallet.openWallet(walletName, null, null).get()
+        val wallet = Wallet.openWallet(walletName, null, CREDENTIALS).get()
 
         indyUser = if(config.getOrNull(indyuser.role)?.compareTo("trustee", true) == 0) {
             val didConfig = DidJSONParameters.CreateAndStoreMyDidJSONParameter(

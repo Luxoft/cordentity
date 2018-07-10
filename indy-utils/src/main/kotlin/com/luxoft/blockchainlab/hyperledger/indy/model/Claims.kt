@@ -3,6 +3,7 @@ package com.luxoft.blockchainlab.hyperledger.indy.model
 import org.hyperledger.indy.sdk.ledger.LedgerResults
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlin.coroutines.experimental.buildIterator
 import kotlin.reflect.KProperty
 
 data class Did(val json: String)
@@ -12,13 +13,37 @@ data class Pairwise(val json: String) {
     val metadata = JSONObject(json).get("metadata").toString()
 }
 
-data class ClaimOffer(val json: String, val proverDid: String) {
-    val issuerDid = JSONObject(json).get("issuer_did").toString()
-    val schemaKey = JSONObject(json).get("schema_key").toString()
+/**
+ *     {
+ *         "schema_id": string,
+ *         "cred_def_id": string,
+ *         // Fields below can depend on Cred Def type
+ *         "nonce": string,
+ *         "key_correctness_proof" : <key_correctness_proof>
+ *     }
+ **/
+data class ClaimOffer(val json: JSONObject) {
+    constructor(issuerCreateCredentialOffer: String) : this(JSONObject(issuerCreateCredentialOffer))
+
+    val schemaId = json.getString("schema_id")
+    val credDefId = json.getString("cred_def_id")
+
+    val schemaKey: String = TODO()
 }
 
 data class ClaimReq(val json: String)
 
+/**
+ * ????
+ * {
+ *     "referent": string, // cred_id in the wallet
+ *     "values": <see credValuesJson above>,
+ *     "schema_id": string,
+ *     "cred_def_id": string,
+ *     "rev_reg_id": Optional<string>,
+ *     "cred_rev_id": Optional<string>
+ * }
+ **/
 data class Claim(val json: String) {
 
     val issuerDid = JSONObject(json).get("issuer_did").toString()
@@ -26,14 +51,28 @@ data class Claim(val json: String) {
     val schemaKey = JSONObject(json).get("schema_key").toString()
 }
 
-data class ClaimRef(val json: String) {
 
-    private val attributes = JSONObject(json).getJSONObject("attrs").toString()
+/**
+ * {
+ *     "referent": <string>,
+ *     "attrs": [{"attr_name" : "attr_raw_value"}],
+ *     "schema_id": string,
+ *     "cred_def_id": string,
+ *     "rev_reg_id": Optional<int>,
+ *     "cred_rev_id": Optional<int>,
+ * }
+ **/
+data class ClaimRef(val json: JSONObject) {
+    constructor(credential_info: String) : this(JSONObject(credential_info))
 
-    val issuerDid = JSONObject(json).get("issuer_did").toString()
-    val schemaKey = JSONObject(json).get("schema_key").toString()
+    val referentClaim: String = json.getString("referent")
+    val schemaId: String = json.getString("schema_id")
 
-    val referentClaim = JSONObject(json).get("referent").toString()
+    val credDefId: String = json.getString("cred_def_id")
+    val revRegId: String? = json.getStringOrNull("rev_reg_id")
+    val credRevId: String? = json.getStringOrNull("cred_rev_id")
+
+    val attributes = json.getJSONArray("attrs").toObjectList().flatMap { it.toMap() }
 
 }
 
@@ -139,8 +178,30 @@ class CredentialDefinition(parseGetCredDefResponse: LedgerResults.ParseResponseR
 }
 
 
-inline fun <reified E> JSONArray.toList(): List<E> = List(length()) { i -> get(i) as E }
+fun JSONArray.toList(): List<String> = List(length()) { i -> getString(i) }
+
+fun JSONArray.toObjectList(): List<JSONObject> = List(length()) { i -> getJSONObject(i) }
+
+operator fun JSONArray.iterator(): Iterator<String> = buildIterator {
+    for(i in 0 until length())
+        yield(get(i).toString())
+}
 
 operator fun JSONObject.getValue(thisRef: Any?, property: KProperty<*>): String = getString(property.name)
 
 fun JSONObject.getStringOrNull(key: String) = if(has(key)) getString(key) else null
+
+fun JSONObject.toMap(): Map<String, String> {
+    val keys = keySet() as Set<String>
+    return keys.associateBy({ it }, { getString(it) })
+}
+
+
+public inline fun <T, K, V> Iterable<T>.flatMap( transform: (T) -> Map<K, V>): Map<K, V> {
+    val destination = mutableMapOf<K, V>()
+    for (element in this) {
+        val map = transform(element)
+        destination.putAll(map)
+    }
+    return destination
+}

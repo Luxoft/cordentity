@@ -108,13 +108,10 @@ class MockVerifyClaimInContractTest {
                         schema.getSchemaAttrs())).resultFuture
 
         net.runNetwork()
-        schemaFuture.getOrThrow(Duration.ofSeconds(30))
+        val schemaId = schemaFuture.getOrThrow(Duration.ofSeconds(30))
 
         val claimDefFuture = claimDefOwner.services.startFlow(
-                CreateClaimDefFlow.Authority(
-                        schemaOwnerDid,
-                        schema.getSchemaName(),
-                        schema.getSchemaVersion())).resultFuture
+                CreateClaimDefFlow.Authority(schemaId)).resultFuture
 
         net.runNetwork()
         claimDefFuture.getOrThrow(Duration.ofSeconds(30))
@@ -124,7 +121,8 @@ class MockVerifyClaimInContractTest {
                            claimIssuer: StartedNode<InternalMockNetwork.MockNode>,
                            schemaOwner: StartedNode<InternalMockNetwork.MockNode>,
                            claimProposal: String,
-                           schema: Schema) {
+                           schema: Schema,
+                           credDefId: String) {
         val identifier = UUID.randomUUID().toString()
 
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
@@ -138,6 +136,7 @@ class MockVerifyClaimInContractTest {
                 IssueClaimFlow.Issuer(
                         identifier,
                         schemaDetails,
+                        credDefId,
                         claimProposal,
                         claimProver.info.singleIdentity().name)
         ).resultFuture

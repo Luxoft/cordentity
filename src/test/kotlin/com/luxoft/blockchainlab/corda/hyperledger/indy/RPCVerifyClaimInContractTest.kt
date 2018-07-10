@@ -54,7 +54,7 @@ class RPCVerifyClaimInContractTest {
                                        claimDefOwner: CordaRPCOps,
                                        schema: Schema) {
 
-        schemaOwner.startFlowDynamic(
+        val schemaId = schemaOwner.startFlowDynamic(
                 CreateSchemaFlow.Authority::class.java,
                 schema.getSchemaName(),
                 schema.getSchemaVersion(),
@@ -64,9 +64,7 @@ class RPCVerifyClaimInContractTest {
 
         claimDefOwner.startFlowDynamic(
                 CreateClaimDefFlow.Authority::class.java,
-                schemaOwnerDid,
-                schema.getSchemaName(),
-                schema.getSchemaVersion()
+                schemaId
         ).returnValue.get(30, TimeUnit.SECONDS)
     }
 

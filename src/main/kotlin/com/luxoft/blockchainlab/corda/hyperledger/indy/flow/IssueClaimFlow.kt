@@ -21,6 +21,7 @@ object IssueClaimFlow {
     @StartableByRPC
     open class Issuer(private val identifier: String,
                       private val schema: IndyUser.SchemaDetails,
+                      private val credDefId: String,
                       private val proposal: String,
                       private val proverName: CordaX500Name) : FlowLogic<Unit>() {
 
@@ -31,7 +32,7 @@ object IssueClaimFlow {
 
             try {
                 val offer = flowSession.receive<String>().unwrap { sessionalDid ->
-                    indyUser().createClaimOffer(sessionalDid, schema)
+                    indyUser().createClaimOffer(credDefId)
                 }
 
                 val newClaimOut = flowSession.sendAndReceive<ClaimReq>(offer).unwrap { claimReq ->
@@ -76,14 +77,14 @@ object IssueClaimFlow {
 
                 val sessionDid = subFlow(CreatePairwiseFlow.Prover(issuer))
 
-                val schema = flowSession.sendAndReceive<ClaimOffer>(sessionDid).unwrap { offer ->
+                val (schemaId, credDefId) = flowSession.sendAndReceive<ClaimOffer>(sessionDid).unwrap { offer ->
                     indyUser().receiveClaimOffer(offer)
-                    IndyUser.SchemaDetails.fromSchemaKey(offer.schemaKey)
+                    offer.schemaId to offer.credDefId
                 }
 
                 val issuerDid = subFlow(GetDidFlow.Initiator(issuer))
 
-                val claimReq = indyUser().createClaimReq(schema, issuerDid, sessionDid)
+                val claimReq = indyUser().createClaimReq(issuerDid, sessionDid, credDefId)
                 flowSession.send(claimReq)
 
                 val flow = object : SignTransactionFlow(flowSession) {

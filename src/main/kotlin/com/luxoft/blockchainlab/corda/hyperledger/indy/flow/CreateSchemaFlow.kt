@@ -15,13 +15,13 @@ object CreateSchemaFlow {
             private val schemaName: String,
             private val schemaVersion: String,
             private val schemaAttributes: List<String>
-    ) : FlowLogic<Unit>() {
+    ) : FlowLogic<String>() {
 
         @Suspendable
-        override fun call() {
+        override fun call(): String {
             try {
-                val schemaDetails = IndyUser.SchemaDetails(schemaName, schemaVersion, indyUser().did)
-                indyUser().createSchema(schemaDetails, schemaAttributes)
+                val schemaId = indyUser().createSchema(schemaName, schemaVersion, schemaAttributes)
+                return schemaId
             } catch (t: Throwable) {
                 logger.error("", t)
                 throw FlowException(t.message)

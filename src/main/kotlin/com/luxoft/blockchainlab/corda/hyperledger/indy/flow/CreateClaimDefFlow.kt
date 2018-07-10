@@ -12,16 +12,13 @@ object CreateClaimDefFlow {
 
     @InitiatingFlow
     @StartableByRPC
-    class Authority(
-            private val schemaOwner: String,
-            private val schemaName: String,
-            private val schemaVersion: String
-            ) : FlowLogic<Unit>() {
+    class Authority(private val schemaId: String) : FlowLogic<String>() {
 
         @Suspendable
-        override fun call() {
+        override fun call(): String {
             try {
-                indyUser().createClaimDef(IndyUser.SchemaDetails(schemaName, schemaVersion, schemaOwner))
+                val credDefId = indyUser().createClaimDef(schemaId)
+                return credDefId
             } catch (t: Throwable) {
                 logger.error("", t)
                 throw FlowException(t.message)
