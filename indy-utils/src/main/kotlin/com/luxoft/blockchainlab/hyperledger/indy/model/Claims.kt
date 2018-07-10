@@ -31,24 +31,49 @@ data class ClaimOffer(val json: JSONObject) {
     val schemaKey: String = TODO()
 }
 
-data class ClaimReq(val json: String)
+/**
+ * * credReqJson: Credential request json for creation of credential by Issuer
+ *     {
+ *      "prover_did" : string,
+ *      "cred_def_id" : string,
+ *         // Fields below can depend on Cred Def type
+ *      "blinded_ms" : <blinded_master_secret>,
+ *      "blinded_ms_correctness_proof" : <blinded_ms_correctness_proof>,
+ *      "nonce": string
+ *    }
+ * credReqMetadataJson: Credential request metadata json for processing of received form Issuer credential.
+ * */
+class ClaimReq(val json: JSONObject) {
+    constructor(credReqJson: String) : this(JSONObject(credReqJson))
+
+    val proverDid: String = json.getString("prover_did")
+    val credDefId: String = json.getString("cred_def_id")
+}
+
 
 /**
- * ????
- * {
- *     "referent": string, // cred_id in the wallet
- *     "values": <see credValuesJson above>,
- *     "schema_id": string,
- *     "cred_def_id": string,
- *     "rev_reg_id": Optional<string>,
- *     "cred_rev_id": Optional<string>
- * }
- **/
-data class Claim(val json: String) {
+ * credentialJson: Credential json containing signed credential values
+ *     {
+ *         "schema_id": string,
+ *         "cred_def_id": string,
+ *         "rev_reg_def_id", Optional<string>,
+ *         "values": { "attr1" : {"raw": "value1", "encoded": "value1_as_int" }, ... }
+ *
+ *         // Fields below can depend on Cred Def type
+ *         "signature": <signature>,
+ *         "signature_correctness_proof": <signature_correctness_proof>
+ *     }
+ * */
+data class Claim(val json: JSONObject) {
+    constructor(credentialJson: String) : this(JSONObject(credentialJson))
 
-    val issuerDid = JSONObject(json).get("issuer_did").toString()
-    val signature = JSONObject(json).get("signature").toString()
-    val schemaKey = JSONObject(json).get("schema_key").toString()
+    val schemaId = json.getString("schema_id")
+    val credDefId = json.getString("cred_def_id")
+    val revRegDefId = json.getStringOrNull("rev_reg_def_id")
+
+    val values = json.getJSONObject("values")
+
+    val signature = json.getString("signature")
 }
 
 

@@ -6,7 +6,6 @@ import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredentialOffer
 import org.hyperledger.indy.sdk.anoncreds.DuplicateMasterSecretNameException
-import org.hyperledger.indy.sdk.blob_storage.BlobStorageReader
 import org.hyperledger.indy.sdk.blob_storage.BlobStorageWriter
 import org.hyperledger.indy.sdk.did.Did
 import org.hyperledger.indy.sdk.ledger.Ledger
@@ -17,7 +16,6 @@ import org.hyperledger.indy.sdk.wallet.WalletItemNotFoundException
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
 import org.json.JSONArray
-import kotlin.collections.LinkedHashMap
 
 
 open class IndyUser {
@@ -183,28 +181,21 @@ open class IndyUser {
         return ClaimReq(credReq.credentialRequestJson)
     }
 
-    fun issueClaim(claimReq: ClaimReq,
-                   proposal: String,
-                   schemaDetails: SchemaDetails,
-                   revokIdx: String? = null,
-                   storageReader: BlobStorageReader = BlobStorageReader.openReader("default", "{}").get()
-    ): Claim {
-        val schema = getSchema(schemaDetails.id)
-        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json.toString(), TAG, null, "{}").get()
-        val credOffer = issuerCreateCredentialOffer(wallet, credDef.credDefId).get()
-        val createClaimResult = Anoncreds.issuerCreateCredential(
-                wallet, credOffer, claimReq.json, proposal, revokIdx, storageReader.blobStorageReaderHandle).get()
+    fun issueClaim(claimReq: ClaimReq, proposal: String, credDefId: String): Claim {
+        val credOfferJson = issuerCreateCredentialOffer(wallet, credDefId).get()
 
-        return Claim(createClaimResult.credentialJson)  // TODO: json keys do not match
+        val createClaimResult = Anoncreds.issuerCreateCredential(wallet, credOfferJson, claimReq.json.toString(), proposal, null, -1).get()
+
+        return Claim(createClaimResult.credentialJson)
     }
 
-    fun receiveClaim(claim: Claim)  {
-        val credDef = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, claim.schemaKey, TAG, null, "{}").get()
+    fun receiveClaim(claim: Claim, proverDid: String, credDefId: String)  {
+        val credOfferJson = Anoncreds.issuerCreateCredentialOffer(wallet, credDefId).get()
+        val credDef = getClaimDef(credDefId)
 
-        val credOffer = Anoncreds.issuerCreateCredentialOffer(wallet, credDef.credDefId).get()
-        val credReqMeta = Anoncreds.proverCreateCredentialReq(wallet, claim.issuerDid, credOffer, credDef.credDefJson, defaultMasterSecretId).get()
+        val credReqMeta = Anoncreds.proverCreateCredentialReq(wallet, proverDid, credOfferJson, credDef.json.toString(), defaultMasterSecretId).get()
 
-        Anoncreds.proverStoreCredential(wallet, null, credReqMeta.credentialRequestMetadataJson, claim.json, credDef.credDefJson, "{}").get()
+        Anoncreds.proverStoreCredential(wallet, null, credReqMeta.credentialRequestMetadataJson, claim.json.toString(), credDef.json.toString(), null).get()
     }
 
     /**

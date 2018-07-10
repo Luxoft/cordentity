@@ -24,7 +24,7 @@ object ClaimSchemaV1 : MappedSchema(
             var issuerDid: String
 
     ) : PersistentState() {
-        constructor(indyClaim: IndyClaim): this(indyClaim.id, indyClaim.claim.issuerDid)
+        constructor(indyClaim: IndyClaim): this(indyClaim.id, indyClaim.claimReq.proverDid)
         constructor(): this("","")
     }
 }

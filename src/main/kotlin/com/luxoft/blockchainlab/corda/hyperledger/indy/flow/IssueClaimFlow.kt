@@ -37,7 +37,7 @@ object IssueClaimFlow {
 
                 val newClaimOut = flowSession.sendAndReceive<ClaimReq>(offer).unwrap { claimReq ->
                     verifyClaimAttributeValues(claimReq)
-                    val claim = indyUser().issueClaim(claimReq, proposal, schema)
+                    val claim = indyUser().issueClaim(claimReq, proposal, credDefId)
                     val claimOut = IndyClaim(identifier, claimReq, claim, listOf(ourIdentity, prover))
                     StateAndContract(claimOut, ClaimChecker::class.java.name)
                 }
@@ -93,7 +93,7 @@ object IssueClaimFlow {
                         when(state) {
                             is IndyClaim -> {
                                 require(state.claimReq == claimReq) { "Received incorrected ClaimReq"}
-                                indyUser().receiveClaim(state.claim)
+                                indyUser().receiveClaim(state.claim, state.claimReq.proverDid, credDefId)
                             }
                             else -> throw FlowException("invalid output state. IndyClaim is expected")
                         }
