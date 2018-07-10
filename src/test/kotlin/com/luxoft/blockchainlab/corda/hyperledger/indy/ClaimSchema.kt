@@ -16,7 +16,7 @@ class SchemaPerson : Schema {
     val schemaAttr1 = "attr1"
     val schemaAttr2 = "attr2"
 
-    private val schemaProposal = """{"$schemaAttr1":{"raw":"%s", "encoded":"%s"}, "$schemaAttr2":{"raw":"%s", "encoded":""%s"} }"""
+    private val schemaProposal = """ {"$schemaAttr1":{"raw":"%s", "encoded":"%s"}, "$schemaAttr2":{"raw":"%s", "encoded":"%s"} }"""
 
     val schemaKey = "{ \"name\":\"${schemaName}\",\"version\":\"${schemaVersion}\",\"did\":\"%s\"}"
     val claimOffer = "{\"issuer_did\":\"%s\", \"schema_key\": ${schemaKey} }"
@@ -45,7 +45,7 @@ class SchemaEducation: Schema {
     val schemaAttr1 = "attrX"
     val schemaAttr2 = "attrY"
 
-    private val schemaProposal = """{"$schemaAttr1":{"raw":"%s", "encoded":"%s"}, "$schemaAttr2":{"raw":"%s", "encoded":""%s"} }"""
+    private val schemaProposal = """ {"$schemaAttr1":{"raw":"%s", "encoded":"%s"}, "$schemaAttr2":{"raw":"%s", "encoded":"%s"} }"""
 
     val schemaKey = "{ \"name\":\"${schemaName}\",\"version\":\"${schemaVersion}\",\"did\":\"%s\"}"
     val claimOffer = "{\"issuer_did\":\"%s\", \"schema_key\": ${schemaKey} }"
@@ -75,7 +75,7 @@ class SchemaHappiness : Schema {
     val schemaAttrForKiss = "isMySweetheart"
     val schemaAttrForDrink = "age"
 
-    private val schemaProposal = """{"$schemaAttrForKiss":{"raw":"%s", "encoded":"%s"}, "$schemaAttrForDrink":{"raw":"%s", "encoded":""%s"} }"""
+    private val schemaProposal = """ {"$schemaAttrForKiss":{"raw":"%s", "encoded":"%s"}, "$schemaAttrForDrink":{"raw":"%s", "encoded":"%s"} }"""
 
     val schemaKey = "{ \"name\":\"${schemaName}\",\"version\":\"${schemaVersion}\",\"did\":\"%s\"}"
     val claimOffer = "{\"issuer_did\":\"%s\", \"schema_key\": ${schemaKey} }"
