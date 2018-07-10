@@ -13,6 +13,7 @@ import net.corda.core.schemas.QueryableState
 open class IndyClaim(val id: String,
                      val claimReq: ClaimReq,
                      val claim: Claim,
+                     val issuerDid: String,
                      override val participants: List<AbstractParty>): LinearState, QueryableState {
 
     override val linearId: UniqueIdentifier = UniqueIdentifier()
