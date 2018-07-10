@@ -171,13 +171,12 @@ open class IndyUser {
         return ClaimOffer(credOffer)
     }
 
-    fun createClaimReq(issuerDid: String, sessionDid: String, credDefId: String, masterSecretId: String = defaultMasterSecretId): ClaimReq {
-        val credDef = getClaimDef(credDefId)
-        val credOffer = getClaimOffer(issuerDid)
+    fun createClaimReq(issuerDid: String, sessionDid: String, offer: ClaimOffer, masterSecretId: String = defaultMasterSecretId): ClaimReq {
+        val credDef = getClaimDef(offer.credDefId)
 
         createMasterSecret(masterSecretId)
 
-        val credReq = Anoncreds.proverCreateCredentialReq(wallet, sessionDid, credOffer.json.toString(), credDef.json.toString(), masterSecretId).get()
+        val credReq = Anoncreds.proverCreateCredentialReq(wallet, sessionDid, offer.json.toString(), credDef.json.toString(), masterSecretId).get()
         return ClaimReq(credReq.credentialRequestJson)
     }
 
@@ -340,16 +339,6 @@ open class IndyUser {
         val credDefIdInfo = Ledger.parseGetCredDefResponse(getCredDefResponse).get()
 
         return CredentialDefinition(credDefIdInfo)
-    }
-
-    private fun getClaimOffer(issuerDid: String): ClaimOffer {
-        val claimOfferFilter = """{"issuer_did":"$issuerDid"}"""
-
-        val claimOffersJson = Anoncreds.proverGetCredentials(wallet, claimOfferFilter).get()
-
-        val claimOfferObject = JSONArray(claimOffersJson).getJSONObject(0)
-
-        return ClaimOffer(claimOfferObject.toString())
     }
 
     companion object {

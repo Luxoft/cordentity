@@ -77,13 +77,11 @@ object IssueClaimFlow {
 
                 val sessionDid = subFlow(CreatePairwiseFlow.Prover(issuer))
 
-                val (schemaId, credDefId) = flowSession.sendAndReceive<ClaimOffer>(sessionDid).unwrap { offer ->
-                    offer.schemaId to offer.credDefId
-                }
+                val offer = flowSession.sendAndReceive<ClaimOffer>(sessionDid).unwrap { offer -> offer }
 
                 val issuerDid = subFlow(GetDidFlow.Initiator(issuer))
 
-                val claimReq = indyUser().createClaimReq(issuerDid, sessionDid, credDefId)
+                val claimReq = indyUser().createClaimReq(issuerDid, sessionDid, offer)
                 flowSession.send(claimReq)
 
                 val flow = object : SignTransactionFlow(flowSession) {
@@ -93,7 +91,7 @@ object IssueClaimFlow {
                         when(state) {
                             is IndyClaim -> {
                                 require(state.claimReq == claimReq) { "Received incorrected ClaimReq"}
-                                indyUser().receiveClaim(state.claim, state.claimReq.proverDid, credDefId)
+                                indyUser().receiveClaim(state.claim, state.claimReq.proverDid, offer.credDefId)
                             }
                             else -> throw FlowException("invalid output state. IndyClaim is expected")
                         }
