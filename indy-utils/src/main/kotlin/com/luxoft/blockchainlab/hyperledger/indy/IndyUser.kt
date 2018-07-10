@@ -211,23 +211,19 @@ open class IndyUser {
 
         // 1. Add attributes
         val requestedAttributes = attributes.withIndex().joinToString { (idx, data) ->
-            // todo: replace seqNo with schemaId
-            val schemaSqNum = getSchema(data.schema.id).seqNo
-            """"attr${idx}_referent":{"name":"${data.field}", "schemaSeqNum":$schemaSqNum, "credDefId":"${data.credDefId}"}"""
+            val schema = getSchema(data.schema.id)
+            """"attr${idx}_referent":{"name":"${data.field}", "schemaId":${schema.id}, "credDefId":"${data.credDefId}"}"""
         }
 
         // 2. Add predicates
-        val requestedPredicates = StringBuilder()
-        predicates.forEachIndexed {idx, data ->
-            val schemaId = getSchema(data.schema.id).seqNo
-            requestedPredicates.append(String.format("\"predicate%d_referent\": {" +
+        val requestedPredicates = predicates.withIndex().joinToString {(idx, data) ->
+            val schema = getSchema(data.schema.id)
+            String.format("\"predicate%d_referent\": {" +
                     "\"attr_name\":\"%s\"," +
                     "\"p_type\":\">=\"," +
                     "\"value\":%d," +
-                    "\"schemaSeqNum\":%s," +
-                    "\"credDefId\":%s }", idx, data.field, data.value, schemaId, data.credDefId))
-
-            if (idx != (predicates.size-1)) requestedPredicates.append(",")
+                    "\"schemaId\":%s," +
+                    "\"credDefId\":%s }", idx, data.field, data.value, schema.id,data.credDefId)
         }
 
         return ProofReq(String.format("{" +
@@ -236,7 +232,7 @@ open class IndyUser {
                 "    \"version\":\"0.1\",\n" +
                 "    \"requested_attrs\": {%s},\n" +
                 "    \"requested_predicates\": {%s}\n" +
-                "}", requestedAttributes, requestedPredicates.toString()))
+                "}", requestedAttributes, requestedPredicates))
     }
 
     fun createProof(proofReq: ProofReq, masterSecretId: String = defaultMasterSecretId): Proof {
@@ -293,7 +289,7 @@ open class IndyUser {
         val attributeKeys = JSONObject(proofReq.attributes).keySet() as Set<String>
 
         val claimPredicateDetails = attributeKeys.map { attribute ->
-            val schemaId = proofReq.getPredicateValue(attribute, "schemaSeqNum")
+            val schemaId = proofReq.getPredicateValue(attribute, "schemaId")
             val credDefId = proofReq.getAttributeValue(attribute, "credDefId")
             val claims = requiredClaimsForProof
                     .getJSONObject("requested_attrs")
@@ -314,7 +310,7 @@ open class IndyUser {
         val predicateKeys = JSONObject(proofReq.predicates).keySet() as Set<String>
 
         val claimPredicateDetails = predicateKeys.map { predicate ->
-            val schemaId = proofReq.getPredicateValue(predicate, "schemaSeqNum")
+            val schemaId = proofReq.getPredicateValue(predicate, "schemaId")
             val credDefId = proofReq.getAttributeValue(predicate, "credDefId")
             val claims = requiredClaimsForProof
                     .getJSONObject("requested_predicates")

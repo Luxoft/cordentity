@@ -167,9 +167,6 @@ class Schema(parseGetSchemaResponse: LedgerResults.ParseResponseResult) {
     val ver by json
 
     val attrNames: List<String> = json.getJSONArray("attrNames").toList()
-
-    /* "$did:3:$SIGNATURE_TYPE:${schema.id}:$TAG" */
-    val seqNo = id.split(":").get(3).toInt()
 }
 
 /**
