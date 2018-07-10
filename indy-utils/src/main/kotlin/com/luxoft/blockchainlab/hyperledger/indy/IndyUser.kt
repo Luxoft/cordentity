@@ -143,7 +143,7 @@ open class IndyUser {
     }
 
     fun createSchema(name: String, version: String, attributes: List<String>): String {
-        val attrStr = attributes.joinToString(prefix = "[", postfix = "]") { "\"it\"" }
+        val attrStr = attributes.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
 
         val schemaInfo = Anoncreds.issuerCreateSchema(did, name, version, attrStr).get()
         val schemaRequest = Ledger.buildSchemaRequest(did, schemaInfo.schemaJson).get()
