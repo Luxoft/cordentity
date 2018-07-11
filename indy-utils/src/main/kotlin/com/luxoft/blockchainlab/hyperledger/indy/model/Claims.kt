@@ -194,7 +194,7 @@ class CredentialDefinition(parseGetCredDefResponse: LedgerResults.ParseResponseR
     val value = Data(json.getJSONObject("value"))
 
     class Data(valueJson: JSONObject){
-       val primaryPubKey = valueJson.getString("primary")
+       val primaryPubKey = valueJson.get("primary").toString()
        val revocationPubKey = valueJson.getStringOrNull("revocation")
     }
 }
