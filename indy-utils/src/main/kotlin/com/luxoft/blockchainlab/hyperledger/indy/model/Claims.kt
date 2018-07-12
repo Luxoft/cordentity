@@ -114,27 +114,90 @@ class ClaimRef(json: JSONObject) : JsonDataObject(json) {
     val schemaId: String = json.getString("schema_id")
 
     val credDefId: String = json.getString("cred_def_id")
-    val revRegId: String? = json.getStringOrNull("rev_reg_id")
-    val credRevId: String? = json.getStringOrNull("cred_rev_id")
+    val revRegId: Int? = json.getIntOrNull("rev_reg_id")
+    val credRevId: Int? = json.getIntOrNull("cred_rev_id")
 
-    val attributes = json.getJSONArray("attrs").toObjectList().flatMap { it.toMap() }
+    val attributes: Map<String, String> = json.getJSONObject("attrs").toMap()
 
 }
 
-data class ProofReq(val json: String) {
-    val attributes = JSONObject(json).get("requested_attrs").toString()
-    val predicates = JSONObject(json).get("requested_predicates").toString()
+/**
+ * proof request json
+ *     {
+ *         "name": string,
+ *         "version": string,
+ *         "nonce": string,
+ *         "requested_attributes": { // set of requested attributes
+ *              "<attr_referent>": <attr_info>, // see below
+ *              ...,
+ *         },
+ *         "requested_predicates": { // set of requested predicates
+ *              "<predicate_referent>": <predicate_info>, // see below
+ *              ...,
+ *          },
+ *         "non_revoked": Optional<<non_revoc_interval>>, // see below,
+ *                        // If specified prover must proof non-revocation
+ *                        // for date in this interval for each attribute
+ *                        // (can be overridden on attribute level)
+ *     }
+ *
+ *     where
+ *
+ *
+ *     attr_referent: Describes requested attribute
+ *     {
+ *         "name": string, // attribute name, (case insensitive and ignore spaces)
+ *         "restrictions": Optional<[<attr_filter>]> // see below,
+ *                          // if specified, credential must satisfy to one of the given restriction.
+ *         "non_revoked": Optional<<non_revoc_interval>>, // see below,
+ *                        // If specified prover must proof non-revocation
+ *                        // for date in this interval this attribute
+ *                        // (overrides proof level interval)
+ *     }
+ *     predicate_referent: Describes requested attribute predicate
+ *     {
+ *         "name": attribute name, (case insensitive and ignore spaces)
+ *         "p_type": predicate type (Currently >= only)
+ *         "p_value": predicate value
+ *         "restrictions": Optional<[<attr_filter>]> // see below,
+ *                         // if specified, credential must satisfy to one of the given restriction.
+ *         "non_revoked": Optional<<non_revoc_interval>>, // see below,
+ *                        // If specified prover must proof non-revocation
+ *                        // for date in this interval this attribute
+ *                        // (overrides proof level interval)
+ *     }
+ *     non_revoc_interval: Defines non-revocation interval
+ *     {
+ *         "from": Optional<int>, // timestamp of interval beginning
+ *         "to": Optional<int>, // timestamp of interval ending
+ *     }
+ *     filter:
+ *     {
+ *         "schema_id": string, (Optional)
+ *         "schema_issuer_did": string, (Optional)
+ *         "schema_name": string, (Optional)
+ *         "schema_version": string, (Optional)
+ *         "issuer_did": string, (Optional)
+ *         "cred_def_id": string, (Optional)
+ *     }
+ * */
+class ProofReq(json: JSONObject) : JsonDataObject(json) {
+    constructor(jsonStr: String) : this(JSONObject(jsonStr))
+
+    val attributes = json.getJSONObject("requested_attributes")
+    val predicates = json.getJSONObject("requested_predicates")
 
     fun getPredicateValue(key: String, filter: String): String {
-        return JSONObject(predicates).getJSONObject(key).get(filter).toString()
+        return predicates.getJSONObject(key).get(filter).toString()
     }
 
     fun getAttributeValue(key: String, filter: String): String {
-        return JSONObject(attributes).getJSONObject(key).get(filter).toString()
+        return attributes.getJSONObject(key).get(filter).toString()
     }
 }
 
-data class Proof(val json: String, val usedSchemas: String, val usedClaimDefs: String) {
+class Proof(json: JSONObject, val usedSchemas: String, val usedClaimDefs: String) : JsonDataObject(json) {
+    constructor(jsonStr: String,  usedSchemas: String, usedClaimDefs: String) : this(JSONObject(jsonStr), usedSchemas, usedClaimDefs)
 
     private val revealedAttrs = JSONObject(json)
             .getJSONObject("requested_proof")
@@ -152,7 +215,7 @@ data class Proof(val json: String, val usedSchemas: String, val usedClaimDefs: S
 
     fun getAttributeValue(attr: String, proofReq: String): String? {
 
-        val attributesMapping = JSONObject(ProofReq(proofReq).attributes)
+        val attributesMapping = ProofReq(proofReq).attributes
         val groupedByAttr = attributesMapping.keySet()
                 .associateBy { attributesMapping[it as String] to it }
                 .keys.map { (it.first as JSONObject)["name"] to it.second }.toMap()
@@ -231,7 +294,8 @@ operator fun JSONArray.iterator(): Iterator<String> = buildIterator {
 
 operator fun JSONObject.getValue(thisRef: Any?, property: KProperty<*>): String = getString(property.name)
 
-fun JSONObject.getStringOrNull(key: String) = if(has(key)) getString(key) else null
+fun JSONObject.getStringOrNull(key: String) = if(has(key) && get(key) != JSONObject.NULL) getString(key) else null
+fun JSONObject.getIntOrNull(key: String): Int? = if (has(key) && get(key) != JSONObject.NULL) getInt(key) else null
 
 fun JSONObject.toMap(): Map<String, String> {
     val keys = keySet() as Set<String>

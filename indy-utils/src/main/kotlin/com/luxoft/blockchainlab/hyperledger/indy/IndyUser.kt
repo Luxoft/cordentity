@@ -4,7 +4,6 @@ import com.luxoft.blockchainlab.hyperledger.indy.model.*
 import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
 import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds
-import org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredentialOffer
 import org.hyperledger.indy.sdk.anoncreds.DuplicateMasterSecretNameException
 import org.hyperledger.indy.sdk.blob_storage.BlobStorageWriter
 import org.hyperledger.indy.sdk.did.Did
@@ -15,7 +14,6 @@ import org.hyperledger.indy.sdk.wallet.Wallet
 import org.hyperledger.indy.sdk.wallet.WalletItemNotFoundException
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
-import org.json.JSONArray
 
 
 open class IndyUser {
@@ -139,7 +137,8 @@ open class IndyUser {
             Pairwise.createPairwise(wallet, identityRecord.did, sessionDid, "").get()
         }
 
-        return Pairwise(Pairwise.getPairwise(wallet, identityRecord.did).get()).did
+        val pairwiseJson = Pairwise.getPairwise(wallet, identityRecord.did).get()
+        return Pairwise(pairwiseJson).did
     }
 
     fun createSchema(name: String, version: String, attributes: List<String>): String {
@@ -205,34 +204,70 @@ open class IndyUser {
         // 1. Add attributes
         val requestedAttributes = attributes.withIndex().joinToString { (idx, data) ->
             val schema = getSchema(data.schema.id)
-            """"attr${idx}_referent":{"name":"${data.field}", "schemaId":${schema.id}, "credDefId":"${data.credDefId}"}"""
+            """"attr${idx}_referent":
+                    {
+                        "name":"${data.field}",
+                        "schemaId":"${schema.id}",
+                        "credDefId":"${data.credDefId}"
+                    }
+            """.trimIndent()
         }
 
         // 2. Add predicates
         val requestedPredicates = predicates.withIndex().joinToString {(idx, data) ->
             val schema = getSchema(data.schema.id)
-            String.format("\"predicate%d_referent\": {" +
-                    "\"attr_name\":\"%s\"," +
-                    "\"p_type\":\">=\"," +
-                    "\"value\":%d," +
-                    "\"schemaId\":%s," +
-                    "\"credDefId\":%s }", idx, data.field, data.value, schema.id,data.credDefId)
+            """"predicate${idx}_referent":
+                    {
+                        "name":"${data.field}",
+                        "p_type":">=",
+                        "p_value":${data.value},
+                        "schemaId":"${schema.id}",
+                        "credDefId":"${data.credDefId}"
+                    }
+            """.trimIndent()
         }
 
-        return ProofReq(String.format("{" +
-                "    \"nonce\":\"123432421212\",\n" +
-                "    \"name\":\"proof_req_1\",\n" +
-                "    \"version\":\"0.1\",\n" +
-                "    \"requested_attrs\": {%s},\n" +
-                "    \"requested_predicates\": {%s}\n" +
-                "}", requestedAttributes, requestedPredicates))
+        val jsonStr = """
+            {
+                "version":"0.1",
+                "name":"proof_req_1",
+                "nonce":"123432421212",
+                "requested_attributes": {$requestedAttributes},
+                "requested_predicates": {$requestedPredicates}
+            }""".trimIndent()
+
+        return ProofReq(jsonStr)
     }
 
     fun createProof(proofReq: ProofReq, masterSecretId: String = defaultMasterSecretId): Proof {
 
         logger.debug("proofReq = " + proofReq)
 
-        val prooverGetCredsForProofReq = Anoncreds.proverGetCredentialsForProofReq(wallet, proofReq.json).get()
+        /*
+         *  {
+         *         "attrs": {
+         *             "<attr_referent>": [{ cred_info: <credential_info>, interval: Optional<non_revoc_interval> }],
+         *             ...,
+         *         },
+         *         "predicates": {
+         *             "requested_predicates": [{ cred_info: <credential_info>, timestamp: Optional<integer> }, { cred_info: <credential_2_info>, timestamp: Optional<integer> }],
+         *             "requested_predicate_2_referent": [{ cred_info: <credential_2_info>, timestamp: Optional<integer> }]
+         *         }
+         *     },
+         *
+         *     where credential is
+         *
+         *     {
+         *         "referent": <string>,
+         *         "attrs": [{"attr_name" : "attr_raw_value"}],
+         *         "schema_id": string,
+         *         "cred_def_id": string,
+         *         "rev_reg_id": Optional<int>,
+         *         "cred_rev_id": Optional<int>,
+         *     }
+	     **/
+
+        val prooverGetCredsForProofReq = Anoncreds.proverGetCredentialsForProofReq(wallet, proofReq.json.toString()).get()
         val requiredClaimsForProof = JSONObject(prooverGetCredsForProofReq)
 
         logger.debug("requiredClaimsForProof = " + requiredClaimsForProof)
@@ -272,23 +307,23 @@ open class IndyUser {
         """.trimIndent()
 
         // 4. issue proof
-        val proverProof = Anoncreds.proverCreateProof(wallet, proofReq.json, createdClaim, masterSecretId, usedSchemas, usedClaimDef, "{}").get()
+        val proverProof = Anoncreds.proverCreateProof(wallet, proofReq.json.toString(), createdClaim, masterSecretId, usedSchemas, usedClaimDef, "{}").get()
         return Proof(proverProof, usedSchemas, usedClaimDef)
     }
 
     data class ClaimPredicateDetails(val claimUuid: String, val key: String, val schema: Schema, val definition: CredentialDefinition)
 
     private fun generateProofAttrs(proofReq: ProofReq, requiredClaimsForProof: JSONObject): List<ClaimPredicateDetails> {
-        val attributeKeys = JSONObject(proofReq.attributes).keySet() as Set<String>
+        val attributeKeys = proofReq.attributes.keySet() as Set<String>
 
         val claimPredicateDetails = attributeKeys.map { attribute ->
-            val schemaId = proofReq.getPredicateValue(attribute, "schemaId")
+            val schemaId = proofReq.getAttributeValue(attribute, "schemaId")
             val credDefId = proofReq.getAttributeValue(attribute, "credDefId")
             val claims = requiredClaimsForProof
-                    .getJSONObject("requested_attrs")
+                    .getJSONObject("attrs")
                     .getJSONArray(attribute)
                     .toObjectList()
-                    .map { attr -> ClaimRef(attr.getJSONObject("cred_info").toString()) }
+                    .map { attr -> ClaimRef(attr.getJSONObject("cred_info")) }
 
             val claim = claims.first { it.schemaId == schemaId }
             val claimUuid = claim.referentClaim
@@ -300,16 +335,16 @@ open class IndyUser {
     }
 
     private fun generateProofPreds(proofReq: ProofReq, requiredClaimsForProof: JSONObject): List<ClaimPredicateDetails> {
-        val predicateKeys = JSONObject(proofReq.predicates).keySet() as Set<String>
+        val predicateKeys = proofReq.predicates.keySet() as Set<String>
 
         val claimPredicateDetails = predicateKeys.map { predicate ->
             val schemaId = proofReq.getPredicateValue(predicate, "schemaId")
-            val credDefId = proofReq.getAttributeValue(predicate, "credDefId")
+            val credDefId = proofReq.getPredicateValue(predicate, "credDefId")
             val claims = requiredClaimsForProof
-                    .getJSONObject("requested_predicates")
+                    .getJSONObject("predicates")
                     .getJSONArray(predicate)
                     .toObjectList()
-                    .map { pred -> ClaimRef(pred.getJSONObject("cred_info").toString()) }
+                    .map { pred -> ClaimRef(pred.getJSONObject("cred_info")) }
 
             val claim = claims.first { it.schemaId == schemaId }
             val claimUuid = claim.referentClaim
@@ -341,7 +376,7 @@ open class IndyUser {
 
         fun verifyProof(proofReq: ProofReq, proof: Proof): Boolean {
             return Anoncreds.verifierVerifyProof(
-                    proofReq.json, proof.json, proof.usedSchemas, proof.usedClaimDefs, "{}", "{}").get()
+                    proofReq.json.toString(), proof.json.toString(), proof.usedSchemas, proof.usedClaimDefs, "{}", "{}").get()
         }
     }
 }
