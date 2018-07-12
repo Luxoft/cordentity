@@ -180,11 +180,8 @@ open class IndyUser {
         return ClaimReq(credReq.credentialRequestJson)
     }
 
-    fun issueClaim(claimReq: ClaimReq, proposal: String, credDefId: String): Claim {
-        val credOfferJson = issuerCreateCredentialOffer(wallet, credDefId).get()
-
-        val createClaimResult = Anoncreds.issuerCreateCredential(wallet, credOfferJson, claimReq.json.toString(), proposal, null, -1).get()
-
+    fun issueClaim(claimReq: ClaimReq, proposal: String, offer: ClaimOffer): Claim {
+        val createClaimResult = Anoncreds.issuerCreateCredential(wallet, offer.json.toString(), claimReq.json.toString(), proposal, null, -1).get()
         return Claim(createClaimResult.credentialJson)
     }
 
