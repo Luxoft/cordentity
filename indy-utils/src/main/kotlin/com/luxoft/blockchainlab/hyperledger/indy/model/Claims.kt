@@ -1,5 +1,6 @@
 package com.luxoft.blockchainlab.hyperledger.indy.model
 
+import net.corda.core.serialization.SerializationCustomSerializer
 import org.hyperledger.indy.sdk.ledger.LedgerResults
 import org.json.JSONArray
 import org.json.JSONObject
@@ -226,4 +227,13 @@ public inline fun <T, K, V> Iterable<T>.flatMap( transform: (T) -> Map<K, V>): M
         destination.putAll(map)
     }
     return destination
+}
+
+
+public class JSONObjectCordaSerializer : SerializationCustomSerializer<JSONObject, JSONObjectCordaSerializer.Proxy> {
+    class Proxy(val json: String)
+
+    override fun fromProxy(proxy: Proxy): JSONObject = JSONObject(proxy.json)
+
+    override fun toProxy(obj: JSONObject): Proxy = Proxy(obj.toString())
 }
