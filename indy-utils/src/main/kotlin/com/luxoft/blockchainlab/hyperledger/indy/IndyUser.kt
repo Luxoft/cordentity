@@ -177,7 +177,7 @@ open class IndyUser {
         createMasterSecret(masterSecretId)
 
         val credReq = Anoncreds.proverCreateCredentialReq(wallet, sessionDid, offer.json.toString(), credDef.json.toString(), masterSecretId).get()
-        return ClaimReq(credReq.credentialRequestJson)
+        return ClaimReq(credReq)
     }
 
     fun issueClaim(claimReq: ClaimReq, proposal: String, offer: ClaimOffer): Claim {
@@ -185,13 +185,10 @@ open class IndyUser {
         return Claim(createClaimResult.credentialJson)
     }
 
-    fun receiveClaim(claim: Claim, proverDid: String, credDefId: String)  {
-        val credOfferJson = Anoncreds.issuerCreateCredentialOffer(wallet, credDefId).get()
-        val credDef = getClaimDef(credDefId)
+    fun receiveClaim(claim: Claim, claimReq: ClaimReq, offer: ClaimOffer)  {
+        val credDef = getClaimDef(offer.credDefId)
 
-        val credReqMeta = Anoncreds.proverCreateCredentialReq(wallet, proverDid, credOfferJson, credDef.json.toString(), defaultMasterSecretId).get()
-
-        Anoncreds.proverStoreCredential(wallet, null, credReqMeta.credentialRequestMetadataJson, claim.json.toString(), credDef.json.toString(), null).get()
+        Anoncreds.proverStoreCredential(wallet, null, claimReq.metadata, claim.json.toString(), credDef.json.toString(), null).get()
     }
 
     /**

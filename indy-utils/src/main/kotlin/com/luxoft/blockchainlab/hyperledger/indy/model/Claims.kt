@@ -1,6 +1,7 @@
 package com.luxoft.blockchainlab.hyperledger.indy.model
 
 import net.corda.core.serialization.SerializationCustomSerializer
+import org.hyperledger.indy.sdk.anoncreds.AnoncredsResults
 import org.hyperledger.indy.sdk.ledger.LedgerResults
 import org.json.JSONArray
 import org.json.JSONObject
@@ -54,8 +55,9 @@ data class ClaimOffer(val json: JSONObject) {
  *    }
  * credReqMetadataJson: Credential request metadata json for processing of received form Issuer credential.
  * */
-class ClaimReq(json: JSONObject) : JsonDataObject(json) {
-    constructor(credReqJson: String) : this(JSONObject(credReqJson))
+class ClaimReq(json: JSONObject, val metadata: String) : JsonDataObject(json) {
+    constructor(credentialRequestResult: AnoncredsResults.ProverCreateCredentialRequestResult)
+            : this(JSONObject(credentialRequestResult.credentialRequestJson), credentialRequestResult.credentialRequestMetadataJson)
 
     val proverDid: String = json.getString("prover_did")
     val credDefId: String = json.getString("cred_def_id")
