@@ -28,8 +28,6 @@ data class ClaimOffer(val json: JSONObject) {
 
     val schemaId = json.getString("schema_id")
     val credDefId = json.getString("cred_def_id")
-
-    val schemaKey: String = TODO()
 }
 
 /**
@@ -74,7 +72,7 @@ data class Claim(val json: JSONObject) {
 
     val values = json.getJSONObject("values")
 
-    val signature = json.getString("signature")
+    val signature = json.get("signature").toString()
 }
 
 
