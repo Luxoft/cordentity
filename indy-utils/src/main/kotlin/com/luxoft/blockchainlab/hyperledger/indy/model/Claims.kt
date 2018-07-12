@@ -7,7 +7,19 @@ import org.json.JSONObject
 import kotlin.coroutines.experimental.buildIterator
 import kotlin.reflect.KProperty
 
-data class Did(val json: String)
+
+abstract class JsonDataObject(val json: JSONObject) {
+    override fun equals(other: Any?): Boolean =
+            other != null
+                    && this.javaClass == other.javaClass
+                    && other is JsonDataObject
+                    && json.similar(other.json)
+
+    override fun hashCode() = javaClass.hashCode() * 37 + json.hashCode()
+
+    override fun toString() = "${javaClass.simpleName}($json)"
+}
+
 
 data class Pairwise(val json: String) {
     val did = JSONObject(json).get("my_did").toString()
@@ -42,7 +54,7 @@ data class ClaimOffer(val json: JSONObject) {
  *    }
  * credReqMetadataJson: Credential request metadata json for processing of received form Issuer credential.
  * */
-class ClaimReq(val json: JSONObject) {
+class ClaimReq(json: JSONObject) : JsonDataObject(json) {
     constructor(credReqJson: String) : this(JSONObject(credReqJson))
 
     val proverDid: String = json.getString("prover_did")
