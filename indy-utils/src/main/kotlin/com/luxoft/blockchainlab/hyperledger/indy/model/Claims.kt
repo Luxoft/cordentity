@@ -22,9 +22,16 @@ abstract class JsonDataObject(val json: JSONObject) {
 }
 
 
-data class Pairwise(val json: String) {
-    val did = JSONObject(json).get("my_did").toString()
-    val metadata = JSONObject(json).get("metadata").toString()
+
+class Did(json: JSONObject) : JsonDataObject(json) {
+    constructor(jsonStr: String) : this(JSONObject(jsonStr))
+}
+
+class Pairwise(json: JSONObject) : JsonDataObject(json) {
+    constructor(pairwiseJson: String) : this(JSONObject(pairwiseJson))
+
+    val did = json.getString("my_did")
+    val metadata = json.get("metadata").toString()
 }
 
 /**
@@ -36,7 +43,7 @@ data class Pairwise(val json: String) {
  *         "key_correctness_proof" : <key_correctness_proof>
  *     }
  **/
-data class ClaimOffer(val json: JSONObject) {
+class ClaimOffer(json: JSONObject) : JsonDataObject(json) {
     constructor(issuerCreateCredentialOffer: String) : this(JSONObject(issuerCreateCredentialOffer))
 
     val schemaId = json.getString("schema_id")
@@ -77,7 +84,7 @@ class ClaimReq(json: JSONObject, val metadata: String) : JsonDataObject(json) {
  *         "signature_correctness_proof": <signature_correctness_proof>
  *     }
  * */
-data class Claim(val json: JSONObject) {
+class Claim(json: JSONObject) : JsonDataObject(json) {
     constructor(credentialJson: String) : this(JSONObject(credentialJson))
 
     val schemaId = json.getString("schema_id")
@@ -100,7 +107,7 @@ data class Claim(val json: JSONObject) {
  *     "cred_rev_id": Optional<int>,
  * }
  **/
-data class ClaimRef(val json: JSONObject) {
+class ClaimRef(json: JSONObject) : JsonDataObject(json) {
     constructor(credential_info: String) : this(JSONObject(credential_info))
 
     val referentClaim: String = json.getString("referent")
@@ -171,8 +178,8 @@ data class Proof(val json: String, val usedSchemas: String, val usedClaimDefs: S
  *     ver: Version of the Schema json
  * }
  * */
-class Schema(parseGetSchemaResponse: LedgerResults.ParseResponseResult) {
-    val json = JSONObject(parseGetSchemaResponse.objectJson)
+class Schema(json: JSONObject) : JsonDataObject(json) {
+    constructor(parseGetSchemaResponse: LedgerResults.ParseResponseResult) : this(JSONObject(parseGetSchemaResponse.objectJson))
 
     val id by json
     val name by json
@@ -195,8 +202,8 @@ class Schema(parseGetSchemaResponse: LedgerResults.ParseResponseResult) {
  *     ver: Version of the Credential Definition json
  * }
  * */
-class CredentialDefinition(parseGetCredDefResponse: LedgerResults.ParseResponseResult) {
-    val json = JSONObject(parseGetCredDefResponse.objectJson)
+class CredentialDefinition(json: JSONObject) : JsonDataObject(json) {
+    constructor(parseGetCredDefResponse: LedgerResults.ParseResponseResult) : this(JSONObject(parseGetCredDefResponse.objectJson))
 
     val id by json
     val schemaId by json
