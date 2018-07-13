@@ -282,27 +282,26 @@ open class IndyUser {
 
                 },
                 "requested_attributes": {
-                    ${proofAttrs.joinToString { (uuid, key, _, _) -> """ "$key": {"cred_id": "$uuid", "revealed": true} """ }}
+                    ${proofAttrs.claims.joinToString { (key, uuid) -> """ "$key": {"cred_id": "$uuid", "revealed": true} """ }}
                 },
                 "requested_predicates": {
-                    ${proofPreds.joinToString { (uuid, key, _, _) -> """ "$key": {"cred_id": "$uuid"} """ }}
+                    ${proofPreds.claims.joinToString { (key, uuid) -> """ "$key": {"cred_id": "$uuid"} """ }}
                 }
             }
         """.trimIndent()
 
-        val allProofs = proofAttrs.asSequence() + proofPreds
-        val schemaForClaim = allProofs.associateBy({it.claimUuid}, {it.schema})
-        val claimDefForClaim =  allProofs.associateBy({it.claimUuid}, {it.definition})
+        val allSchemas = (proofAttrs.schemaIds + proofPreds.schemaIds).map { schemaId -> getSchema(schemaId) }
+        val allClaimDefs = (proofAttrs.credDefIds + proofPreds.credDefIds).map { credDefId -> getClaimDef(credDefId) }
 
         val usedSchemas  = """
             {
-                ${schemaForClaim.entries.joinToString { (uuid, schema) ->  """ "${schema.id}": ${schema.json} """  }}
+                ${allSchemas.joinToString { schema ->  """ "${schema.id}": ${schema.json} """  }}
             }
         """.trimIndent()
 
         val usedClaimDef = """
             {
-                ${claimDefForClaim.entries.joinToString { (uuid, definition) -> """ "${definition.id}": ${definition.json} """ }}
+                ${allClaimDefs.joinToString { claimDef -> """ "${claimDef.id}": ${claimDef.json} """ }}
             }
         """.trimIndent()
 
@@ -311,14 +310,23 @@ open class IndyUser {
         return Proof(proverProof, usedSchemas, usedClaimDef)
     }
 
-    data class ClaimPredicateDetails(val claimUuid: String, val key: String, val schema: Schema, val definition: CredentialDefinition)
+    data class ReferentClaim(val key: String, val claimUuid: String)
 
-    private fun generateProofAttrs(proofReq: ProofReq, requiredClaimsForProof: JSONObject): List<ClaimPredicateDetails> {
+    data class ClaimPredicateDetails(val claims: List<ReferentClaim>, val schemaIds: Set<String>, val credDefIds: Set<String>)
+
+    private fun generateProofAttrs(proofReq: ProofReq, requiredClaimsForProof: JSONObject): ClaimPredicateDetails {
         val attributeKeys = proofReq.attributes.keySet() as Set<String>
 
-        val claimPredicateDetails = attributeKeys.map { attribute ->
+        val schemaIds = mutableSetOf<String>()
+        val credDefIds = mutableSetOf<String>()
+
+        val referentClaims = attributeKeys.map { attribute ->
             val schemaId = proofReq.getAttributeValue(attribute, "schemaId")
             val credDefId = proofReq.getAttributeValue(attribute, "credDefId")
+
+            schemaIds.add(schemaId)
+            credDefIds.add(credDefId)
+
             val claims = requiredClaimsForProof
                     .getJSONObject("attrs")
                     .getJSONArray(attribute)
@@ -328,18 +336,25 @@ open class IndyUser {
             val claim = claims.first { it.schemaId == schemaId }
             val claimUuid = claim.referentClaim
 
-            ClaimPredicateDetails(claimUuid, attribute, getSchema(schemaId), getClaimDef(credDefId))
+            ReferentClaim(attribute, claimUuid)
         }
 
-        return claimPredicateDetails
+        return ClaimPredicateDetails(referentClaims, schemaIds, credDefIds)
     }
 
-    private fun generateProofPreds(proofReq: ProofReq, requiredClaimsForProof: JSONObject): List<ClaimPredicateDetails> {
+    private fun generateProofPreds(proofReq: ProofReq, requiredClaimsForProof: JSONObject): ClaimPredicateDetails {
         val predicateKeys = proofReq.predicates.keySet() as Set<String>
 
-        val claimPredicateDetails = predicateKeys.map { predicate ->
+        val schemaIds = mutableSetOf<String>()
+        val credDefIds = mutableSetOf<String>()
+
+        val referentClaims = predicateKeys.map { predicate ->
             val schemaId = proofReq.getPredicateValue(predicate, "schemaId")
             val credDefId = proofReq.getPredicateValue(predicate, "credDefId")
+
+            schemaIds.add(schemaId)
+            credDefIds.add(credDefId)
+
             val claims = requiredClaimsForProof
                     .getJSONObject("predicates")
                     .getJSONArray(predicate)
@@ -349,10 +364,10 @@ open class IndyUser {
             val claim = claims.first { it.schemaId == schemaId }
             val claimUuid = claim.referentClaim
 
-            ClaimPredicateDetails(claimUuid, predicate, getSchema(schemaId), getClaimDef(credDefId))
+            ReferentClaim(predicate, claimUuid)
         }
 
-        return claimPredicateDetails
+        return ClaimPredicateDetails(referentClaims, schemaIds, credDefIds)
     }
 
     fun getSchema(schemaId: String): Schema {
