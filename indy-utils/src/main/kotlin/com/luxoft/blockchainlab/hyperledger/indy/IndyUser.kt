@@ -14,6 +14,7 @@ import org.hyperledger.indy.sdk.wallet.Wallet
 import org.hyperledger.indy.sdk.wallet.WalletItemNotFoundException
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
+import java.util.concurrent.ExecutionException
 
 
 open class IndyUser {
@@ -74,12 +75,12 @@ open class IndyUser {
                 _did = did
                 _verkey = Did.keyForLocalDid(wallet, did).get()
 
-            } catch (ex: Exception) {
-                if (getRootCause(ex) !is WalletItemNotFoundException) throw ex else {
-                    val didResult = Did.createAndStoreMyDid(wallet, didConfig).get()
-                    _did = didResult.did
-                    _verkey = didResult.verkey
-                }
+            } catch (ex: ExecutionException) {
+                if (getRootCause(ex) !is WalletItemNotFoundException) throw ex
+
+                val didResult = Did.createAndStoreMyDid(wallet, didConfig).get()
+                _did = didResult.did
+                _verkey = didResult.verkey
             }
         } else {
             val didResult = Did.createAndStoreMyDid(wallet, didConfig).get()
@@ -125,7 +126,9 @@ open class IndyUser {
     fun createMasterSecret(masterSecretId: String) {
         try {
             Anoncreds.proverCreateMasterSecret(wallet, masterSecretId).get()
-        } catch (e: DuplicateMasterSecretNameException) {
+        } catch (e: ExecutionException) {
+            if (getRootCause(e) !is DuplicateMasterSecretNameException) throw e
+
             logger.debug("MasterSecret already exists, who cares, continuing")
         }
     }

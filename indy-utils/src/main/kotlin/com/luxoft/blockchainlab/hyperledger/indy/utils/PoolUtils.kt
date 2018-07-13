@@ -11,6 +11,7 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.concurrent.ExecutionException
 
 object PoolUtils {
 
@@ -63,7 +64,8 @@ object PoolUtils {
 
         try {
             Pool.createPoolLedgerConfig(poolName, createPoolLedgerConfigJSONParameter.toJson()).get()
-        } catch (e: PoolLedgerConfigExistsException) {
+        } catch (e: ExecutionException) {
+            if(getRootCause(e) !is PoolLedgerConfigExistsException) throw e
             // ok
         }
 
