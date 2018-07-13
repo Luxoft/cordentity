@@ -302,7 +302,7 @@ open class IndyUser {
 
         val usedClaimDef = """
             {
-                ${claimDefForClaim.entries.joinToString { (uuid, definition) -> """ "$uuid": ${definition.json} """ }}
+                ${claimDefForClaim.entries.joinToString { (uuid, definition) -> """ "${definition.id}": ${definition.json} """ }}
             }
         """.trimIndent()
 
