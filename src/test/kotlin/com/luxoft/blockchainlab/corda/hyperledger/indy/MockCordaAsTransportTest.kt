@@ -104,7 +104,7 @@ class MockCordaAsTransportTest {
     private fun setPermissions(issuer: StartedNode<MockNode>,
                                authority: StartedNode<MockNode>) {
         val permissionsFuture = issuer.services.startFlow(AssignPermissionsFlow.Issuer(
-                authority = authority.info.singleIdentity().name)).resultFuture
+                authority = authority.info.singleIdentity().name, role = "TRUSTEE")).resultFuture
 
         net.runNetwork()
         permissionsFuture.getOrThrow(Duration.ofSeconds(30))
