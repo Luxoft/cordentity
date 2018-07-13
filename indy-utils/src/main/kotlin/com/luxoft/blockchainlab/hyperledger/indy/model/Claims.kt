@@ -117,7 +117,7 @@ class ClaimRef(json: JSONObject) : JsonDataObject(json) {
     val revRegId: Int? = json.getIntOrNull("rev_reg_id")
     val credRevId: Int? = json.getIntOrNull("cred_rev_id")
 
-    val attributes: Map<String, String> = json.getJSONObject("attrs").toMap()
+    val attributes: Map<String, String> = json.getJSONObject("attrs").toStringMap()
 
 }
 
@@ -196,21 +196,41 @@ class ProofReq(json: JSONObject) : JsonDataObject(json) {
     }
 }
 
+/**
+ *     {
+ *         "requested_proof": {
+ *             "revealed_attrs": {
+ *                 "requested_attr1_id": {sub_proof_index: number, raw: string, encoded: string},
+ *                 "requested_attr4_id": {sub_proof_index: number: string, encoded: string},
+ *             },
+ *             "unrevealed_attrs": {
+ *                 "requested_attr3_id": {sub_proof_index: number}
+ *             },
+ *             "self_attested_attrs": {
+ *                 "requested_attr2_id": self_attested_value,
+ *             },
+ *             "predicates": {
+ *                 "requested_predicate_1_referent": {sub_proof_index: int},
+ *                 "requested_predicate_2_referent": {sub_proof_index: int},
+ *             }
+ *         }
+ *         "proof": {
+ *             "proofs": [ <credential_proof>, <credential_proof>, <credential_proof> ],
+ *             "aggregated_proof": <aggregated_proof>
+ *         }
+ *         "identifiers": [{schema_id, cred_def_id, Optional<rev_reg_id>, Optional<timestamp>}]
+ *     }
+ **/
 class Proof(json: JSONObject, val usedSchemas: String, val usedClaimDefs: String) : JsonDataObject(json) {
     constructor(jsonStr: String,  usedSchemas: String, usedClaimDefs: String) : this(JSONObject(jsonStr), usedSchemas, usedClaimDefs)
 
-    private val revealedAttrs = JSONObject(json)
+    private val revealedAttrs = json
             .getJSONObject("requested_proof")
             .getJSONObject("revealed_attrs")
-            .toString()
+            .toObjectMap()
 
     fun isAttributeExist(attr: String): Boolean {
-        val attrs = JSONObject(revealedAttrs)
-        val keys = attrs.keySet()
-
-        return keys.map { attrs.get(it.toString()) as JSONArray }
-                .associateBy { it.get(1) }
-                .containsKey(attr)
+        return revealedAttrs.any { (key, value) -> value.getString("raw") == attr }
     }
 
     fun getAttributeValue(attr: String, proofReq: String): String? {
@@ -222,11 +242,7 @@ class Proof(json: JSONObject, val usedSchemas: String, val usedClaimDefs: String
 
         val idx = groupedByAttr[attr]
 
-        return (JSONObject(revealedAttrs).get(idx) as JSONArray)
-                .get(1).toString()
-
-        //val mapping = grouped.keys.map { (it.first as JSONObject)["name"] to it.second }.toMap()
-        // val idx = JSONObject(mapping)[tion.name]
+        return revealedAttrs[idx]!!.getString("raw")
     }
 }
 
@@ -297,9 +313,14 @@ operator fun JSONObject.getValue(thisRef: Any?, property: KProperty<*>): String 
 fun JSONObject.getStringOrNull(key: String) = if(has(key) && get(key) != JSONObject.NULL) getString(key) else null
 fun JSONObject.getIntOrNull(key: String): Int? = if (has(key) && get(key) != JSONObject.NULL) getInt(key) else null
 
-fun JSONObject.toMap(): Map<String, String> {
+fun JSONObject.toStringMap(): Map<String, String> {
     val keys = keySet() as Set<String>
     return keys.associateBy({ it }, { getString(it) })
+}
+
+fun JSONObject.toObjectMap(): Map<String, JSONObject> {
+    val keys = keySet() as Set<String>
+    return keys.associateBy({ it }, { getJSONObject(it) })
 }
 
 
