@@ -278,12 +278,12 @@ open class IndyUser {
 
         val createdClaim = """
             {
-                "self_attested_attributes":{
+                "self_attested_attributes": {
 
                 },
                 "requested_attributes": {
                     ${proofAttrs.joinToString { (uuid, key, _, _) -> """ "$key": {"cred_id": "$uuid", "revealed": true} """ }}
-                }
+                },
                 "requested_predicates": {
                     ${proofPreds.joinToString { (uuid, key, _, _) -> """ "$key": {"cred_id": "$uuid"} """ }}
                 }
@@ -296,7 +296,7 @@ open class IndyUser {
 
         val usedSchemas  = """
             {
-                ${schemaForClaim.entries.joinToString { (uuid, schema) ->  """ ${schema.id}: ${schema.json} """  }}
+                ${schemaForClaim.entries.joinToString { (uuid, schema) ->  """ "${schema.id}": ${schema.json} """  }}
             }
         """.trimIndent()
 
