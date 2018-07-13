@@ -183,6 +183,9 @@ class MockCordaAsTransportTest {
                                             preds: Map<String, String>,
                                             assertion: (actual: Boolean) -> Unit) {
 
+        val (attr1, attr2) = attrs.entries.toList()
+        val (pred1, pred2) = preds.entries.toList()
+
         // Request permissions from trustee to write on ledger
         setPermissions(bob, issuer)
 
@@ -195,13 +198,13 @@ class MockCordaAsTransportTest {
 
         // Issue claim #1
         var claimProposal = String.format(schemaPerson.getSchemaProposal(),
-                attrs.map{ it.key }[0], "119191919", preds.map{ it.key }[0], preds.map{ it.key }[0])
+                attr1.key, "119191919", pred1.key, pred1.key)
 
         issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, credDefId)
 
         // Issue claim #2
         claimProposal = String.format(schemaEducation.getSchemaProposal(),
-                attrs.map{ it.key }[1], "119191918", preds.map{ it.key }[1], preds.map{ it.key }[1])
+                attr2.key, "119191918", pred2.key, pred2.key)
 
         issueClaim(alice, bob, issuer, claimProposal, schemaEducation, eduCredDefId)
 
@@ -211,13 +214,13 @@ class MockCordaAsTransportTest {
         val schemaEducationDetails = IndyUser.SchemaDetails(schemaEducation.getSchemaName(), schemaEducation.getSchemaVersion(), schemaOwner)
 
         val attributes = listOf(
-                IndyUser.ProofAttribute(schemaPersonDetails, credDefId, schemaPerson.schemaAttr1, attrs.map{ it.value }[0]),
-                IndyUser.ProofAttribute(schemaEducationDetails, eduCredDefId, schemaEducation.schemaAttr1, attrs.map{ it.value }[1])
+                IndyUser.ProofAttribute(schemaPersonDetails, credDefId, schemaPerson.schemaAttr1, attr1.value),
+                IndyUser.ProofAttribute(schemaEducationDetails, eduCredDefId, schemaEducation.schemaAttr1, attr2.value)
         )
 
         val predicates = listOf(
-                IndyUser.ProofPredicate(schemaPersonDetails, credDefId, schemaPerson.schemaAttr2,  preds.map{ it.value }[0].toInt()),
-                IndyUser.ProofPredicate(schemaEducationDetails, eduCredDefId, schemaEducation.schemaAttr2, preds.map{ it.value }[1].toInt())
+                IndyUser.ProofPredicate(schemaPersonDetails, credDefId, schemaPerson.schemaAttr2,  pred1.value.toInt()),
+                IndyUser.ProofPredicate(schemaEducationDetails, eduCredDefId, schemaEducation.schemaAttr2, pred1.value.toInt())
         )
 
         verifyClaim(bob, alice, attributes, predicates, assertion)
