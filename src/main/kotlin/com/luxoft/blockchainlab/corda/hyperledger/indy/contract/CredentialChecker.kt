@@ -1,6 +1,6 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.contract
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredentialProof
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.contracts.*
 import net.corda.core.serialization.CordaSerializable
@@ -12,7 +12,7 @@ import java.security.PublicKey
  * as Corda will probably remove JNI support (i.e. Libindy calls)
  * in near future in deterministic JVM
  */
-class ClaimChecker : Contract {
+class CredentialChecker : Contract {
 
     @CordaSerializable
     data class ExpectedAttr(val name: String, val value: String)
@@ -35,11 +35,11 @@ class ClaimChecker : Contract {
         "No inputs should be consumed when creating the proof." using (tx.inputStates.isEmpty())
         "Only one Proof should be created per verification session." using (tx.outputStates.size == 1)
 
-        val indyProof = tx.outputsOfType<IndyClaimProof>().singleOrNull()
+        val indyProof = tx.outputsOfType<IndyCredentialProof>().singleOrNull()
                 ?: throw IllegalArgumentException("Invalid type of output")
 
         "All of the participants must be signers." using (signers.containsAll(indyProof.participants.map { it.owningKey }))
-        "IndyClaim should be verified." using (IndyUser.verifyProof(indyProof.proofReq, indyProof.proof))
+        "IndyCredential should be verified." using (IndyUser.verifyProof(indyProof.proofReq, indyProof.proof))
 
         expectedAttrs.forEach {
             "Proof provided for invalid value." using indyProof.proof.isAttributeExist(it.value)

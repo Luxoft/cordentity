@@ -1,11 +1,11 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
+import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.CredentialChecker
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredential
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
-import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimOffer
-import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
+import com.luxoft.blockchainlab.hyperledger.indy.model.CredentialOffer
+import com.luxoft.blockchainlab.hyperledger.indy.model.CredentialRequest
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -15,7 +15,7 @@ import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
 
-object IssueClaimFlow {
+object IssueCredentialFlow {
 
     @InitiatingFlow
     @StartableByRPC
@@ -32,17 +32,17 @@ object IssueClaimFlow {
 
             try {
                 val offer = flowSession.receive<String>().unwrap { sessionalDid ->
-                    indyUser().createClaimOffer(credDefId)
+                    indyUser().createCredOffer(credDefId)
                 }
 
-                val newClaimOut = flowSession.sendAndReceive<ClaimReq>(offer).unwrap { claimReq ->
-                    verifyClaimAttributeValues(claimReq)
-                    val claim = indyUser().issueClaim(claimReq, proposal, offer)
-                    val claimOut = IndyClaim(identifier, claimReq, claim, indyUser().did, listOf(ourIdentity, prover))
-                    StateAndContract(claimOut, ClaimChecker::class.java.name)
+                val newClaimOut = flowSession.sendAndReceive<CredentialRequest>(offer).unwrap { credReq ->
+                    verifyClaimAttributeValues(credReq)
+                    val cred = indyUser().issueCred(credReq, proposal, offer)
+                    val credOut = IndyCredential(identifier, credReq, cred, indyUser().did, listOf(ourIdentity, prover))
+                    StateAndContract(credOut, CredentialChecker::class.java.name)
                 }
 
-                val newClaimData = ClaimChecker.Commands.Issue()
+                val newClaimData = CredentialChecker.Commands.Issue()
                 val newClaimSigners = listOf(ourIdentity.owningKey, prover.owningKey)
 
                 val newClaimCmd = Command(newClaimData, newClaimSigners)
@@ -77,23 +77,23 @@ object IssueClaimFlow {
 
                 val sessionDid = subFlow(CreatePairwiseFlow.Prover(issuer))
 
-                val offer = flowSession.sendAndReceive<ClaimOffer>(sessionDid).unwrap { offer -> offer }
+                val offer = flowSession.sendAndReceive<CredentialOffer>(sessionDid).unwrap { offer -> offer }
 
                 val issuerDid = subFlow(GetDidFlow.Initiator(issuer))
 
-                val claimReq = indyUser().createClaimReq(issuerDid, sessionDid, offer)
-                flowSession.send(claimReq)
+                val credReq = indyUser().createCredReq(issuerDid, sessionDid, offer)
+                flowSession.send(credReq)
 
                 val flow = object : SignTransactionFlow(flowSession) {
                     override fun checkTransaction(stx: SignedTransaction) {
                         val output = stx.tx.toLedgerTransaction(serviceHub).outputs.singleOrNull()
                         val state = output!!.data
                         when(state) {
-                            is IndyClaim -> {
-                                require(state.claimReq == claimReq) { "Received incorrected ClaimReq"}
-                                indyUser().receiveClaim(state.claim, state.claimReq, offer)
+                            is IndyCredential -> {
+                                require(state.credReq == credReq) { "Received incorrected CredentialRequest"}
+                                indyUser().receiveCred(state.cred, state.credReq, offer)
                             }
-                            else -> throw FlowException("invalid output state. IndyClaim is expected")
+                            else -> throw FlowException("invalid output state. IndyCredential is expected")
                         }
                     }
                 }

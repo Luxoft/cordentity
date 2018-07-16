@@ -1,7 +1,7 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.service
 
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
-import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
+import com.luxoft.blockchainlab.hyperledger.indy.model.CredentialRequest
 import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
 import com.natpryce.konfig.*
 import net.corda.core.node.AppServiceHub
@@ -28,7 +28,7 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
 
     val indyUser: IndyUser
 
-    val claimAttributeValuesChecker: ClaimAttributeValuesChecker = object : ClaimAttributeValuesChecker {}
+    val credAttrValuesChecker: ClaimAttributeValuesChecker = object : ClaimAttributeValuesChecker {}
 
     init {
         val walletName = try { config[indyuser.walletName] } catch (e: Exception) { services.myInfo.legalIdentities.first().name.organisation }
@@ -59,7 +59,7 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
          * e.g. age of counterparty is really 21 in your trusted database
          * @return true if attribute values are ok and Issuer can sign claim
          */
-        fun verifyRequestedClaimAttributes(claimRequest: ClaimReq): Boolean {
+        fun verifyRequestedClaimAttributes(claimRequest: CredentialRequest): Boolean {
             // do nothing in default implementation
             return true
         }

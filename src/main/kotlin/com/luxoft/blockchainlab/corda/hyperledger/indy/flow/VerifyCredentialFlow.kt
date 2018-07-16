@@ -1,8 +1,8 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
-import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredentialProof
+import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.DummyCredentialChecker
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.luxoft.blockchainlab.hyperledger.indy.model.Proof
 import com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq
@@ -15,7 +15,7 @@ import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
 
-object VerifyClaimInContractFlow {
+object VerifyCredentialFlow {
 
     @InitiatingFlow
     @StartableByRPC
@@ -35,16 +35,19 @@ object VerifyClaimInContractFlow {
                 val proofRequest = indyUser().createProofReq(attributes, predicates)
 
                 val verifyClaimOut = flowSession.sendAndReceive<Proof>(proofRequest).unwrap { proof ->
-                    val claimProofOut = IndyClaimProof(identifier, proofRequest, proof, listOf(ourIdentity, prover))
-                    StateAndContract(claimProofOut, ClaimChecker::class.java.name)
+                    val credentialProofOut = IndyCredentialProof(identifier, proofRequest, proof, listOf(ourIdentity, prover))
+
+                    if(!IndyUser.verifyProof(credentialProofOut.proofReq, credentialProofOut.proof)) throw FlowException("Proof verification failed")
+
+                    StateAndContract(credentialProofOut, DummyCredentialChecker::class.java.name)
                 }
 
                 val expectedAttrs = attributes
                         .filter { it.value.isNotEmpty() }
                         .associateBy({ it.field }, { it.value })
-                        .map { ClaimChecker.ExpectedAttr(it.key, it.value) }
+                        .map { DummyCredentialChecker.ExpectedAttr(it.key, it.value) }
 
-                val verifyClaimData = ClaimChecker.Commands.Verify(expectedAttrs)
+                val verifyClaimData = DummyCredentialChecker.Commands.Verify(expectedAttrs)
                 val verifyClaimSigners = listOf(ourIdentity.owningKey, prover.owningKey)
 
                 val verifyClaimCmd = Command(verifyClaimData, verifyClaimSigners)
@@ -71,7 +74,7 @@ object VerifyClaimInContractFlow {
         }
     }
 
-    @InitiatedBy(VerifyClaimInContractFlow.Verifier::class)
+    @InitiatedBy(VerifyCredentialFlow.Verifier::class)
     open class Prover (private val flowSession: FlowSession) : FlowLogic<Unit>() {
         @Suspendable
         override fun call() {

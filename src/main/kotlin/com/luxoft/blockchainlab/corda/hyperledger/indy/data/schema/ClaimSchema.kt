@@ -1,9 +1,8 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredential
 import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
-import net.corda.core.serialization.CordaSerializable
 import javax.persistence.Column
 import javax.persistence.Entity
 import javax.persistence.Table
@@ -24,7 +23,7 @@ object ClaimSchemaV1 : MappedSchema(
             var issuerDid: String
 
     ) : PersistentState() {
-        constructor(indyClaim: IndyClaim): this(indyClaim.id, indyClaim.issuerDid)
+        constructor(indyCred: IndyCredential): this(indyCred.id, indyCred.issuerDid)
         constructor(): this("","")
     }
 }

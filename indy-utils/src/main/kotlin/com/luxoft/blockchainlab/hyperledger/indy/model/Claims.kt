@@ -37,7 +37,7 @@ class Pairwise(json: JSONObject) : JsonDataObject(json) {
  *         "key_correctness_proof" : <key_correctness_proof>
  *     }
  **/
-class ClaimOffer(json: JSONObject) : JsonDataObject(json) {
+class CredentialOffer(json: JSONObject) : JsonDataObject(json) {
     constructor(issuerCreateCredentialOffer: String) : this(JSONObject(issuerCreateCredentialOffer))
 
     val schemaId = json.getString("schema_id")
@@ -56,7 +56,7 @@ class ClaimOffer(json: JSONObject) : JsonDataObject(json) {
  *    }
  * credReqMetadataJson: Credential request metadata json for processing of received form Issuer credential.
  * */
-class ClaimReq(json: JSONObject, val metadata: String) : JsonDataObject(json) {
+class CredentialRequest(json: JSONObject, val metadata: String) : JsonDataObject(json) {
     constructor(credentialRequestResult: AnoncredsResults.ProverCreateCredentialRequestResult)
             : this(JSONObject(credentialRequestResult.credentialRequestJson), credentialRequestResult.credentialRequestMetadataJson)
 
@@ -78,7 +78,7 @@ class ClaimReq(json: JSONObject, val metadata: String) : JsonDataObject(json) {
  *         "signature_correctness_proof": <signature_correctness_proof>
  *     }
  * */
-class Claim(json: JSONObject) : JsonDataObject(json) {
+class Credential(json: JSONObject) : JsonDataObject(json) {
     constructor(credentialJson: String) : this(JSONObject(credentialJson))
 
     val schemaId = json.getString("schema_id")
@@ -101,10 +101,10 @@ class Claim(json: JSONObject) : JsonDataObject(json) {
  *     "cred_rev_id": Optional<int>,
  * }
  **/
-class ClaimRef(json: JSONObject) : JsonDataObject(json) {
+class CredentialReferent(json: JSONObject) : JsonDataObject(json) {
     constructor(credential_info: String) : this(JSONObject(credential_info))
 
-    val referentClaim: String = json.getString("referent")
+    val referentCredential: String = json.getString("referent")
     val schemaId: String = json.getString("schema_id")
 
     val credDefId: String = json.getString("cred_def_id")
@@ -215,8 +215,8 @@ class ProofReq(json: JSONObject) : JsonDataObject(json) {
  *         "identifiers": [{schema_id, cred_def_id, Optional<rev_reg_id>, Optional<timestamp>}]
  *     }
  **/
-class Proof(json: JSONObject, val usedSchemas: String, val usedClaimDefs: String) : JsonDataObject(json) {
-    constructor(jsonStr: String,  usedSchemas: String, usedClaimDefs: String) : this(JSONObject(jsonStr), usedSchemas, usedClaimDefs)
+class Proof(json: JSONObject, val usedSchemas: String, val usedCredDefs: String) : JsonDataObject(json) {
+    constructor(jsonStr: String, usedSchemas: String, usedCredDefs: String) : this(JSONObject(jsonStr), usedSchemas, usedCredDefs)
 
     private val revealedAttrs = json
             .getJSONObject("requested_proof")

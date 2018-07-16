@@ -1,6 +1,6 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.data.state
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.ClaimProofSchemaV1
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.CredentialProofSchemaV1
 import com.luxoft.blockchainlab.hyperledger.indy.model.Proof
 import com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq
 import net.corda.core.contracts.LinearState
@@ -10,19 +10,19 @@ import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
 
-open class IndyClaimProof(val id: String,
-                          val proofReq: ProofReq,
-                          val proof: Proof,
-                          override val participants: List<AbstractParty>,
-                          override val linearId: UniqueIdentifier = UniqueIdentifier()): QueryableState, LinearState {
+open class IndyCredentialProof(val id: String,
+                               val proofReq: ProofReq,
+                               val proof: Proof,
+                               override val participants: List<AbstractParty>,
+                               override val linearId: UniqueIdentifier = UniqueIdentifier()): QueryableState, LinearState {
 
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
         return when(schema) {
-            is ClaimProofSchemaV1 -> ClaimProofSchemaV1.PersistentProof(this)
+            is CredentialProofSchemaV1 -> CredentialProofSchemaV1.PersistentProof(this)
             else ->  throw IllegalArgumentException("Unrecognised schema $schema")
         }
     }
 
-    override fun supportedSchemas(): Iterable<MappedSchema> = listOf(ClaimProofSchemaV1)
+    override fun supportedSchemas(): Iterable<MappedSchema> = listOf(CredentialProofSchemaV1)
 
 }

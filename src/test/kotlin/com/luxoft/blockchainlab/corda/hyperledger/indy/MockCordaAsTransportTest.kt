@@ -66,8 +66,8 @@ class MockCordaAsTransportTest {
         parties.forEach {
             it.registerInitiatedFlow(AssignPermissionsFlow.Authority::class.java)
             it.registerInitiatedFlow(CreatePairwiseFlow.Issuer::class.java)
-            it.registerInitiatedFlow(IssueClaimFlow.Prover::class.java)
-            it.registerInitiatedFlow(VerifyClaimFlow.Prover::class.java)
+            it.registerInitiatedFlow(IssueCredentialFlow.Prover::class.java)
+            it.registerInitiatedFlow(VerifyCredentialFlow.Prover::class.java)
         }
 //        net.registerIdentities()
     }
@@ -113,9 +113,9 @@ class MockCordaAsTransportTest {
         permissionsFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
-    private fun issueSchemaAndClaimDef(schemaOwner: StartedNode<MockNode>,
-                                       claimDefOwner: StartedNode<MockNode>,
-                                       schema: Schema): Pair<String, String> {
+    private fun issueSchemaAndCredDef(schemaOwner: StartedNode<MockNode>,
+                                      credDefOwner: StartedNode<MockNode>,
+                                      schema: Schema): Pair<String, String> {
 
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
         val schemaFuture = schemaOwner.services.startFlow(
@@ -127,21 +127,21 @@ class MockCordaAsTransportTest {
         net.runNetwork()
         val schemaId = schemaFuture.getOrThrow(Duration.ofSeconds(30))
 
-        val claimDefFuture = claimDefOwner.services.startFlow(
-                CreateClaimDefFlow.Authority(schemaId)).resultFuture
+        val credDefFuture = credDefOwner.services.startFlow(
+                CreateCredentialDefinitionFlow.Authority(schemaId)).resultFuture
 
         net.runNetwork()
-        val credDefId = claimDefFuture.getOrThrow(Duration.ofSeconds(30))
+        val credDefId = credDefFuture.getOrThrow(Duration.ofSeconds(30))
 
         return Pair(schemaId, credDefId)
     }
 
-    private fun issueClaim(claimProver: StartedNode<MockNode>,
-                           claimIssuer: StartedNode<MockNode>,
-                           schemaOwner: StartedNode<MockNode>,
-                           claimProposal: String,
-                           schema: Schema,
-                           credDefId: String) {
+    private fun issueCred(credProver: StartedNode<MockNode>,
+                          credIssuer: StartedNode<MockNode>,
+                          schemaOwner: StartedNode<MockNode>,
+                          credProposal: String,
+                          schema: Schema,
+                          credDefId: String) {
         val identifier = UUID.randomUUID().toString()
 
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
@@ -151,27 +151,27 @@ class MockCordaAsTransportTest {
                 schema.schemaVersion,
                 schemaOwnerDid)
 
-        val claimFuture = claimIssuer.services.startFlow(
-                IssueClaimFlow.Issuer(
+        val credFuture = credIssuer.services.startFlow(
+                IssueCredentialFlow.Issuer(
                         identifier,
                         schemaDetails,
                         credDefId,
-                        claimProposal,
-                        claimProver.info.singleIdentity().name)
+                        credProposal,
+                        credProver.info.singleIdentity().name)
         ).resultFuture
 
         net.runNetwork()
-        claimFuture.getOrThrow(Duration.ofSeconds(30))
+        credFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
-    private fun verifyClaim(verifier: StartedNode<MockNode>,
-                            prover: StartedNode<MockNode>,
-                            attributes: List<IndyUser.ProofAttribute>,
-                            predicates: List<IndyUser.ProofPredicate>): Boolean {
+    private fun verifyCred(verifier: StartedNode<MockNode>,
+                           prover: StartedNode<MockNode>,
+                           attributes: List<IndyUser.ProofAttribute>,
+                           predicates: List<IndyUser.ProofPredicate>): Boolean {
         val identifier = UUID.randomUUID().toString()
 
         val proofCheckResultFuture = verifier.services.startFlow(
-                VerifyClaimFlow.Verifier(
+                VerifyCredentialFlow.Verifier(
                         identifier,
                         attributes,
                         predicates,
@@ -181,7 +181,7 @@ class MockCordaAsTransportTest {
         return proofCheckResultFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
-    private fun multipleClaimsByDiffIssuers(attrs: Map<String, String>, preds: Map<String, String>): Boolean {
+    private fun multipleCredsByDiffIssuers(attrs: Map<String, String>, preds: Map<String, String>): Boolean {
 
         val (attr1, attr2) = attrs.entries.toList()
         val (pred1, pred2) = preds.entries.toList()
@@ -193,18 +193,18 @@ class MockCordaAsTransportTest {
         val schemaPerson = SchemaPerson()
         val schemaEducation = SchemaEducation()
 
-        val (schemaId, credDefId) = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
-        val (eduSchemaId, eduCredDefId) = issueSchemaAndClaimDef(issuer, bob, schemaEducation)
+        val (schemaId, credDefId) = issueSchemaAndCredDef(issuer, issuer, schemaPerson)
+        val (eduSchemaId, eduCredDefId) = issueSchemaAndCredDef(issuer, bob, schemaEducation)
 
         // Issue claim #1
-        var claimProposal = schemaPerson.formatProposal(attr1.key, "119191919", pred1.key, pred1.key)
+        val proposal1 = schemaPerson.formatProposal(attr1.key, "119191919", pred1.key, pred1.key)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, credDefId)
+        issueCred(alice, issuer, issuer, proposal1, schemaPerson, credDefId)
 
         // Issue claim #2
-        claimProposal = schemaEducation.formatProposal(attr2.key, "119191918", pred2.key, pred2.key)
+        val proposal2 = schemaEducation.formatProposal(attr2.key, "119191918", pred2.key, pred2.key)
 
-        issueClaim(alice, bob, issuer, claimProposal, schemaEducation, eduCredDefId)
+        issueCred(alice, bob, issuer, proposal2, schemaEducation, eduCredDefId)
 
         // Verify claims
         val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
@@ -221,7 +221,7 @@ class MockCordaAsTransportTest {
                 IndyUser.ProofPredicate(schemaEducationDetails, eduCredDefId, schemaEducation.schemaAttr2, pred2.value.toInt())
         )
 
-        return verifyClaim(bob, alice, attributes, predicates)
+        return verifyCred(bob, alice, attributes, predicates)
     }
 
     @Test
@@ -233,8 +233,8 @@ class MockCordaAsTransportTest {
                 "1988" to "1978",
                 "2016" to "2006")
 
-        val claimsVerified = multipleClaimsByDiffIssuers(attributes, predicates)
-        assertTrue(claimsVerified)
+        val credentialsVerified = multipleCredsByDiffIssuers(attributes, predicates)
+        assertTrue(credentialsVerified)
     }
 
     @Test
@@ -246,8 +246,8 @@ class MockCordaAsTransportTest {
                 "1988" to "1978",
                 "2016" to "2026")
 
-        val claimsVerified = multipleClaimsByDiffIssuers(attributes, predicates)
-        assertFalse(claimsVerified)
+        val credentialsVerified = multipleCredsByDiffIssuers(attributes, predicates)
+        assertFalse(credentialsVerified)
     }
 
     @Test
@@ -259,8 +259,8 @@ class MockCordaAsTransportTest {
                 "1988" to "1978",
                 "2016" to "2006")
 
-        val claimsVerified = multipleClaimsByDiffIssuers(attributes, predicates)
-        assertFalse(claimsVerified)
+        val credentialsVerified = multipleCredsByDiffIssuers(attributes, predicates)
+        assertFalse(credentialsVerified)
     }
 
     @Test
@@ -269,13 +269,13 @@ class MockCordaAsTransportTest {
         val schemaPerson = SchemaPerson()
 
         // Verify ClaimSchema & Defs
-        val (schemaId, credDefId) = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+        val (schemaId, credDefId) = issueSchemaAndCredDef(issuer, issuer, schemaPerson)
 
         // Issue claim
         val schemaAttrInt = "1988"
-        val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
+        val propolsal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, credDefId)
+        issueCred(alice, issuer, issuer, propolsal, schemaPerson, credDefId)
 
         // Verify claim
         val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
@@ -288,8 +288,8 @@ class MockCordaAsTransportTest {
                 // -10 to check >=
                 IndyUser.ProofPredicate(schemaDetails, credDefId, schemaPerson.schemaAttr2, schemaAttrInt.toInt() - 10))
 
-        val claimVerified = verifyClaim(bob, alice, attributes, predicates)
-        assertTrue(claimVerified)
+        val credentialVerified = verifyCred(bob, alice, attributes, predicates)
+        assertTrue(credentialVerified)
     }
 
     @Test
@@ -298,20 +298,20 @@ class MockCordaAsTransportTest {
         val schemaPerson = SchemaPerson()
         val schemaEducation = SchemaEducation()
 
-        val (schemaId, credDefId) = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
-        val (eduSchemaId, eduCredDefId) = issueSchemaAndClaimDef(issuer, issuer, schemaEducation)
+        val (schemaId, credDefId) = issueSchemaAndCredDef(issuer, issuer, schemaPerson)
+        val (eduSchemaId, eduCredDefId) = issueSchemaAndCredDef(issuer, issuer, schemaEducation)
 
         // Issue claim #1
         val schemaPersonAttrInt = "1988"
-        var claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaPersonAttrInt, schemaPersonAttrInt)
+        var propolsal = schemaPerson.formatProposal("John Smith", "119191919", schemaPersonAttrInt, schemaPersonAttrInt)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, credDefId)
+        issueCred(alice, issuer, issuer, propolsal, schemaPerson, credDefId)
 
         // Issue claim #2
         val schemaEducationAttrInt = "2016"
-        claimProposal = schemaEducation.formatProposal("University", "119191918", schemaEducationAttrInt, schemaEducationAttrInt)
+        propolsal = schemaEducation.formatProposal("University", "119191918", schemaEducationAttrInt, schemaEducationAttrInt)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaEducation, eduCredDefId)
+        issueCred(alice, issuer, issuer, propolsal, schemaEducation, eduCredDefId)
 
         // Verify claims
         val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
@@ -328,8 +328,8 @@ class MockCordaAsTransportTest {
                 IndyUser.ProofPredicate(schemaPersonDetails, credDefId, schemaPerson.schemaAttr2, schemaPersonAttrInt.toInt() - 10),
                 IndyUser.ProofPredicate(schemaEducationDetails, eduCredDefId, schemaEducation.schemaAttr2, schemaEducationAttrInt.toInt() - 10))
 
-        val claimVerified = verifyClaim(bob, alice, attributes, predicates)
-        assertTrue(claimVerified)
+        val credentialVerified = verifyCred(bob, alice, attributes, predicates)
+        assertTrue(credentialVerified)
     }
 
     @Test
@@ -338,13 +338,13 @@ class MockCordaAsTransportTest {
         val schemaPerson = SchemaPerson()
 
         // Verify ClaimSchema & Defs
-        val (schemaId, credDefId) = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+        val (schemaId, credDefId) = issueSchemaAndCredDef(issuer, issuer, schemaPerson)
 
         // Issue claim
         val schemaAttrInt = "1988"
-        val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
+        val propolsal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, credDefId)
+        issueCred(alice, issuer, issuer, propolsal, schemaPerson, credDefId)
 
         // Verify claim
         val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
@@ -354,8 +354,8 @@ class MockCordaAsTransportTest {
                 IndyUser.ProofAttribute(schemaDetails, credDefId, schemaPerson.schemaAttr1, "John Smith")
         )
 
-        val claimVerified = verifyClaim(bob, alice, attributes, emptyList())
-        assertTrue(claimVerified)
+        val credentialVerified = verifyCred(bob, alice, attributes, emptyList())
+        assertTrue(credentialVerified)
     }
 
     @Test
@@ -364,13 +364,13 @@ class MockCordaAsTransportTest {
         val schemaPerson = SchemaPerson()
 
         // Verify ClaimSchema & Defs
-        val (schemaId, credDefId) = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+        val (schemaId, credDefId) = issueSchemaAndCredDef(issuer, issuer, schemaPerson)
 
         // Issue claim
         val schemaAttrInt = "1988"
-        val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
+        val credentialProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, credDefId)
+        issueCred(alice, issuer, issuer, credentialProposal, schemaPerson, credDefId)
 
         // Verify claim
         val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
@@ -381,7 +381,7 @@ class MockCordaAsTransportTest {
                 IndyUser.ProofAttribute(schemaDetails, credDefId, schemaPerson.schemaAttr2, "")
         )
 
-        val claimVerified = verifyClaim(bob, alice, attributes, emptyList())
-        assertTrue(claimVerified)
+        val credentialVerified = verifyCred(bob, alice, attributes, emptyList())
+        assertTrue(credentialVerified)
     }
 }
