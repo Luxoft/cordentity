@@ -30,7 +30,7 @@ dependencies {
 
     compile group: 'org.hyperledger', name: 'indy', version: "$indy_version"
 
-    compile group: 'org.json', name: 'json', version: '20140107'
+    compile group: 'org.json', name: 'json', version: '20160212'
     //compile group: 'commons-io', name: 'commons-io', version: '2.6'
 
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.21'
