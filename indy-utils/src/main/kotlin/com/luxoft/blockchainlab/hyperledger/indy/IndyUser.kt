@@ -19,23 +19,6 @@ import java.util.concurrent.ExecutionException
 
 open class IndyUser {
 
-    @CordaSerializable
-    class SchemaDetails(val name: String, val version: String, val owner: String) {
-        val id: String get() = """$owner:2:$name:$version"""  // todo: replace with sdk calls
-
-        fun json(schemaAttributes: List<String>): String =
-                """{"id":"$id", "name":"$name", "version":"$version", "attrNames":${schemaAttributes.map { "\"$it\"" }}, "ver":"1.0"}"""
-
-        constructor() : this("", "", "")
-
-        companion object Build {
-            fun fromSchemaKey(schemaKeyJson: String): SchemaDetails {
-                val parsed = JSONObject(schemaKeyJson)
-                return SchemaDetails(parsed.getString("name"), parsed.getString("version"), parsed.getString("owner"))
-            }
-        }
-    }
-
     class IdentityDetails(val did: String, val verKey: String, val alias: String?, val role: String?) {
         constructor(identityRecord: String) : this(
                 JSONObject(identityRecord).get("did").toString(),
@@ -46,9 +29,9 @@ open class IndyUser {
         }
     }
 
-    data class ProofAttribute(val schema: SchemaDetails,  val credDefId: String, val field: String, val value: String)
+    data class ProofAttribute(val schemaId: String, val credDefId: String, val field: String, val value: String)
     
-    data class ProofPredicate(val schema: SchemaDetails, val credDefId: String, val field: String, val value: Int, val type: String = ">=")
+    data class ProofPredicate(val schemaId: String, val credDefId: String, val field: String, val value: Int, val type: String = ">=")
 
     private val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
 
@@ -206,29 +189,31 @@ open class IndyUser {
     fun createProofReq(attributes: List<ProofAttribute>, predicates: List<ProofPredicate>): ProofReq {
 
         // 1. Add attributes
-        val requestedAttributes = attributes.withIndex().joinToString { (idx, data) ->
-            val schema = getSchema(data.schema.id)
-            """"attr${idx}_referent":
+        val requestedAttributes = attributes.withIndex().joinToString { (idx, proofAttr) ->
+            with(proofAttr) {
+                """"attr${idx}_referent":
                     {
-                        "name":"${data.field}",
-                        "schemaId":"${schema.id}",
-                        "credDefId":"${data.credDefId}"
+                        "name":"$field",
+                        "schemaId":"$schemaId",
+                        "credDefId":"$credDefId"
                     }
             """.trimIndent()
+            }
         }
 
         // 2. Add predicates
-        val requestedPredicates = predicates.withIndex().joinToString {(idx, data) ->
-            val schema = getSchema(data.schema.id)
-            """"predicate${idx}_referent":
+        val requestedPredicates = predicates.withIndex().joinToString {(idx, proofPredicate) ->
+            with(proofPredicate) {
+                """"predicate${idx}_referent":
                     {
-                        "name":"${data.field}",
-                        "p_type":"${data.type}",
-                        "p_value":${data.value},
-                        "schemaId":"${schema.id}",
-                        "credDefId":"${data.credDefId}"
+                        "name":"$field",
+                        "p_type":"$type",
+                        "p_value":$value,
+                        "schemaId":"$schemaId",
+                        "credDefId":"$credDefId"
                     }
             """.trimIndent()
+            }
         }
 
         val jsonStr = """

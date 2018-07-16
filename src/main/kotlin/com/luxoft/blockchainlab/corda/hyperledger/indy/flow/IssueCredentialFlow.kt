@@ -20,7 +20,6 @@ object IssueCredentialFlow {
     @InitiatingFlow
     @StartableByRPC
     open class Issuer(private val identifier: String,
-                      private val schema: IndyUser.SchemaDetails,
                       private val credDefId: String,
                       private val proposal: String,
                       private val proverName: CordaX500Name) : FlowLogic<Unit>() {
