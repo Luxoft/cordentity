@@ -1,12 +1,9 @@
 package com.luxoft.blockchainlab.hyperledger.indy.model
 
-import net.corda.core.serialization.SerializationCustomSerializer
+import com.luxoft.blockchainlab.hyperledger.indy.utils.*
 import org.hyperledger.indy.sdk.anoncreds.AnoncredsResults
 import org.hyperledger.indy.sdk.ledger.LedgerResults
-import org.json.JSONArray
 import org.json.JSONObject
-import kotlin.coroutines.experimental.buildIterator
-import kotlin.reflect.KProperty
 
 
 abstract class JsonDataObject(val json: JSONObject) {
@@ -296,48 +293,4 @@ class CredentialDefinition(json: JSONObject) : JsonDataObject(json) {
        val primaryPubKey = valueJson.get("primary").toString()
        val revocationPubKey = valueJson.getStringOrNull("revocation")
     }
-}
-
-
-fun JSONArray.toList(): List<String> = List(length()) { i -> getString(i) }
-
-fun JSONArray.toObjectList(): List<JSONObject> = List(length()) { i -> getJSONObject(i) }
-
-operator fun JSONArray.iterator(): Iterator<String> = buildIterator {
-    for(i in 0 until length())
-        yield(get(i).toString())
-}
-
-operator fun JSONObject.getValue(thisRef: Any?, property: KProperty<*>): String = getString(property.name)
-
-fun JSONObject.getStringOrNull(key: String) = if(has(key) && get(key) != JSONObject.NULL) getString(key) else null
-fun JSONObject.getIntOrNull(key: String): Int? = if (has(key) && get(key) != JSONObject.NULL) getInt(key) else null
-
-fun JSONObject.toStringMap(): Map<String, String> {
-    val keys = keySet() as Set<String>
-    return keys.associateBy({ it }, { getString(it) })
-}
-
-fun JSONObject.toObjectMap(): Map<String, JSONObject> {
-    val keys = keySet() as Set<String>
-    return keys.associateBy({ it }, { getJSONObject(it) })
-}
-
-
-public inline fun <T, K, V> Iterable<T>.flatMap( transform: (T) -> Map<K, V>): Map<K, V> {
-    val destination = mutableMapOf<K, V>()
-    for (element in this) {
-        val map = transform(element)
-        destination.putAll(map)
-    }
-    return destination
-}
-
-
-public class JSONObjectCordaSerializer : SerializationCustomSerializer<JSONObject, JSONObjectCordaSerializer.Proxy> {
-    class Proxy(val json: String)
-
-    override fun fromProxy(proxy: Proxy): JSONObject = JSONObject(proxy.json)
-
-    override fun toProxy(obj: JSONObject): Proxy = Proxy(obj.toString())
 }
