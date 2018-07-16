@@ -1,18 +1,16 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.contract
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.contracts.*
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.LedgerTransaction
 import java.security.PublicKey
 
 /**
- * Example contract with claim verification. Use responsibly
- * as Corda will probably remove JNI support (i.e. Libindy calls)
- * in near future in deterministic JVM
+ * I don't check claims' cryptography - I'm too dumb for that.
+ * I just check its structural validity.
  */
-class ClaimChecker : Contract {
+class DummyClaimChecker : Contract {
 
     @CordaSerializable
     data class ExpectedAttr(val name: String, val value: String)
@@ -39,7 +37,6 @@ class ClaimChecker : Contract {
                 ?: throw IllegalArgumentException("Invalid type of output")
 
         "All of the participants must be signers." using (signers.containsAll(indyProof.participants.map { it.owningKey }))
-        "IndyClaim should be verified." using (IndyUser.verifyProof(indyProof.proofReq, indyProof.proof))
 
         expectedAttrs.forEach {
             "Proof provided for invalid value." using indyProof.proof.isAttributeExist(it.value)

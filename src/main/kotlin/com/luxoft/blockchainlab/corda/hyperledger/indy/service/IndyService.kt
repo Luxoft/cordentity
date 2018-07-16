@@ -1,6 +1,5 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.service
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
 import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
@@ -8,7 +7,6 @@ import com.natpryce.konfig.*
 import net.corda.core.node.AppServiceHub
 import net.corda.core.node.services.CordaService
 import net.corda.core.serialization.SingletonSerializeAsToken
-import org.hyperledger.indy.sdk.LibIndy
 import org.hyperledger.indy.sdk.did.DidJSONParameters
 import org.hyperledger.indy.sdk.wallet.Wallet
 import org.hyperledger.indy.sdk.wallet.WalletExistsException
@@ -18,12 +16,13 @@ import java.io.File
 @CordaService
 class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
 
-    private val POOL_NAME = "default_pool"
-    private val CREDENTIALS = """{"key": "key"}"""
+    private val poolName = "default_pool"
+    private val credentials = """{"key": "key"}"""
 
     private val config = TestConfigurationsProvider.config(services.myInfo.legalIdentities.first().name.organisation) ?: EmptyConfiguration
-            .ifNot(ConfigurationProperties.fromFileOrNull(File("indyconfig", "indy.properties")), indyuser) // file with common name if go for file-based config  in production
-            .ifNot(EnvironmentVariables(), indyuser) // For prod and pre-prod usage mostly
+            .ifNot(ConfigurationProperties.fromFileOrNull(File("indyconfig", "indy.properties")), indyuser) // file with common name if you go for file-based config
+            .ifNot(ConfigurationProperties.fromFileOrNull(File("indyconfig", "${services.myInfo.legalIdentities.first().name.organisation}.indy.properties")), indyuser)  //  file with node-specific name
+            .ifNot(EnvironmentVariables(), indyuser) // Good for docker-compose, ansible-playbook or similar
 
     private val logger = LoggerFactory.getLogger(IndyService::class.java.name)
 
@@ -35,12 +34,12 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
         val walletName = try { config[indyuser.walletName] } catch (e: Exception) { services.myInfo.legalIdentities.first().name.organisation }
 
         try {
-            Wallet.createWallet(POOL_NAME, walletName, "default", null, CREDENTIALS).get()
+            Wallet.createWallet(poolName, walletName, "default", null, credentials).get()
         } catch (ex: Exception) {
             if (getRootCause(ex) !is WalletExistsException) throw ex else logger.debug("Wallet already exists")
         }
 
-        val wallet = Wallet.openWallet(walletName, null, CREDENTIALS).get()
+        val wallet = Wallet.openWallet(walletName, null, credentials).get()
 
         indyUser = if(config.getOrNull(indyuser.role)?.compareTo("trustee", true) == 0) {
             val didConfig = DidJSONParameters.CreateAndStoreMyDidJSONParameter(
