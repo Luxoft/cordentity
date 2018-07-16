@@ -5,64 +5,30 @@ interface Schema {
     val schemaVersion: String
     val schemaAttrs: List<String>
 
-    fun getSchemaProposal(): String
-
+    fun formatProposal(vararg attrValues: String): String
 }
 
-class SchemaPerson : Schema {
-
-    override val schemaName = "schema_name"
-    override val schemaVersion = "1.0"
-    val schemaAttr1 = "attr1"
-    val schemaAttr2 = "attr2"
-
-    private val schemaProposal = """ {"$schemaAttr1":{"raw":"%s", "encoded":"%s"}, "$schemaAttr2":{"raw":"%s", "encoded":"%s"} }"""
-
-    val schemaKey = "{ \"name\":\"${schemaName}\",\"version\":\"${schemaVersion}\",\"did\":\"%s\"}"
-    val claimOffer = "{\"issuer_did\":\"%s\", \"schema_key\": ${schemaKey} }"
+abstract class TwoAttrSchema(
+        override val schemaName: String,
+        override val schemaVersion: String,
+        val schemaAttr1: String,
+        val schemaAttr2: String
+) : Schema {
 
     override val schemaAttrs = listOf(schemaAttr1, schemaAttr2)
 
-    override fun getSchemaProposal(): String {
-        return schemaProposal
-    }
+    override fun formatProposal(vararg attrValues: String): String =
+            formatProposal(attrValues[0], attrValues[1], attrValues[2], attrValues[3])
+
+    fun formatProposal(value1: String, encoded1: String, value2: String, encoded2: String): String =
+            """ {"$schemaAttr1":{"raw":"$value1", "encoded":"$encoded1"}, "$schemaAttr2":{"raw":"$value2", "encoded":"$encoded2"} }"""
 }
 
-class SchemaEducation: Schema {
+class SchemaPerson : TwoAttrSchema("schema_name", "1.0", "attr1", "attr2")
 
-    override val schemaName = "schema_education"
-    override val schemaVersion = "1.0"
-    val schemaAttr1 = "attrX"
-    val schemaAttr2 = "attrY"
+class SchemaEducation : TwoAttrSchema("schema_education", "1.0", "attrX", "attrY")
 
-    private val schemaProposal = """ {"$schemaAttr1":{"raw":"%s", "encoded":"%s"}, "$schemaAttr2":{"raw":"%s", "encoded":"%s"} }"""
-
-    val schemaKey = "{ \"name\":\"${schemaName}\",\"version\":\"${schemaVersion}\",\"did\":\"%s\"}"
-    val claimOffer = "{\"issuer_did\":\"%s\", \"schema_key\": ${schemaKey} }"
-
-    override val schemaAttrs = listOf(schemaAttr1, schemaAttr2)
-
-    override fun getSchemaProposal(): String {
-        return schemaProposal
-    }
-}
-
-class SchemaHappiness : Schema {
-
-    override val schemaName = "schema_happiness"
-    override val schemaVersion = "1.0"
-    val issuerDid: String = ""
-    val schemaAttrForKiss = "isMySweetheart"
-    val schemaAttrForDrink = "age"
-
-    private val schemaProposal = """ {"$schemaAttrForKiss":{"raw":"%s", "encoded":"%s"}, "$schemaAttrForDrink":{"raw":"%s", "encoded":"%s"} }"""
-
-    val schemaKey = "{ \"name\":\"${schemaName}\",\"version\":\"${schemaVersion}\",\"did\":\"%s\"}"
-    val claimOffer = "{\"issuer_did\":\"%s\", \"schema_key\": ${schemaKey} }"
-
-    override val schemaAttrs = listOf(schemaAttrForKiss, schemaAttrForDrink)
-
-    override fun getSchemaProposal(): String {
-        return schemaProposal
-    }
+class SchemaHappiness : TwoAttrSchema("schema_happiness", "1.0", "isMySweetheart", "age") {
+    val schemaAttrForKiss = schemaAttr1
+    val schemaAttrForDrink = schemaAttr2
 }

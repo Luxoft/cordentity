@@ -197,14 +197,12 @@ class MockCordaAsTransportTest {
         val (eduSchemaId, eduCredDefId) = issueSchemaAndClaimDef(issuer, bob, schemaEducation)
 
         // Issue claim #1
-        var claimProposal = String.format(schemaPerson.getSchemaProposal(),
-                attr1.key, "119191919", pred1.key, pred1.key)
+        var claimProposal = schemaPerson.formatProposal(attr1.key, "119191919", pred1.key, pred1.key)
 
         issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, credDefId)
 
         // Issue claim #2
-        claimProposal = String.format(schemaEducation.getSchemaProposal(),
-                attr2.key, "119191918", pred2.key, pred2.key)
+        claimProposal = schemaEducation.formatProposal(attr2.key, "119191918", pred2.key, pred2.key)
 
         issueClaim(alice, bob, issuer, claimProposal, schemaEducation, eduCredDefId)
 
@@ -275,8 +273,7 @@ class MockCordaAsTransportTest {
 
         // Issue claim
         val schemaAttrInt = "1988"
-        val claimProposal = String.format(schemaPerson.getSchemaProposal(),
-                "John Smith", "119191919", schemaAttrInt, schemaAttrInt)
+        val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
         issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, credDefId)
 
@@ -306,15 +303,13 @@ class MockCordaAsTransportTest {
 
         // Issue claim #1
         val schemaPersonAttrInt = "1988"
-        var claimProposal = String.format(schemaPerson.getSchemaProposal(), "John Smith", "119191919",
-                schemaPersonAttrInt, schemaPersonAttrInt)
+        var claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaPersonAttrInt, schemaPersonAttrInt)
 
         issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, credDefId)
 
         // Issue claim #2
         val schemaEducationAttrInt = "2016"
-        claimProposal = String.format(schemaEducation.getSchemaProposal(), "University", "119191918",
-                schemaEducationAttrInt, schemaEducationAttrInt)
+        claimProposal = schemaEducation.formatProposal("University", "119191918", schemaEducationAttrInt, schemaEducationAttrInt)
 
         issueClaim(alice, issuer, issuer, claimProposal, schemaEducation, eduCredDefId)
 
@@ -347,8 +342,7 @@ class MockCordaAsTransportTest {
 
         // Issue claim
         val schemaAttrInt = "1988"
-        val claimProposal = String.format(schemaPerson.getSchemaProposal(),
-                "John Smith", "119191919", schemaAttrInt, schemaAttrInt)
+        val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
         issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, credDefId)
 
@@ -374,8 +368,7 @@ class MockCordaAsTransportTest {
 
         // Issue claim
         val schemaAttrInt = "1988"
-        val claimProposal = String.format(schemaPerson.getSchemaProposal(),
-                "John Smith", "119191919", schemaAttrInt, schemaAttrInt)
+        val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
         issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, credDefId)
 
