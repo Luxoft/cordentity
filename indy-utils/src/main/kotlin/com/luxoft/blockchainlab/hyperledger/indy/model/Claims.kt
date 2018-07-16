@@ -1,11 +1,12 @@
 package com.luxoft.blockchainlab.hyperledger.indy.model
 
 import com.luxoft.blockchainlab.hyperledger.indy.utils.*
+import net.corda.core.serialization.CordaSerializable
 import org.hyperledger.indy.sdk.anoncreds.AnoncredsResults
 import org.hyperledger.indy.sdk.ledger.LedgerResults
 import org.json.JSONObject
 
-
+@CordaSerializable
 abstract class JsonDataObject(val json: JSONObject) {
     override fun equals(other: Any?): Boolean =
             other != null
@@ -19,10 +20,6 @@ abstract class JsonDataObject(val json: JSONObject) {
 }
 
 
-
-class Did(json: JSONObject) : JsonDataObject(json) {
-    constructor(jsonStr: String) : this(JSONObject(jsonStr))
-}
 
 class Pairwise(json: JSONObject) : JsonDataObject(json) {
     constructor(pairwiseJson: String) : this(JSONObject(pairwiseJson))
