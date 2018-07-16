@@ -2,6 +2,7 @@ package com.luxoft.blockchainlab.hyperledger.indy
 
 import com.luxoft.blockchainlab.hyperledger.indy.model.*
 import com.luxoft.blockchainlab.hyperledger.indy.utils.*
+import net.corda.core.serialization.CordaSerializable
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds
 import org.hyperledger.indy.sdk.anoncreds.DuplicateMasterSecretNameException
 import org.hyperledger.indy.sdk.blob_storage.BlobStorageWriter
@@ -18,14 +19,14 @@ import java.util.concurrent.ExecutionException
 
 open class IndyUser {
 
+    @CordaSerializable
     data class SchemaDetails(val name: String, val version: String, val owner: String) {
-        constructor() : this("", "", "")
-        val filter: String get() = """{name:${name},version:${version},owner:${owner}}"""
+        val filter = """{name:${name},version:${version},owner:${owner}}"""
     }
 
+    @CordaSerializable
     data class CredentialDefDetails(val schemaSeqNo: String, val owner: String) {
-        constructor() : this("", "")
-        val filter: String get() = """{schemaSeqNo:${schemaSeqNo},owner:${owner}}"""
+        val filter = """{schemaSeqNo:${schemaSeqNo},owner:${owner}}"""
     }
 
     class IdentityDetails(val did: String, val verKey: String, val alias: String?, val role: String?) {
@@ -184,6 +185,7 @@ open class IndyUser {
         Anoncreds.proverStoreCredential(wallet, null, claimReq.metadata, claim.json.toString(), credDef.json.toString(), null).get()
     }
 
+    @CordaSerializable
     class CredFieldRef(val fieldName: String, val schemaId: String, val credDefId: String)
 
     /**
