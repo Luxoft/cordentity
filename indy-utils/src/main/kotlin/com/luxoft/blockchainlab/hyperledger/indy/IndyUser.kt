@@ -48,7 +48,7 @@ open class IndyUser {
 
     data class ProofAttribute(val schema: SchemaDetails,  val credDefId: String, val field: String, val value: String)
     
-    data class ProofPredicate(val schema: SchemaDetails, val credDefId: String, val field: String, val value: Int)
+    data class ProofPredicate(val schema: SchemaDetails, val credDefId: String, val field: String, val value: Int, val type: String = ">=")
 
     private val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
 
@@ -223,7 +223,7 @@ open class IndyUser {
             """"predicate${idx}_referent":
                     {
                         "name":"${data.field}",
-                        "p_type":">=",
+                        "p_type":"${data.type}",
                         "p_value":${data.value},
                         "schemaId":"${schema.id}",
                         "credDefId":"${data.credDefId}"
