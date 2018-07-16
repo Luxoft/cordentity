@@ -223,7 +223,7 @@ class MockCordaAsTransportTest {
 
         val predicates = listOf(
                 IndyUser.ProofPredicate(schemaPersonDetails, credDefId, schemaPerson.schemaAttr2,  pred1.value.toInt()),
-                IndyUser.ProofPredicate(schemaEducationDetails, eduCredDefId, schemaEducation.schemaAttr2, pred1.value.toInt())
+                IndyUser.ProofPredicate(schemaEducationDetails, eduCredDefId, schemaEducation.schemaAttr2, pred2.value.toInt())
         )
 
         verifyClaim(bob, alice, attributes, predicates, assertion)
