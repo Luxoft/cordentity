@@ -167,8 +167,7 @@ class MockCordaAsTransportTest {
     private fun verifyClaim(verifier: StartedNode<MockNode>,
                             prover: StartedNode<MockNode>,
                             attributes: List<IndyUser.ProofAttribute>,
-                            predicates: List<IndyUser.ProofPredicate>,
-                            assertion: (actual: Boolean) -> Unit) {
+                            predicates: List<IndyUser.ProofPredicate>): Boolean {
         val identifier = UUID.randomUUID().toString()
 
         val proofCheckResultFuture = verifier.services.startFlow(
@@ -179,12 +178,10 @@ class MockCordaAsTransportTest {
                         prover.info.singleIdentity().name)).resultFuture
 
         net.runNetwork()
-        assertion(proofCheckResultFuture.getOrThrow(Duration.ofSeconds(30)))
+        return proofCheckResultFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
-    private fun multipleClaimsByDiffIssuers(attrs: Map<String, String>,
-                                            preds: Map<String, String>,
-                                            assertion: (actual: Boolean) -> Unit) {
+    private fun multipleClaimsByDiffIssuers(attrs: Map<String, String>, preds: Map<String, String>): Boolean {
 
         val (attr1, attr2) = attrs.entries.toList()
         val (pred1, pred2) = preds.entries.toList()
@@ -226,7 +223,7 @@ class MockCordaAsTransportTest {
                 IndyUser.ProofPredicate(schemaEducationDetails, eduCredDefId, schemaEducation.schemaAttr2, pred2.value.toInt())
         )
 
-        verifyClaim(bob, alice, attributes, predicates, assertion)
+        return verifyClaim(bob, alice, attributes, predicates)
     }
 
     @Test
@@ -238,7 +235,8 @@ class MockCordaAsTransportTest {
                 "1988" to "1978",
                 "2016" to "2006")
 
-        multipleClaimsByDiffIssuers(attributes, predicates, { res -> assertTrue(res) })
+        val claimsVerified = multipleClaimsByDiffIssuers(attributes, predicates)
+        assertTrue(claimsVerified)
     }
 
     @Test
@@ -250,7 +248,8 @@ class MockCordaAsTransportTest {
                 "1988" to "1978",
                 "2016" to "2026")
 
-        multipleClaimsByDiffIssuers(attributes, predicates, { res -> assertFalse(res) })
+        val claimsVerified = multipleClaimsByDiffIssuers(attributes, predicates)
+        assertFalse(claimsVerified)
     }
 
     @Test
@@ -262,7 +261,8 @@ class MockCordaAsTransportTest {
                 "1988" to "1978",
                 "2016" to "2006")
 
-        multipleClaimsByDiffIssuers(attributes, predicates, { res -> assertFalse(res) })
+        val claimsVerified = multipleClaimsByDiffIssuers(attributes, predicates)
+        assertFalse(claimsVerified)
     }
 
     @Test
@@ -291,7 +291,8 @@ class MockCordaAsTransportTest {
                 // -10 to check >=
                 IndyUser.ProofPredicate(schemaDetails, credDefId, schemaPerson.schemaAttr2, schemaAttrInt.toInt() - 10))
 
-        verifyClaim(bob, alice, attributes, predicates, { res -> assertTrue(res) })
+        val claimVerified = verifyClaim(bob, alice, attributes, predicates)
+        assertTrue(claimVerified)
     }
 
     @Test
@@ -332,7 +333,8 @@ class MockCordaAsTransportTest {
                 IndyUser.ProofPredicate(schemaPersonDetails, credDefId, schemaPerson.schemaAttr2, schemaPersonAttrInt.toInt() - 10),
                 IndyUser.ProofPredicate(schemaEducationDetails, eduCredDefId, schemaEducation.schemaAttr2, schemaEducationAttrInt.toInt() - 10))
 
-        verifyClaim(bob, alice, attributes, predicates, { res -> assertTrue(res) })
+        val claimVerified = verifyClaim(bob, alice, attributes, predicates)
+        assertTrue(claimVerified)
     }
 
     @Test
@@ -358,7 +360,8 @@ class MockCordaAsTransportTest {
                 IndyUser.ProofAttribute(schemaDetails, credDefId, schemaPerson.schemaAttr1, "John Smith")
         )
 
-        verifyClaim(bob, alice, attributes, emptyList(), { res -> assertTrue(res) })
+        val claimVerified = verifyClaim(bob, alice, attributes, emptyList())
+        assertTrue(claimVerified)
     }
 
     @Test
@@ -385,6 +388,7 @@ class MockCordaAsTransportTest {
                 IndyUser.ProofAttribute(schemaDetails, credDefId, schemaPerson.schemaAttr2, "")
         )
 
-        verifyClaim(bob, alice, attributes, emptyList(), { res -> assertTrue(res) })
+        val claimVerified = verifyClaim(bob, alice, attributes, emptyList())
+        assertTrue(claimVerified)
     }
 }
