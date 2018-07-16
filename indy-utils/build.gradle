@@ -29,6 +29,7 @@ dependencies {
     compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 
     compile group: 'org.hyperledger', name: 'indy', version: "$indy_version"
+    compile "$corda_release_group:corda-core:$corda_release_version"
 
     compile group: 'org.json', name: 'json', version: '20160212'
     //compile group: 'commons-io', name: 'commons-io', version: '2.6'
