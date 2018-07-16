@@ -94,10 +94,13 @@ class MockCordaAsTransportTest {
 
     @After
     fun tearDown() {
-        issuer.services.cordaService(IndyService::class.java).indyUser.close()
-        alice.services.cordaService(IndyService::class.java).indyUser.close()
-        bob.services.cordaService(IndyService::class.java).indyUser.close()
-        net.stopNodes()
+        try {
+            issuer.services.cordaService(IndyService::class.java).indyUser.close()
+            alice.services.cordaService(IndyService::class.java).indyUser.close()
+            bob.services.cordaService(IndyService::class.java).indyUser.close()
+        } finally {
+            net.stopNodes()
+        }
     }
 
 
