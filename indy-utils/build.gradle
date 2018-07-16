@@ -51,8 +51,9 @@ compileTestKotlin {
     kotlinOptions.jvmTarget = "1.8"
 }
 
-task cleanDefaultPool(type: Exec) {
-    commandLine 'sh', '-c', 'rm -r ~/.indy_client/'
+task cleanDefaultPool(type: Delete) {
+    def home = System.getProperty("user.home")
+    delete "$home/.indy_client/"
 }
 
 apply plugin: 'maven-publish'
