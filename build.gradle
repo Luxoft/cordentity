@@ -60,8 +60,6 @@ dependencies {
     compile 'com.github.alexeykoren:konfig:2.0.4'
 
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.21'
-    compile group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
 
     // Corda integration dependencies
     cordaCompile "${corda_release_group}:corda-core:${corda_release_version}"
