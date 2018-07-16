@@ -120,9 +120,9 @@ class MockCordaAsTransportTest {
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
         val schemaFuture = schemaOwner.services.startFlow(
                 CreateSchemaFlow.Authority(
-                        schema.getSchemaName(),
-                        schema.getSchemaVersion(),
-                        schema.getSchemaAttrs())).resultFuture
+                        schema.schemaName,
+                        schema.schemaVersion,
+                        schema.schemaAttrs)).resultFuture
 
         net.runNetwork()
         val schemaId = schemaFuture.getOrThrow(Duration.ofSeconds(30))
@@ -147,8 +147,8 @@ class MockCordaAsTransportTest {
         val schemaOwnerDid = schemaOwner.services.cordaService(IndyService::class.java).indyUser.did
 
         val schemaDetails = IndyUser.SchemaDetails(
-                schema.getSchemaName(),
-                schema.getSchemaVersion(),
+                schema.schemaName,
+                schema.schemaVersion,
                 schemaOwnerDid)
 
         val claimFuture = claimIssuer.services.startFlow(
@@ -210,8 +210,8 @@ class MockCordaAsTransportTest {
 
         // Verify claims
         val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
-        val schemaPersonDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
-        val schemaEducationDetails = IndyUser.SchemaDetails(schemaEducation.getSchemaName(), schemaEducation.getSchemaVersion(), schemaOwner)
+        val schemaPersonDetails = IndyUser.SchemaDetails(schemaPerson.schemaName, schemaPerson.schemaVersion, schemaOwner)
+        val schemaEducationDetails = IndyUser.SchemaDetails(schemaEducation.schemaName, schemaEducation.schemaVersion, schemaOwner)
 
         val attributes = listOf(
                 IndyUser.ProofAttribute(schemaPersonDetails, credDefId, schemaPerson.schemaAttr1, attr1.value),
@@ -282,7 +282,7 @@ class MockCordaAsTransportTest {
 
         // Verify claim
         val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
-        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
+        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.schemaName, schemaPerson.schemaVersion, schemaOwner)
 
         val attributes = listOf(
                 IndyUser.ProofAttribute(schemaDetails, credDefId, schemaPerson.schemaAttr1, "John Smith"))
@@ -320,8 +320,8 @@ class MockCordaAsTransportTest {
 
         // Verify claims
         val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
-        val schemaPersonDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
-        val schemaEducationDetails = IndyUser.SchemaDetails(schemaEducation.getSchemaName(), schemaEducation.getSchemaVersion(), schemaOwner)
+        val schemaPersonDetails = IndyUser.SchemaDetails(schemaPerson.schemaName, schemaPerson.schemaVersion, schemaOwner)
+        val schemaEducationDetails = IndyUser.SchemaDetails(schemaEducation.schemaName, schemaEducation.schemaVersion, schemaOwner)
 
         val attributes = listOf(
                 IndyUser.ProofAttribute(schemaPersonDetails, credDefId, schemaPerson.schemaAttr1, "John Smith"),
@@ -354,7 +354,7 @@ class MockCordaAsTransportTest {
 
         // Verify claim
         val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
-        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
+        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.schemaName, schemaPerson.schemaVersion, schemaOwner)
 
         val attributes = listOf(
                 IndyUser.ProofAttribute(schemaDetails, credDefId, schemaPerson.schemaAttr1, "John Smith")
@@ -381,7 +381,7 @@ class MockCordaAsTransportTest {
 
         // Verify claim
         val schemaOwner = issuer.services.cordaService(IndyService::class.java).indyUser.did
-        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
+        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.schemaName, schemaPerson.schemaVersion, schemaOwner)
 
         val attributes = listOf(
                 IndyUser.ProofAttribute(schemaDetails, credDefId, schemaPerson.schemaAttr1, "John Smith"),
