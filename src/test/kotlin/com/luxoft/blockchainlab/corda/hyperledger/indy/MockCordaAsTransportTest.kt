@@ -80,7 +80,7 @@ class MockCordaAsTransportTest {
                 // Now we assume that issuer(indy trustee) is the first created node from SomeNodes
                 return if (name == "Issuer") {
                     ConfigurationMap(mapOf(
-                            "indyuser.walletName" to name,
+                            "indyuser.walletName" to name + System.currentTimeMillis().toString(),
                             "indyuser.role" to "trustee",
                             "indyuser.did" to "V4SGRU86Z58d6TV7PBUe6f",
                             "indyuser.seed" to "000000000000000000000000Trustee1"
