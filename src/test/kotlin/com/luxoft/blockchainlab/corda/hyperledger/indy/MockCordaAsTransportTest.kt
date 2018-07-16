@@ -128,9 +128,9 @@ class MockCordaAsTransportTest {
         // create schema
         val schemaFuture = schemaOwner.services.startFlow(
                 CreateSchemaFlow.Authority(
-                        schema.getSchemaName(),
-                        schema.getSchemaVersion(),
-                        schema.getSchemaAttrs(),
+                        schema.schemaName,
+                        schema.schemaVersion,
+                        schema.schemaAttrs,
                         artifactory.getName())).resultFuture
 
         net.runNetwork()
@@ -138,8 +138,8 @@ class MockCordaAsTransportTest {
 
         // create credential definition
         val schemaDetails = IndyUser.SchemaDetails(
-                schema.getSchemaName(),
-                schema.getSchemaVersion(),
+                schema.schemaName,
+                schema.schemaVersion,
                 schemaOwner.getPartyDid())
 
         val claimDefFuture = claimDefOwner.services.startFlow(
@@ -159,8 +159,8 @@ class MockCordaAsTransportTest {
         val schemaOwnerDid = schemaOwner.getPartyDid()
 
         val schemaDetails = IndyUser.SchemaDetails(
-                schema.getSchemaName(),
-                schema.getSchemaVersion(),
+                schema.schemaName,
+                schema.schemaVersion,
                 schemaOwnerDid)
 
         val claimFuture = claimIssuer.services.startFlow(
@@ -223,8 +223,8 @@ class MockCordaAsTransportTest {
 
         // Verify claims
         val schemaOwner = issuer.getPartyDid()
-        val schemaPersonDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
-        val schemaEducationDetails = IndyUser.SchemaDetails(schemaEducation.getSchemaName(), schemaEducation.getSchemaVersion(), schemaOwner)
+        val schemaPersonDetails = IndyUser.SchemaDetails(schemaPerson.schemaName, schemaPerson.schemaVersion, schemaOwner)
+        val schemaEducationDetails = IndyUser.SchemaDetails(schemaEducation.schemaName, schemaEducation.schemaVersion, schemaOwner)
 
         val attributes = listOf(
                 VerifyClaimFlow.ProofAttribute(schemaPersonDetails, issuer.getPartyDid(), schemaPerson.schemaAttr1, attr1.value),
@@ -295,7 +295,7 @@ class MockCordaAsTransportTest {
 
         // Verify claim
         val schemaOwner = issuer.getPartyDid()
-        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
+        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.schemaName, schemaPerson.schemaVersion, schemaOwner)
 
         val attributes = listOf(
                 VerifyClaimFlow.ProofAttribute(schemaDetails, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith"))
@@ -333,8 +333,8 @@ class MockCordaAsTransportTest {
 
         // Verify claims
         val schemaOwner = issuer.getPartyDid()
-        val schemaPersonDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
-        val schemaEducationDetails = IndyUser.SchemaDetails(schemaEducation.getSchemaName(), schemaEducation.getSchemaVersion(), schemaOwner)
+        val schemaPersonDetails = IndyUser.SchemaDetails(schemaPerson.schemaName, schemaPerson.schemaVersion, schemaOwner)
+        val schemaEducationDetails = IndyUser.SchemaDetails(schemaEducation.schemaName, schemaEducation.schemaVersion, schemaOwner)
 
         val attributes = listOf(
                 VerifyClaimFlow.ProofAttribute(schemaPersonDetails, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith"),
@@ -367,7 +367,7 @@ class MockCordaAsTransportTest {
 
         // Verify claim
         val schemaOwner = issuer.getPartyDid()
-        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
+        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.schemaName, schemaPerson.schemaVersion, schemaOwner)
 
         val attributes = listOf(
                 VerifyClaimFlow.ProofAttribute(schemaDetails, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith")
@@ -394,7 +394,7 @@ class MockCordaAsTransportTest {
 
         // Verify claim
         val schemaOwner = issuer.getPartyDid()
-        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.getSchemaName(), schemaPerson.getSchemaVersion(), schemaOwner)
+        val schemaDetails = IndyUser.SchemaDetails(schemaPerson.schemaName, schemaPerson.schemaVersion, schemaOwner)
 
         val attributes = listOf(
                 VerifyClaimFlow.ProofAttribute(schemaDetails, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith"),
