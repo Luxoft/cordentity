@@ -3,6 +3,7 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.DummyClaimChecker
+import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyArtifactsRegistry
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.luxoft.blockchainlab.hyperledger.indy.model.Proof
 import com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq
@@ -11,19 +12,27 @@ import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
+import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
 
 object VerifyClaimFlow {
 
+    @CordaSerializable
+    data class ProofAttribute(val schemaDetails: IndyUser.SchemaDetails, val credDefOwner: String, val field: String, val value: String)
+
+    @CordaSerializable
+    data class ProofPredicate(val schemaDetails: IndyUser.SchemaDetails, val credDefOwner: String, val field: String, val value: Int)
+
     @InitiatingFlow
     @StartableByRPC
     open class Verifier (
             private val identifier: String,
-            private val attributes: List<IndyUser.ProofAttribute>,
-            private val predicates: List<IndyUser.ProofPredicate>,
-            private val proverName: CordaX500Name
+            private val attributes: List<ProofAttribute>,
+            private val predicates: List<ProofPredicate>,
+            private val proverName: CordaX500Name,
+            private val artifactoryName: CordaX500Name
     ) : FlowLogic<Boolean>() {
 
         @Suspendable
@@ -32,7 +41,7 @@ object VerifyClaimFlow {
                 val prover: Party = whoIs(proverName)
                 val flowSession: FlowSession = initiateFlow(prover)
 
-                val proofRequest = indyUser().createProofReq(attributes, predicates)
+                val proofRequest = indyUser().createProofReq(fieldRefFromAttributes(attributes), fieldRefFromPredicates(predicates))
 
                 val verifyClaimOut = flowSession.sendAndReceive<Proof>(proofRequest).unwrap { proof ->
                     val claimProofOut = IndyClaimProof(identifier, proofRequest, proof, listOf(ourIdentity, prover))
@@ -72,6 +81,24 @@ object VerifyClaimFlow {
                 return false
             }
         }
+
+        @Suspendable
+        fun fieldRefFromAttributes(attributes: List<ProofAttribute>) = attributes.map {
+            val schemaId = getSchemaId(it.schemaDetails, artifactoryName)
+            val credDefId = getCredDefId(schemaId, it.credDefOwner, artifactoryName)
+
+            IndyUser.CredFieldRef(it.field, schemaId, credDefId)
+        }
+
+        @Suspendable
+        fun fieldRefFromPredicates(predicates: List<ProofPredicate>) = predicates.associateBy(
+            {
+                val schemaId = getSchemaId(it.schemaDetails, artifactoryName)
+                val credDefId = getCredDefId(schemaId, it.credDefOwner, artifactoryName)
+                IndyUser.CredFieldRef(it.field, schemaId, credDefId)
+
+            }, {it.value}
+        )
     }
 
     @InitiatedBy(VerifyClaimFlow.Verifier::class)

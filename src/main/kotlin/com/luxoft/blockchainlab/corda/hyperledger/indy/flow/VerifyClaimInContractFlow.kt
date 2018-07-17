@@ -21,9 +21,10 @@ object VerifyClaimInContractFlow {
     @StartableByRPC
     open class Verifier (
             private val identifier: String,
-            private val attributes: List<IndyUser.ProofAttribute>,
-            private val predicates: List<IndyUser.ProofPredicate>,
-            private val proverName: CordaX500Name
+            private val attributes: List<VerifyClaimFlow.ProofAttribute>,
+            private val predicates: List<VerifyClaimFlow.ProofPredicate>,
+            private val proverName: CordaX500Name,
+            private val artifactoryName: CordaX500Name
     ) : FlowLogic<Boolean>() {
 
         @Suspendable
@@ -32,7 +33,7 @@ object VerifyClaimInContractFlow {
                 val prover: Party = whoIs(proverName)
                 val flowSession: FlowSession = initiateFlow(prover)
 
-                val proofRequest = indyUser().createProofReq(attributes, predicates)
+                val proofRequest = indyUser().createProofReq(fieldRefFromAttributes(attributes), fieldRefFromPredicates(predicates))
 
                 val verifyClaimOut = flowSession.sendAndReceive<Proof>(proofRequest).unwrap { proof ->
                     val claimProofOut = IndyClaimProof(identifier, proofRequest, proof, listOf(ourIdentity, prover))
@@ -69,6 +70,22 @@ object VerifyClaimInContractFlow {
                 return false
             }
         }
+
+        private fun fieldRefFromAttributes(attributes: List<VerifyClaimFlow.ProofAttribute>) = attributes.map {
+            val schemaId = getSchemaId(it.schemaDetails, artifactoryName)
+            val credDefId = getCredDefId(schemaId, it.credDefOwner, artifactoryName)
+
+            IndyUser.CredFieldRef(it.field, schemaId, credDefId)
+        }
+
+        private fun fieldRefFromPredicates(predicates: List<VerifyClaimFlow.ProofPredicate>) = predicates.associateBy(
+                {
+                    val schemaId = getSchemaId(it.schemaDetails, artifactoryName)
+                    val credDefId = getCredDefId(schemaId, it.credDefOwner, artifactoryName)
+                    IndyUser.CredFieldRef(it.field, schemaId, credDefId)
+
+                }, {it.value}
+        )
     }
 
     @InitiatedBy(VerifyClaimInContractFlow.Verifier::class)

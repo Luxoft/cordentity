@@ -18,20 +18,14 @@ import java.util.concurrent.ExecutionException
 
 open class IndyUser {
 
-    class SchemaDetails(val name: String, val version: String, val owner: String) {
-        val id: String get() = """$owner:2:$name:$version"""  // todo: replace with sdk calls
-
-        fun json(schemaAttributes: List<String>): String =
-                """{"id":"$id", "name":"$name", "version":"$version", "attrNames":${schemaAttributes.map { "\"$it\"" }}, "ver":"1.0"}"""
-
+    data class SchemaDetails(val name: String, val version: String, val owner: String) {
         constructor() : this("", "", "")
+        val filter: String get() = """{name:${name},version:${version},owner:${owner}}"""
+    }
 
-        companion object Build {
-            fun fromSchemaKey(schemaKeyJson: String): SchemaDetails {
-                val parsed = JSONObject(schemaKeyJson)
-                return SchemaDetails(parsed.getString("name"), parsed.getString("version"), parsed.getString("owner"))
-            }
-        }
+    data class CredentialDefDetails(val schemaSeqNo: String, val owner: String) {
+        constructor() : this("", "")
+        val filter: String get() = """{schemaSeqNo:${schemaSeqNo},owner:${owner}}"""
     }
 
     class IdentityDetails(val did: String, val verKey: String, val alias: String?, val role: String?) {
@@ -43,10 +37,6 @@ open class IndyUser {
             return String.format("{\"did\":\"%s\", \"verkey\":\"%s\"}", did, verKey)
         }
     }
-
-    data class ProofAttribute(val schema: SchemaDetails,  val credDefId: String, val field: String, val value: String)
-    
-    data class ProofPredicate(val schema: SchemaDetails, val credDefId: String, val field: String, val value: Int)
 
     private val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
 
@@ -143,28 +133,30 @@ open class IndyUser {
         return Pairwise(pairwiseJson).did
     }
 
-    fun createSchema(name: String, version: String, attributes: List<String>): String {
+    fun createSchema(name: String, version: String, attributes: List<String>): Schema {
         val attrStr = attributes.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
 
         val schemaInfo = Anoncreds.issuerCreateSchema(did, name, version, attrStr).get()
         val schemaRequest = Ledger.buildSchemaRequest(did, schemaInfo.schemaJson).get()
         Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get()
 
-        assert(getSchema(schemaInfo.schemaId).id == schemaInfo.schemaId)
+        val schema = getSchema(schemaInfo.schemaId)
+        assert(schema.id == schemaInfo.schemaId)
 
-        return schemaInfo.schemaId
+        return schema
     }
 
-    fun createClaimDef(schemaId: String): String {
+    fun createClaimDef(schemaId: String): CredentialDefinition {
         val schema = getSchema(schemaId)
 
         val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json.toString(), TAG, SIGNATURE_TYPE, null).get()
         val claimDefReq = Ledger.buildCredDefRequest(did, credDefInfo.credDefJson).get()
         Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get()
 
-        assert(getClaimDef(credDefInfo.credDefId).id == credDefInfo.credDefId)
+        val credDef = getClaimDef(credDefInfo.credDefId)
+        assert(credDef.id == credDefInfo.credDefId)
 
-        return credDefInfo.credDefId
+        return credDef
     }
 
     fun createClaimOffer(credDefId: String): ClaimOffer {
@@ -192,6 +184,8 @@ open class IndyUser {
         Anoncreds.proverStoreCredential(wallet, null, claimReq.metadata, claim.json.toString(), credDef.json.toString(), null).get()
     }
 
+    data class CredFieldRef(val fieldName: String, val schemaId: String, val credDefId: String)
+
     /**
      * @brief - generate proof request to convince that specific fields are valid
      * @param attributes - list of attributes from schema to request for proof
@@ -201,30 +195,30 @@ open class IndyUser {
      * Predicate here: value '18', field 'age' (great then 18)
      * Arguments: name 'Alex'
      */
-    fun createProofReq(attributes: List<ProofAttribute>, predicates: List<ProofPredicate>): ProofReq {
+    fun createProofReq(attributes: List<CredFieldRef>, predicates: Map<CredFieldRef, Int>): ProofReq {
 
         // 1. Add attributes
         val requestedAttributes = attributes.withIndex().joinToString { (idx, data) ->
-            val schema = getSchema(data.schema.id)
             """"attr${idx}_referent":
                     {
-                        "name":"${data.field}",
-                        "schemaId":"${schema.id}",
+                        "name":"${data.fieldName}",
+                        "schemaId":"${data.schemaId}",
                         "credDefId":"${data.credDefId}"
                     }
             """.trimIndent()
         }
 
         // 2. Add predicates
-        val requestedPredicates = predicates.withIndex().joinToString {(idx, data) ->
-            val schema = getSchema(data.schema.id)
+        val requestedPredicates = predicates.entries.withIndex().joinToString {(idx, data) ->
+            val fieldRef = data.key
+            val value = data.value
             """"predicate${idx}_referent":
                     {
-                        "name":"${data.field}",
+                        "name":"${fieldRef.fieldName}",
                         "p_type":">=",
-                        "p_value":${data.value},
-                        "schemaId":"${schema.id}",
-                        "credDefId":"${data.credDefId}"
+                        "p_value":${value},
+                        "schemaId":"${fieldRef.schemaId}",
+                        "credDefId":"${fieldRef.credDefId}"
                     }
             """.trimIndent()
         }
@@ -376,7 +370,12 @@ open class IndyUser {
         val schemaReq = Ledger.buildGetSchemaRequest(did, schemaId).get()
         val schemaRes = Ledger.submitRequest(pool, schemaReq).get()
         val parsedRes = Ledger.parseGetSchemaResponse(schemaRes).get()
-        return Schema(parsedRes)
+
+        val schema = Schema(parsedRes.objectJson)
+        if(!schema.isValid())
+            throw ArtifactDoesntExist(schemaId)
+
+        return schema
     }
 
     fun getClaimDef(credDefId: String): CredentialDefinition {
@@ -384,7 +383,7 @@ open class IndyUser {
         val getCredDefResponse = Ledger.submitRequest(pool, getCredDefRequest).get()
         val credDefIdInfo = Ledger.parseGetCredDefResponse(getCredDefResponse).get()
 
-        return CredentialDefinition(credDefIdInfo)
+        return CredentialDefinition(credDefIdInfo.objectJson)
     }
 
     companion object {
@@ -396,4 +395,6 @@ open class IndyUser {
                     proofReq.json.toString(), proof.json.toString(), proof.usedSchemas, proof.usedClaimDefs, "{}", "{}").get()
         }
     }
+
+    class ArtifactDoesntExist(id: String) : IllegalArgumentException("Artifact with id ${id} doesnt exist on public ledger")
 }

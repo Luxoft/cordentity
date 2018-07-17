@@ -255,14 +255,22 @@ class Proof(json: JSONObject, val usedSchemas: String, val usedClaimDefs: String
  * }
  * */
 class Schema(json: JSONObject) : JsonDataObject(json) {
-    constructor(parseGetSchemaResponse: LedgerResults.ParseResponseResult) : this(JSONObject(parseGetSchemaResponse.objectJson))
+    constructor(parseGetSchemaResponse: String) : this(JSONObject(parseGetSchemaResponse))
 
     val id by json
     val name by json
     val version by json
     val ver by json
+    val seqNo = json.getIntOrNull("seqNo")?.toString()
+
+    val owner: String = id.split(":").first()
 
     val attrNames: List<String> = json.getJSONArray("attrNames").toList()
+
+    val filter: String
+        get() = """{name:${name},version:${version},owner:${owner}}"""
+
+    fun isValid() = (seqNo != null)
 }
 
 /**
@@ -279,15 +287,20 @@ class Schema(json: JSONObject) : JsonDataObject(json) {
  * }
  * */
 class CredentialDefinition(json: JSONObject) : JsonDataObject(json) {
-    constructor(parseGetCredDefResponse: LedgerResults.ParseResponseResult) : this(JSONObject(parseGetCredDefResponse.objectJson))
+    constructor(parseGetCredDefResponse: String) : this(JSONObject(parseGetCredDefResponse))
 
     val id by json
-    val schemaId by json
     val type by json
     val tag by json
     val ver by json
 
+    val schemaSeqNo = json.getIntOrNull("schemaId")?.toString()
+
+    val owner: String = id.split(":").first()
     val value = Data(json.getJSONObject("value"))
+
+    val filter: String
+        get() = """{schemaSeqNo:${schemaSeqNo},owner:${owner}}"""
 
     class Data(valueJson: JSONObject){
        val primaryPubKey = valueJson.get("primary").toString()
