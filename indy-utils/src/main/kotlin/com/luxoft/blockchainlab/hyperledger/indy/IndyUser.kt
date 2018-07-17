@@ -184,7 +184,7 @@ open class IndyUser {
         Anoncreds.proverStoreCredential(wallet, null, claimReq.metadata, claim.json.toString(), credDef.json.toString(), null).get()
     }
 
-    data class CredFieldRef(val fieldName: String, val schemaId: String, val credDefId: String)
+    class CredFieldRef(val fieldName: String, val schemaId: String, val credDefId: String)
 
     /**
      * @brief - generate proof request to convince that specific fields are valid

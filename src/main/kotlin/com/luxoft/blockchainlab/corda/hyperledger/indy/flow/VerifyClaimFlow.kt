@@ -3,7 +3,6 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.DummyClaimChecker
-import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyArtifactsRegistry
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.luxoft.blockchainlab.hyperledger.indy.model.Proof
 import com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq
@@ -41,7 +40,10 @@ object VerifyClaimFlow {
                 val prover: Party = whoIs(proverName)
                 val flowSession: FlowSession = initiateFlow(prover)
 
-                val proofRequest = indyUser().createProofReq(fieldRefFromAttributes(attributes), fieldRefFromPredicates(predicates))
+                val fieldRefAttr = fieldRefFromAttributes(attributes)
+                val fieldRefPred = fieldRefFromPredicates(predicates)
+
+                val proofRequest = indyUser().createProofReq(fieldRefAttr, fieldRefPred)
 
                 val verifyClaimOut = flowSession.sendAndReceive<Proof>(proofRequest).unwrap { proof ->
                     val claimProofOut = IndyClaimProof(identifier, proofRequest, proof, listOf(ourIdentity, prover))
@@ -83,7 +85,7 @@ object VerifyClaimFlow {
         }
 
         @Suspendable
-        fun fieldRefFromAttributes(attributes: List<ProofAttribute>) = attributes.map {
+        private fun fieldRefFromAttributes(attributes: List<ProofAttribute>) = attributes.map {
             val schemaId = getSchemaId(it.schemaDetails, artifactoryName)
             val credDefId = getCredDefId(schemaId, it.credDefOwner, artifactoryName)
 
@@ -91,7 +93,7 @@ object VerifyClaimFlow {
         }
 
         @Suspendable
-        fun fieldRefFromPredicates(predicates: List<ProofPredicate>) = predicates.associateBy(
+        private fun fieldRefFromPredicates(predicates: List<ProofPredicate>) = predicates.associateBy(
             {
                 val schemaId = getSchemaId(it.schemaDetails, artifactoryName)
                 val credDefId = getCredDefId(schemaId, it.credDefOwner, artifactoryName)
