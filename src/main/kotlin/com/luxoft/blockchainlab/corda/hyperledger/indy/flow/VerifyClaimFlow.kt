@@ -19,7 +19,7 @@ import net.corda.core.utilities.unwrap
 object VerifyClaimFlow {
 
     @CordaSerializable
-    data class ProofAttribute(val schemaDetails: IndyUser.SchemaDetails, val credDefOwner: String, val field: String, val value: String)
+    data class ProofAttribute(val schemaDetails: IndyUser.SchemaDetails, val credDefOwner: String, val field: String, val value: String = "")
 
     @CordaSerializable
     data class ProofPredicate(val schemaDetails: IndyUser.SchemaDetails, val credDefOwner: String, val field: String, val value: Int)
