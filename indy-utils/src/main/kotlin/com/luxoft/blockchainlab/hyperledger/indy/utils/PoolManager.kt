@@ -7,6 +7,10 @@ class PoolManager private constructor() {
     private val configName: String = PoolUtils.createPoolLedgerConfig()
     private val config: String = "{}"
 
+    init {
+        Pool.setProtocolVersion(2).get()
+    }
+    
     val pool: Pool = Pool.openPoolLedger(configName, config).get()
 
     companion object {
