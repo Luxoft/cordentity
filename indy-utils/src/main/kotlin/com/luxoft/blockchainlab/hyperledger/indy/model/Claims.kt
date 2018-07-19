@@ -221,7 +221,7 @@ class ProofReq(json: JSONObject) : JsonDataObject(json) {
 class Proof(json: JSONObject, val usedSchemas: String, val usedClaimDefs: String) : JsonDataObject(json) {
     constructor(jsonStr: String,  usedSchemas: String, usedClaimDefs: String) : this(JSONObject(jsonStr), usedSchemas, usedClaimDefs)
 
-    private val revealedAttrs = json
+    val revealedAttrs = json
             .getJSONObject("requested_proof")
             .getJSONObject("revealed_attrs")
             .toObjectMap()
