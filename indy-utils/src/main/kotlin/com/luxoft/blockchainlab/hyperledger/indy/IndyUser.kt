@@ -149,12 +149,20 @@ open class IndyUser {
     fun createClaimDef(schemaId: String): CredentialDefinition {
         val schema = getSchema(schemaId)
 
-        val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json.toString(), TAG, SIGNATURE_TYPE, null).get()
-        val claimDefReq = Ledger.buildCredDefRequest(did, credDefInfo.credDefJson).get()
-        Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get()
+        val credDefId = try {
+            val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json.toString(), TAG, SIGNATURE_TYPE, null).get()
+            val claimDefReq = Ledger.buildCredDefRequest(did, credDefInfo.credDefJson).get()
+            Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get()
 
-        val credDef = getClaimDef(credDefInfo.credDefId)
-        assert(credDef.id == credDefInfo.credDefId)
+            credDefInfo.credDefId
+        } catch (e: Exception) {
+            logger.error("Credential Definiton for ${schemaId} already exist.")
+            // TODO: this have to be removed when IndyRegistry will be implemented
+            "${did}:3:${SIGNATURE_TYPE}:12:${TAG}"
+        }
+
+        val credDef = getClaimDef(credDefId)
+        assert(credDef.id == credDefId)
 
         return credDef
     }
