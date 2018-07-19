@@ -11,7 +11,7 @@ plugins {
     id 'com.palantir.docker-run' version '0.19.2'
 }
 
-apply plugin: 'kotlin'
+//apply plugin: 'kotlin'
 
 repositories {
     mavenCentral()
@@ -51,18 +51,4 @@ compileTestKotlin {
 task cleanDefaultPool(type: Delete) {
     def home = System.getProperty("user.home")
     delete "$home/.indy_client/"
-}
-
-apply plugin: 'maven-publish'
-publishing {
-    repositories {
-        maven {
-            url "http://172.26.147.116:8081/repository/luxoft.blockchainlab/"
-        }
-    }
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-        }
-    }
 }
