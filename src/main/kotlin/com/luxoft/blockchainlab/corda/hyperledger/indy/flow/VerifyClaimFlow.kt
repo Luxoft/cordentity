@@ -93,14 +93,14 @@ object VerifyClaimFlow {
         }
 
         @Suspendable
-        private fun fieldRefFromPredicates(predicates: List<ProofPredicate>) = predicates.associateBy(
-            {
-                val schemaId = getSchemaId(it.schemaDetails, artifactoryName)
-                val credDefId = getCredDefId(schemaId, it.credDefOwner, artifactoryName)
-                IndyUser.CredFieldRef(it.field, schemaId, credDefId)
+        private fun fieldRefFromPredicates(predicates: List<VerifyClaimFlow.ProofPredicate>) = predicates.map {
+            val schemaId = getSchemaId(it.schemaDetails, artifactoryName)
+            val credDefId = getCredDefId(schemaId, it.credDefOwner, artifactoryName)
 
-            }, {it.value}
-        )
+            val fieldRef = IndyUser.CredFieldRef(it.field, schemaId, credDefId)
+
+            IndyUser.CredPredicate(fieldRef, it.value)
+        }
     }
 
     @InitiatedBy(VerifyClaimFlow.Verifier::class)

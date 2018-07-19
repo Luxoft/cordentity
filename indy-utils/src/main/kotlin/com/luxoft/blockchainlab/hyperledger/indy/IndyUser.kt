@@ -188,6 +188,9 @@ open class IndyUser {
     @CordaSerializable
     class CredFieldRef(val fieldName: String, val schemaId: String, val credDefId: String)
 
+    @CordaSerializable
+    class CredPredicate(val fieldRef: CredFieldRef, val value: Int, val type: String = ">=")
+
     /**
      * @brief - generate proof request to convince that specific fields are valid
      * @param attributes - list of attributes from schema to request for proof
@@ -197,7 +200,7 @@ open class IndyUser {
      * Predicate here: value '18', field 'age' (great then 18)
      * Arguments: name 'Alex'
      */
-    fun createProofReq(attributes: List<CredFieldRef>, predicates: Map<CredFieldRef, Int>): ProofReq {
+    fun createProofReq(attributes: List<CredFieldRef>, predicates: List<CredPredicate>): ProofReq {
 
         // 1. Add attributes
         val requestedAttributes = attributes.withIndex().joinToString { (idx, data) ->
@@ -211,14 +214,13 @@ open class IndyUser {
         }
 
         // 2. Add predicates
-        val requestedPredicates = predicates.entries.withIndex().joinToString {(idx, data) ->
-            val fieldRef = data.key
-            val value = data.value
+        val requestedPredicates = predicates.withIndex().joinToString {(idx, predicate) ->
+            val fieldRef = predicate.fieldRef
             """"predicate${idx}_referent":
                     {
                         "name":"${fieldRef.fieldName}",
-                        "p_type":">=",
-                        "p_value":${value},
+                        "p_type":"${predicate.type}",
+                        "p_value":${predicate.value},
                         "schemaId":"${fieldRef.schemaId}",
                         "credDefId":"${fieldRef.credDefId}"
                     }

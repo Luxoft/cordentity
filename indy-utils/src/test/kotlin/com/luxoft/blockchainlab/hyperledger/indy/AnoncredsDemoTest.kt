@@ -1,5 +1,6 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
+import com.luxoft.blockchainlab.hyperledger.indy.IndyUser.*
 import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolUtils
 import org.hyperledger.indy.sdk.pool.Pool
 import org.hyperledger.indy.sdk.pool.PoolJSONParameters
@@ -82,12 +83,12 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         prover.receiveClaim(credential, credReq, credOffer)
 
-        val field_name = IndyUser.CredFieldRef("name", gvtSchema.id, credDef.id)
-        val field_sex = IndyUser.CredFieldRef("sex", gvtSchema.id, credDef.id)
+        val field_name = CredFieldRef("name", gvtSchema.id, credDef.id)
+        val field_sex = CredFieldRef("sex", gvtSchema.id, credDef.id)
 //        val field_phone = IndyUser.CredFieldRef("phone", gvtSchema.id, credDef.id)
-        val field_age = IndyUser.CredFieldRef("age", gvtSchema.id, credDef.id)
+        val field_age = CredFieldRef("age", gvtSchema.id, credDef.id)
 
-        val proofReq = prover.createProofReq(listOf(field_name, field_sex), mapOf(field_age to 18))
+        val proofReq = prover.createProofReq(listOf(field_name, field_sex), listOf(CredPredicate(field_age, 18)))
 
         val proof = prover.createProof(proofReq, masterSecretId)
 
@@ -135,12 +136,12 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer)
 
 
-        val field_name = IndyUser.CredFieldRef("name", gvtSchema.id, gvtCredDef.id)
-        val field_age = IndyUser.CredFieldRef("age", gvtSchema.id, gvtCredDef.id)
-        val field_status = IndyUser.CredFieldRef("status", xyzSchema.id, xyzCredDef.id)
-        val field_period = IndyUser.CredFieldRef("period", xyzSchema.id, xyzCredDef.id)
+        val field_name = CredFieldRef("name", gvtSchema.id, gvtCredDef.id)
+        val field_age = CredFieldRef("age", gvtSchema.id, gvtCredDef.id)
+        val field_status = CredFieldRef("status", xyzSchema.id, xyzCredDef.id)
+        val field_period = CredFieldRef("period", xyzSchema.id, xyzCredDef.id)
 
-        val proofReq = prover.createProofReq(listOf(field_name, field_status), mapOf(field_age to 18, field_period to 5))
+        val proofReq = prover.createProofReq(listOf(field_name, field_status), listOf(CredPredicate(field_age, 18), CredPredicate(field_period, 5)))
 
         val proof = prover.createProof(proofReq, masterSecretId)
 
@@ -186,12 +187,12 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val xyzCredential = issuer.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer)
         prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer)
 
-        val field_name = IndyUser.CredFieldRef("name", gvtSchema.id, gvtCredDef.id)
-        val field_age = IndyUser.CredFieldRef("age", gvtSchema.id, gvtCredDef.id)
-        val field_status = IndyUser.CredFieldRef("status", xyzSchema.id, xyzCredDef.id)
-        val field_period = IndyUser.CredFieldRef("period", xyzSchema.id, xyzCredDef.id)
+        val field_name = CredFieldRef("name", gvtSchema.id, gvtCredDef.id)
+        val field_age = CredFieldRef("age", gvtSchema.id, gvtCredDef.id)
+        val field_status = CredFieldRef("status", xyzSchema.id, xyzCredDef.id)
+        val field_period = CredFieldRef("period", xyzSchema.id, xyzCredDef.id)
 
-        val proofReq = prover.createProofReq(listOf(field_name, field_status), mapOf(field_age to 18, field_period to 5))
+        val proofReq = prover.createProofReq(listOf(field_name, field_status), listOf(CredPredicate(field_age, 18), CredPredicate(field_period, 5)))
 
         val proof = prover.createProof(proofReq, masterSecretId)
 
@@ -330,12 +331,12 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         prover.receiveClaim(credential, credReq, credOffer)
 
-        val field_name = IndyUser.CredFieldRef("name", gvtSchema.id, credDef.id)
-        val field_sex = IndyUser.CredFieldRef("sex", gvtSchema.id, credDef.id)
-        val field_phone = IndyUser.CredFieldRef("phone", gvtSchema.id, credDef.id)
-        val field_age = IndyUser.CredFieldRef("age", gvtSchema.id, credDef.id)
+        val field_name = CredFieldRef("name", gvtSchema.id, credDef.id)
+        val field_sex = CredFieldRef("sex", gvtSchema.id, credDef.id)
+        val field_phone = CredFieldRef("phone", gvtSchema.id, credDef.id)
+        val field_age = CredFieldRef("age", gvtSchema.id, credDef.id)
 
-        val proofReq = prover.createProofReq(listOf(field_name, field_sex), mapOf())
+        val proofReq = prover.createProofReq(listOf(field_name, field_sex), listOf())
 
         val proof = prover.createProof(proofReq, masterSecretId)
 
