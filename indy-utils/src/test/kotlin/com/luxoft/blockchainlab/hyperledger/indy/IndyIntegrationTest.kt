@@ -20,7 +20,7 @@ open class IndyIntegrationTest {
     protected var XYZ_SCHEMA_NAME = "xyz"
     protected var SCHEMA_VERSION = "1.0"
     protected var GVT_SCHEMA_ATTRIBUTES = listOf("name", "age", "sex", "height")
-    protected var XYZ_SCHEMA_ATTRIBUTES = "[\"status\", \"period\"]"
+    protected var XYZ_SCHEMA_ATTRIBUTES = listOf("status", "period")
     protected var REVOC_REG_TYPE = "CL_ACCUM"
     protected var SIGNATURE_TYPE = "CL"
 //    protected var TAILS_WRITER_CONFIG = JSONObject(String.format("{\"base_dir\":\"%s\", \"uri_pattern\":\"\"}", getIndyHomePath("tails")).replace('\\', '/')).toString()
