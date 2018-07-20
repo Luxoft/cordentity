@@ -15,7 +15,6 @@ import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
 import net.corda.testing.core.singleIdentity
 import net.corda.testing.node.internal.startFlow
-import org.hyperledger.indy.sdk.pool.Pool
 import org.junit.*
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -40,7 +39,7 @@ class MockCordaAsTransportTest {
         @BeforeClass
         fun init() {
             //setCordappPackages("com.luxoft.blockchainlab.corda.hyperledger.indy")
-            Pool.setProtocolVersion(2).get()
+//            Pool.setProtocolVersion(2).get()
         }
 
         @JvmStatic
@@ -87,7 +86,7 @@ class MockCordaAsTransportTest {
                 // Now we assume that issuer(indy trustee) is the first created node from SomeNodes
                 return if (name == "Issuer") {
                     ConfigurationMap(mapOf(
-                            "indyuser.walletName" to name + System.currentTimeMillis().toString(),
+                            "indyuser.walletName" to name,
                             "indyuser.role" to "trustee",
                             "indyuser.did" to "V4SGRU86Z58d6TV7PBUe6f",
                             "indyuser.seed" to "000000000000000000000000Trustee1"
