@@ -13,6 +13,7 @@ import net.corda.testing.node.internal.InternalMockNetwork
 import net.corda.testing.node.internal.InternalMockNetwork.MockNode
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
+import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.core.singleIdentity
 import net.corda.testing.node.internal.startFlow
 import org.junit.*
@@ -54,7 +55,9 @@ class MockCordaAsTransportTest {
 
         setupIndyConfigs()
 
-        net = InternalMockNetwork(listOf("com.luxoft.blockchainlab.corda.hyperledger.indy"))
+        net = InternalMockNetwork(
+                cordappPackages = listOf("com.luxoft.blockchainlab.corda.hyperledger.indy"),
+                networkParameters = testNetworkParameters(maxTransactionSize = 10485760 * 5))
 
         notary = net.defaultNotaryNode
 
