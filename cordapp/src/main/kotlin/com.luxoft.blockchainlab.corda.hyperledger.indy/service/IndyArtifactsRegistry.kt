@@ -39,21 +39,28 @@ object IndyArtifactsRegistry {
     class QueryHandler(private val flowSession: FlowSession) : FlowLogic<Unit>() {
         @Suspendable
         override fun call() {
-            val queryRequest = flowSession.receive<QueryRequest>().unwrap { it }
+            try {
+                val queryRequest = flowSession.receive<QueryRequest>().unwrap { it }
 
-            val artifacts = serviceHub.cordaService(ArtifactsRegistry::class.java)
+                val artifacts = serviceHub.cordaService(ArtifactsRegistry::class.java)
 
-            val artifactId = when(queryRequest.type) {
-                ARTIFACT_TYPE.Schema -> artifacts.schemaRegistry.get(queryRequest.filter)
-                ARTIFACT_TYPE.Definition -> artifacts.credsDefRegistry.get(queryRequest.filter)
-                else -> throw FlowException("unknown indy artifact query request: " +
-                        "${queryRequest.type}, ${queryRequest.filter}")
+                val artifactId = when (queryRequest.type) {
+                    ARTIFACT_TYPE.Schema -> artifacts.schemaRegistry.get(queryRequest.filter)
+                    ARTIFACT_TYPE.Definition -> artifacts.credsDefRegistry.get(queryRequest.filter)
+                    else -> throw FlowException("unknown indy artifact query request: " +
+                            "${queryRequest.type}, ${queryRequest.filter}")
+                }
+
+                requireNotNull(artifactId) {
+                    "Artifact wasnt found in registry: " +
+                            "${queryRequest.type}, ${queryRequest.filter}"
+                }
+
+                flowSession.send(artifactId!!)
+            } catch(t: Throwable) {
+                logger.error("", t)
+                throw FlowException(t.message)
             }
-
-            requireNotNull(artifactId) { "Artifact wasnt found in registry: " +
-                    "${queryRequest.type}, ${queryRequest.filter}" }
-
-            flowSession.send(artifactId!!)
         }
     }
 
@@ -61,15 +68,20 @@ object IndyArtifactsRegistry {
     class PutHandler(private val flowSession: FlowSession) : FlowLogic<Unit>() {
         @Suspendable
         override fun call() {
-            val putRequest = flowSession.receive<PutRequest>().unwrap { it }
+            try {
+                val putRequest = flowSession.receive<PutRequest>().unwrap { it }
 
-            val artifacts = serviceHub.cordaService(ArtifactsRegistry::class.java)
+                val artifacts = serviceHub.cordaService(ArtifactsRegistry::class.java)
 
-            when(putRequest.type) {
-                ARTIFACT_TYPE.Schema -> artifacts.addSchema(Schema(putRequest.payloadJson))
-                ARTIFACT_TYPE.Definition -> artifacts.addCredentialDef(CredentialDefinition(putRequest.payloadJson))
-                else -> throw FlowException("unknown indy artifact put request: " +
-                        "${putRequest.type}, ${putRequest.payloadJson}")
+                when (putRequest.type) {
+                    ARTIFACT_TYPE.Schema -> artifacts.addSchema(Schema(putRequest.payloadJson))
+                    ARTIFACT_TYPE.Definition -> artifacts.addCredentialDef(CredentialDefinition(putRequest.payloadJson))
+                    else -> throw FlowException("unknown indy artifact put request: " +
+                            "${putRequest.type}, ${putRequest.payloadJson}")
+                }
+            } catch(t: Throwable) {
+                logger.error("", t)
+                throw FlowException(t.message)
             }
         }
     }
@@ -78,18 +90,23 @@ object IndyArtifactsRegistry {
     class CheckHandler(private val flowSession: FlowSession) : FlowLogic<Unit>() {
         @Suspendable
         override fun call() {
-            val checkRequest = flowSession.receive<CheckRequest>().unwrap { it }
+            try {
+                val checkRequest = flowSession.receive<CheckRequest>().unwrap { it }
 
-            val artifacts = serviceHub.cordaService(ArtifactsRegistry::class.java)
+                val artifacts = serviceHub.cordaService(ArtifactsRegistry::class.java)
 
-            val isExist = when(checkRequest.type) {
-                ARTIFACT_TYPE.Schema -> artifacts.schemaRegistry.contains(checkRequest.filter)
-                ARTIFACT_TYPE.Definition -> artifacts.credsDefRegistry.contains(checkRequest.filter)
-                else -> throw FlowException("unknown indy artifact check request: " +
-                        "${checkRequest.type}, ${checkRequest.filter}")
+                val isExist = when(checkRequest.type) {
+                    ARTIFACT_TYPE.Schema -> artifacts.schemaRegistry.contains(checkRequest.filter)
+                    ARTIFACT_TYPE.Definition -> artifacts.credsDefRegistry.contains(checkRequest.filter)
+                    else -> throw FlowException("unknown indy artifact check request: " +
+                            "${checkRequest.type}, ${checkRequest.filter}")
+                }
+
+                flowSession.send(isExist)
+            } catch(t: Throwable) {
+                logger.error("", t)
+                throw FlowException(t.message)
             }
-
-            flowSession.send(isExist)
         }
     }
 
