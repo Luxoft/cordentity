@@ -4,6 +4,7 @@ import com.luxoft.blockchainlab.hyperledger.indy.model.*
 import com.luxoft.blockchainlab.hyperledger.indy.utils.*
 import net.corda.core.serialization.CordaSerializable
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds
+import org.hyperledger.indy.sdk.anoncreds.CredDefAlreadyExistsException
 import org.hyperledger.indy.sdk.anoncreds.DuplicateMasterSecretNameException
 import org.hyperledger.indy.sdk.blob_storage.BlobStorageWriter
 import org.hyperledger.indy.sdk.did.Did
@@ -150,16 +151,25 @@ open class IndyUser {
     fun createClaimDef(schemaId: String): CredentialDefinition {
         val schema = getSchema(schemaId)
 
+        // Let's hope this format is correct and stays unchanged
+        val supposedCredDefId = "$did:3:$SIGNATURE_TYPE:${schema.seqNo}:$TAG"
+
         val credDefId = try {
             val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json.toString(), TAG, SIGNATURE_TYPE, null).get()
             val claimDefReq = Ledger.buildCredDefRequest(did, credDefInfo.credDefJson).get()
             Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get()
 
-            credDefInfo.credDefId
+            val credDefId = credDefInfo.credDefId
+            assert(supposedCredDefId == credDefId) { "CredDefId format has been changed from $supposedCredDefId to $credDefId (not for production 0_o)" }
+
+            credDefId
         } catch (e: Exception) {
-            logger.error("Credential Definiton for ${schemaId} already exist.")
+            if(e.cause !is CredDefAlreadyExistsException) throw e.cause ?: e
+
             // TODO: this have to be removed when IndyRegistry will be implemented
-            "${did}:3:${SIGNATURE_TYPE}:12:${TAG}"
+            logger.error("Credential Definiton for ${schemaId} already exist.")
+
+            supposedCredDefId
         }
 
         val credDef = getClaimDef(credDefId)
