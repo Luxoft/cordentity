@@ -14,6 +14,13 @@ import net.corda.core.utilities.unwrap
 import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * A temporal substitute for a global Schema and Credential Definition discovery facility.
+ *
+ * Ideally a Schema catalog should be external to the system and available to all interested party.
+ * Since Hyperledger has not yet provided such a facility,
+ * [IndyArtifactsRegistry] should be enough for simple demos and POCs.
+ * */
 object IndyArtifactsRegistry {
 
     @CordaSerializable
