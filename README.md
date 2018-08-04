@@ -21,7 +21,7 @@ To run the tests you need to install the `libindy` package:
     sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 68DB5E88
     sudo add-apt-repository "deb https://repo.sovrin.org/sdk/deb xenial stable"
     sudo apt-get update
-    sudo apt-get install -y libindy
+    sudo apt-get install -y libindy=1.5.0
 
 And start the `indy-pool` container on ports 9701-9708: 
 
@@ -29,6 +29,14 @@ And start the `indy-pool` container on ports 9701-9708:
     docker create -p 9701-9708:9701-9708 --name indypool teamblockchain/indy-pool:1.5.0
     docker start indypool
     
-Before every run it is recommended to clean the default pool with 
+After that use the standard Gradle build procedure:
+
+    gradle clean cleanDefaultPool build
+    
+### Troubleshooting    
+    
+Before every test run it is recommended to clean local pool and wallets data, which by default are stored in `~/.indy_client/`:
 
     gradle cleanDefaultPool
+    
+Also re-creating the `indypool` docker container is needed to get a clean system.
