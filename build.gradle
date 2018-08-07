@@ -7,8 +7,6 @@ buildscript {
     ext.kotlin_version = '1.2.30'
 
     repositories {
-        mavenLocal()
-        mavenCentral()
         jcenter()
     }
 
@@ -55,6 +53,10 @@ allprojects {
         testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
         testCompile "junit:junit:$junit_version"
     }
+
+    compileKotlin.kotlinOptions.jvmTarget = "1.8"
+    compileTestKotlin.kotlinOptions.jvmTarget = "1.8"
+    sourceCompatibility = 1.8
 }
 
 dependencies {
@@ -64,7 +66,6 @@ dependencies {
     cordapp project(":cordapp-contracts-states")
 }
 
-sourceCompatibility = 1.8
 
 task deployNodes(type: net.corda.plugins.Cordform) { //, dependsOn: ['shadowJar']) {
     directory "./build/nodes"
@@ -146,11 +147,4 @@ tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
         jvmTarget = "1.8"
         javaParameters = true   // Useful for reflection.
     }
-}
-
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
 }
