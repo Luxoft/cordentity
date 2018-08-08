@@ -1,0 +1,24 @@
+buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.19.2"
+    }
+}
+
+apply plugin: com.palantir.gradle.docker.DockerRunPlugin
+
+
+ext.dockerRunTask = tasks.find {it.name == "dockerRun"}
+
+static def dockerExists(String containerName) {
+    def result = "docker inspect $containerName".execute()
+    return result.waitFor() == 0
+}
+
+dockerRunTask.onlyIf { !dockerExists(dockerRun.name) }
+dockerStop.onlyIf { dockerExists(dockerRun.name) }
+

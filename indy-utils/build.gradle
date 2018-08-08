@@ -1,14 +1,6 @@
-plugins {
-    id 'com.palantir.docker-run' version '0.19.2'
-}
+apply from: 'docker.gradle'
 
 ext.indy_version = "1.5.0"
-
-repositories {
-    maven {
-        url 'https://repo.evernym.com/artifactory/libindy-maven-local'
-    }
-}
 
 dependencies {
     compile group: 'org.hyperledger', name: 'indy', version: "$indy_version"
@@ -21,13 +13,19 @@ dependencies {
 }
 
 dockerRun {
-    name "indy-pool"
+    name "indy-cordapp.indy-pool"
     image "teamblockchain/indy-pool:$indy_version"
     ports '9701:9701','9702:9702','9703:9703','9704:9704','9705:9705','9706:9706','9707:9707','9708:9708'
     daemonize true
+    clean true
 }
+
+test.dependsOn(dockerRunTask)
+clean.dependsOn(dockerStop)
 
 task cleanDefaultPool(type: Delete) {
     def home = System.getProperty("user.home")
     delete("$home/.indy_client/")
 }
+
+clean.dependsOn(cleanDefaultPool)
