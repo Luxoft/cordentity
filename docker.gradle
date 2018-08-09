@@ -16,10 +16,14 @@ apply plugin: com.palantir.gradle.docker.DockerRunPlugin
 
 ext.dockerRunTask = tasks.find {it.name == "dockerRun"}
 
-task dockerStopRun {
+task dockerCleanRun {
     doLast {
         dockerStop.execute()
+        println("DOCKER $dockerRun.name has been STOPED")
+        dockerRemoveContainer.execute()
+        println("DOCKER $dockerRun.name has been REMOVED")
         dockerRunTask.execute()
+        println("DOCKER $dockerRun.name has been STARTED")
     }
 }
 
@@ -30,4 +34,8 @@ static def dockerExists(String containerName) {
 
 dockerRunTask.onlyIf { !dockerExists(dockerRun.name) }
 dockerStop.onlyIf { dockerExists(dockerRun.name) }
+dockerRemoveContainer.onlyIf { dockerExists(dockerRun.name) }
+
+dockerRunTask.outputs.upToDateWhen { dockerExists(dockerRun.name) }
+dockerRemoveContainer.outputs.upToDateWhen { !dockerExists(dockerRun.name) }
 

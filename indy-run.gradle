@@ -17,7 +17,7 @@ task cleanDefaultPool(type: Delete) {
     delete("$home/$indy_pool_folder_name")
 }
 
-test.dependsOn(dockerStopRun)
+test.dependsOn(dockerCleanRun)
 test.dependsOn(cleanDefaultPool)
 
 clean.dependsOn(dockerStop)
