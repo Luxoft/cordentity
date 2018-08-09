@@ -15,7 +15,6 @@ buildscript {
         classpath "net.corda.plugins:cordapp:${corda_gradle_plugins_version}"
         classpath "net.corda.plugins:cordformation:${corda_gradle_plugins_version}"
         classpath "net.corda.plugins:quasar-utils:${corda_gradle_plugins_version}"
-//        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.2'
     }
 }
 
@@ -34,7 +33,6 @@ allprojects {
     apply plugin: 'idea'
     apply plugin: 'net.corda.plugins.cordformation'
     apply plugin: 'net.corda.plugins.quasar-utils'
-    //apply plugin: 'com.github.johnrengelman.shadow'
 
     sourceSets {
         main { resources { srcDir "config/dev"  } }
@@ -60,7 +58,7 @@ allprojects {
 }
 
 
-task deployNodes(type: net.corda.plugins.Cordform) { //, dependsOn: ['shadowJar']) {
+task deployNodes(type: net.corda.plugins.Cordform) {
     directory "./build/nodes"
 
     node {
@@ -104,36 +102,6 @@ task runNodes(type: Exec) {
     executable './runnodes'
 }
 
-// TODO check dependencies
-//tasks {
-//    shadowJar {
-//        mergeServiceFiles()
-//
-//        // Place your shaded packages here!
-//        //relocate 'org.apache.commons.io', 'shadow.org.apache.commons.io'
-//
-//        configurations = [project.configurations.compile]
-//        baseName = jar.baseName + "-" + jar.version
-//        classifier = null
-//        version = null
-//        dependencies {
-//            include(dependency(".*:.*:.*"))
-//            exclude(dependency('org.jetbrains.kotlin:.*:.*'))
-//            exclude(dependency('net.corda:.*:.*'))
-//            exclude(dependency('org.apache.logging.*:.*:.*'))
-//            exclude(dependency('org.apache.activemq:.*:.*'))
-//            exclude(dependency('com.google.*:.*:.*'))
-//            exclude(dependency('io.reactivex:.*:.*'))
-//            exclude(dependency('org.bouncycastle.*:.*:.*'))
-//            exclude(dependency('org.glassfish.*:.*:.*'))
-//            exclude(dependency('co.paralleluniverse.*:.*:.*'))
-//            exclude(dependency('co.paralleluniverse.*:.*:.*'))
-//            exclude(dependency('com.typesafe.*:.*:.*'))
-//            exclude(dependency('com.esotericsoftware.*:.*:.*'))
-//            exclude(dependency('org.qpid.*:.*:.*'))
-//        }
-//    }
-//}
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
