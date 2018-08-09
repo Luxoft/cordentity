@@ -16,7 +16,9 @@ apply plugin: com.palantir.gradle.docker.DockerRunPlugin
 
 ext.dockerRunTask = tasks.find {it.name == "dockerRun"}
 
-task dockerCleanRun {
+def DOCKER_GROUP = dockerRunTask.group
+
+task dockerCleanRun(group: DOCKER_GROUP) {
     doLast {
         dockerStop.execute()
         println("DOCKER $dockerRun.name has been STOPED")

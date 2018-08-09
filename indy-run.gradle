@@ -4,6 +4,8 @@ def indy_version = project.ext.has('indy_version') ? ext.indy_version : "1.5.0"
 def indy_pool_folder_name = '.indy_client/'
 def indy_pool_docker_name = 'indy-cordapp.indy-pool'
 
+def INDY_RUN_GROUP = "indy run"
+
 dockerRun {
     name indy_pool_docker_name
     image "teamblockchain/indy-pool:$indy_version"
@@ -12,7 +14,7 @@ dockerRun {
     clean true
 }
 
-task cleanDefaultPool(type: Delete) {
+task cleanDefaultPool(type: Delete, group: INDY_RUN_GROUP) {
     def home = System.getProperty("user.home")
     delete("$home/$indy_pool_folder_name")
 }
