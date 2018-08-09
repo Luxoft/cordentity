@@ -59,13 +59,6 @@ allprojects {
     sourceCompatibility = 1.8
 }
 
-dependencies {
-    compile project(':indy-utils')
-
-    cordapp project(":cordapp")
-    cordapp project(":cordapp-contracts-states")
-}
-
 
 task deployNodes(type: net.corda.plugins.Cordform) { //, dependsOn: ['shadowJar']) {
     directory "./build/nodes"
