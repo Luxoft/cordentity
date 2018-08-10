@@ -13,6 +13,12 @@ import org.hyperledger.indy.sdk.wallet.WalletExistsException
 import org.slf4j.LoggerFactory
 import java.io.File
 
+/**
+ * A Corda service for dealing with Indy Ledger infrastructure such as pools, credentials, wallets.
+ *
+ * The current implementation is a POC and lacks any configurability.
+ * It is planed to be extended in the future version.
+ */
 @CordaService
 class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
 
