@@ -2,8 +2,55 @@
 
 Provides the basic Corda flows for working with an Indy Ledger
 
+//todo: преимущества симбиоза двух платформ + что такое инди
+
+## Process
+
+### In terms of Indy
+about indy claims and DIDs
+everyone has a wallet + how to configure
+
+
+### In terms of Corda
+
+transport level for Indy operations
+- issuing claim, 
+- issuing schema, 
+- issuing credentials - 2 
+- verification - attributes
+
+
+## Flows
+
+
+- [ArtifactsRegistryFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.ArtifactsRegistryFlow)
+
+- [AssignPermissionsFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.AssignPermissionsFlow)
+
+- [CreateClaimDefFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateClaimDefFlow)
+
+- [CreatePairwiseFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreatePairwiseFlow)
+
+- [CreateSchemaFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateSchemaFlow)
+
+- [GetDidFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.GetDidFlow)
+
+- [IssueClaimFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow)
+
+- [VerifyClaimFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.VerifyClaimFlow) - verifies a set of predicates
+
+- [VerifyClaimInContractFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.VerifyClaimInContractFlow)
+
+
+
 ## Build
 
 Before every run it is recommended to clean the default pool with 
 
     gradle cleanDefaultPool
+    
+
+## How to Run
+
+- IndyService
+- IndyArtifactsRegistry
