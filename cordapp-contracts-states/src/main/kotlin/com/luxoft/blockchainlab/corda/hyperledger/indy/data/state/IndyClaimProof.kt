@@ -10,6 +10,9 @@ import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
 
+/**
+ * A Corda record of an Indy proof [proof] issued on request [proofReq]
+ * */
 open class IndyClaimProof(val id: String,
                           val proofReq: ProofReq,
                           val proof: Proof,
