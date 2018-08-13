@@ -16,11 +16,20 @@ import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
 
+/**
+ * A flow to verify a set of predicates [predicates] on a set of attributes [attributes]
+ * */
 object VerifyClaimFlow {
 
+    /**
+     * A reference to a field [field] in a credential definition by [credDefOwner] in a schema by [schemaDetails]
+     * */
     @CordaSerializable
     data class ProofAttribute(val schemaDetails: IndyUser.SchemaDetails, val credDefOwner: String, val field: String, val value: String = "")
 
+    /**
+     * A logical predicate in the form `attribute <= [value]`, where attribute is a reference to field (see [ProofAttribute])
+     * */
     @CordaSerializable
     data class ProofPredicate(val schemaDetails: IndyUser.SchemaDetails, val credDefOwner: String, val field: String, val value: Int)
 
