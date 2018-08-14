@@ -10,7 +10,7 @@ import net.corda.core.utilities.unwrap
 
 
 /**
- * A flow to request the DID (Distributed ID) of another Corda party [authority]
+ * A flow to request the DID (Decentralized ID) of another Corda party [authority]
  **/
 object GetDidFlow {
 

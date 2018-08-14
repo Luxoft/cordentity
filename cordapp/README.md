@@ -2,13 +2,26 @@
 
 Provides the basic Corda flows for working with an Indy Ledger
 
-//todo: преимущества симбиоза двух платформ + что такое инди
-
 ## Process
 
 ### In terms of Indy
-about indy claims and DIDs
-everyone has a wallet + how to configure
+
+[Hyperledger Indy Ledger](https://www.hyperledger.org/projects/hyperledger-indy) is a platform for providing DIDs (Decentralized IDs) and verifiable Credentials.
+
+Every Indy-enabled node should run an instance of [IndyService](#Services) to managed all the operations with the Indy Ledger.
+
+The local state is stored in Wallet. By default it is in the `~/.indy_client/` folder. Delete it manually or with a Gradle task `cleanDefaultPool` to have a clean run.
+
+The shared state is stored Indy Pool. We recommend running it as a Docker container.
+You can download a pre-build Docker image from [DockerHub](https://hub.docker.com/r/teamblockchain/indy-pool/) or use [indy-sdk](https://github.com/hyperledger/indy-sdk) to compose an image yourselves.
+
+#### Terminology
+
+- DID - a.k.a. Decentralized Identity - a mean for trustable interactions with the subject (e.i. Bob)
+- Attribute - a small piece of information (e.i. Bob's age)
+- Schema - a digital description of Attributes an entity can provide (e.i. Bob can provide his name and age) 
+- Credential - a statement about an Attribute that you can prove to 3rd party (e.i. Bob's age is more than 18)
+- Wallet - local storage for private keys and saved Credentials
 
 
 ### In terms of Corda
@@ -20,7 +33,9 @@ transport level for Indy operations
 - verification - attributes
 
 
-## Flows
+## Components
+
+### Flows
 
 
 - [ArtifactsRegistryFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/ArtifactsRegistryFlow.kt)
@@ -42,7 +57,7 @@ transport level for Indy operations
 - [VerifyClaimInContractFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyClaimInContractFlow.kt)
 
 
-## Services
+### Services
 
 - [IndyService](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/service/IndyService.kt) - 
 A Corda service for dealing with Indy Ledger infrastructure such as pools, credentials, wallets.
