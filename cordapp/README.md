@@ -26,12 +26,13 @@ You can download a pre-build Docker image from [DockerHub](https://hub.docker.co
 
 ### In terms of Corda
 
-transport level for Indy operations
-- issuing claim, 
-- issuing schema, 
-- issuing credentials - 2 
-- verification - attributes
+[Corda Platform](https://www.corda.net/index.html) provides a secure peer-to-peer network for transporting Indy entities such as Claims, Schemas, Credentials and verifying Attributes.
 
+#### Terminology
+
+- Node - a peer that hosts a Corda service or executes a CorDapps application.
+- Flow - a sequence of steps involving multiple Nodes and updating the Corda ledger
+- State - data that can be transferred through the Corda network
 
 ## Components
 
