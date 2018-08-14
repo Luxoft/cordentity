@@ -6,6 +6,9 @@ import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.flows.*
 import net.corda.core.identity.CordaX500Name
 
+/**
+ * A flow to create an Indy scheme and register it with an artifact registry [artifactoryName]
+ * */
 object CreateSchemaFlow {
 
     @InitiatingFlow

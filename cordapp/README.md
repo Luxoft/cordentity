@@ -31,7 +31,7 @@ transport level for Indy operations
 
 - [CreatePairwiseFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreatePairwiseFlow)
 
-- [CreateSchemaFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateSchemaFlow)
+- [CreateSchemaFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateSchemaFlow) - creates an Indy scheme and registers it
 
 - [GetDidFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.GetDidFlow) -  requests DID of another Corda party
 
