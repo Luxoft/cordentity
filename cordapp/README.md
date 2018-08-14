@@ -35,7 +35,7 @@ transport level for Indy operations
 
 - [GetDidFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.GetDidFlow) -  requests DID of another Corda party
 
-- [IssueClaimFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow)
+- [IssueClaimFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow) - issues an Indy credential based on a proposal and registers it
 
 - [VerifyClaimFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.VerifyClaimFlow) - verifies a set of predicates
 
