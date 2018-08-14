@@ -42,15 +42,18 @@ transport level for Indy operations
 - [VerifyClaimInContractFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.VerifyClaimInContractFlow)
 
 
+## Services
+
+- [IndyService](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/service/IndyService.kt) - 
+A Corda service for dealing with Indy Ledger infrastructure such as pools, credentials, wallets.
+
+- [IndyArtifactsRegistry](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/service/IndyArtifactsRegistry.kt) - 
+A global Schema and Credential Definition discovery facility, a.k.a. an artifact registry. 
+May be removed in the future if Hyperledger provides a similar service.
+
 
 ## Build
 
 Before every run it is recommended to clean the default pool with 
 
     gradle cleanDefaultPool
-    
-
-## How to Run
-
-- IndyService
-- IndyArtifactsRegistry
