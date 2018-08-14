@@ -33,7 +33,7 @@ transport level for Indy operations
 
 - [CreateSchemaFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateSchemaFlow)
 
-- [GetDidFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.GetDidFlow)
+- [GetDidFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.GetDidFlow) -  requests DID of another Corda party
 
 - [IssueClaimFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow)
 
