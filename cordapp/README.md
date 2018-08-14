@@ -23,23 +23,23 @@ transport level for Indy operations
 ## Flows
 
 
-- [ArtifactsRegistryFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.ArtifactsRegistryFlow)
+- [ArtifactsRegistryFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/ArtifactsRegistryFlow.kt)
 
-- [AssignPermissionsFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.AssignPermissionsFlow) - changes permissions of another Corda party
+- [AssignPermissionsFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/AssignPermissionsFlow.kt) - changes permissions of another Corda party
 
-- [CreateClaimDefFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateClaimDefFlow) - creates a credential definition for schema and registers it
+- [CreateClaimDefFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateClaimDefFlow.kt) - creates a credential definition for schema and registers it
 
-- [CreatePairwiseFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreatePairwiseFlow)
+- [CreatePairwiseFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreatePairwiseFlow.kt)
 
-- [CreateSchemaFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateSchemaFlow) - creates an Indy scheme and registers it
+- [CreateSchemaFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateSchemaFlow.kt) - creates an Indy scheme and registers it
 
-- [GetDidFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.GetDidFlow) -  requests DID of another Corda party
+- [GetDidFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/GetDidFlow.kt) -  requests DID of another Corda party
 
-- [IssueClaimFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow) - issues an Indy credential based on a proposal and registers it
+- [IssueClaimFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/IssueClaimFlow.kt) - issues an Indy credential based on a proposal and registers it
 
-- [VerifyClaimFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.VerifyClaimFlow) - verifies a set of predicates
+- [VerifyClaimFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyClaimFlow.kt) - verifies a set of predicates
 
-- [VerifyClaimInContractFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.VerifyClaimInContractFlow)
+- [VerifyClaimInContractFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyClaimInContractFlow.kt)
 
 
 ## Services
