@@ -27,7 +27,7 @@ transport level for Indy operations
 
 - [AssignPermissionsFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.AssignPermissionsFlow)
 
-- [CreateClaimDefFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateClaimDefFlow)
+- [CreateClaimDefFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateClaimDefFlow) - creates a credential definition for schema and registers it
 
 - [CreatePairwiseFlow](com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreatePairwiseFlow)
 
