@@ -8,6 +8,21 @@ import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.utilities.unwrap
 
+/**
+ * A flow to change permissions of another Corda party [authority]
+ *
+ * @param did          Target DID as base58-encoded string for 16 or 32 bit DID value.
+ * @param verkey       Target identity verification key as base58-encoded string.
+ * @param alias        NYM's alias.
+ * @param role         Role of a user NYM record:
+ *                     null (common USER)
+ *                     TRUSTEE
+ *                     STEWARD
+ *                     TRUST_ANCHOR
+ *                     empty string to reset role
+ *
+ *  TODO: investigate what does `NYM` mean in Indy
+ * */
 object AssignPermissionsFlow {
 
     @CordaSerializable
@@ -30,6 +45,7 @@ object AssignPermissionsFlow {
                 val otherSide: Party = whoIs(authority)
                 val flowSession: FlowSession = initiateFlow(otherSide)
 
+                // FIXME: parameters `role` and `alias` are mixed up
                 flowSession.send(IndyPermissionsRequest(indyUser().did, indyUser().verkey, role, alias))
 
             } catch (t: Throwable) {
@@ -46,6 +62,7 @@ object AssignPermissionsFlow {
         override fun call() {
             try {
                 flowSession.receive(IndyPermissionsRequest::class.java).unwrap { indyPermissions ->
+                    // FIXME: parameters `role` and `alias` are mixed up
                     indyUser().setPermissionsFor(IndyUser.IdentityDetails(
                             indyPermissions.did,
                             indyPermissions.verkey,
