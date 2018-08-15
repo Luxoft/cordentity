@@ -10,10 +10,31 @@ Provides the basic Corda flows for working with an Indy Ledger
 
 Every Indy-enabled node should run an instance of [IndyService](#Services) to managed all the operations with the Indy Ledger.
 
-The local state is stored in Wallet. By default it is in the `~/.indy_client/` folder. Delete it manually or with a Gradle task `cleanDefaultPool` to have a clean run.
+The local private state is stored in Wallet. 
+The wallet is unique for every Indy user and must be created for every instance of [IndyService](#Services).
+By default it is in the `~/.indy_client/` folder. 
+Delete it manually or with a Gradle task `cleanDefaultPool` to have a clean run.
 
 The shared state is stored Indy Pool. We recommend running it as a Docker container.
 You can download a pre-build Docker image from [DockerHub](https://hub.docker.com/r/teamblockchain/indy-pool/) or use [indy-sdk](https://github.com/hyperledger/indy-sdk) to compose an image yourselves.
+
+#### Indy Configuration
+Each [IndyService](#Services) can be configured with its own `indy.properties`
+
+- indyuser.walletName - the name of the Wallet
+- indyuser.walletType - the type of the Wallet
+- indyuser.role - the role of the service
+- indyuser.did - a preconfigured DID of the node
+- indyuser.seed - a seed to generate private keys of the node
+- indyuser.wallet - deprecated
+
+Example `indy.properties` file:
+
+    indyuser.walletName=Issuer
+    indyuser.walletType=CordaWalletType
+    indyuser.role=trustee
+    indyuser.did=V4SGRU86Z58d6TV7PBUe6f
+    indyuser.seed=000000000000000000000000Trustee1
 
 #### Terminology
 
