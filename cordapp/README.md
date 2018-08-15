@@ -88,6 +88,7 @@ A Corda service for dealing with Indy Ledger infrastructure such as pools, crede
 - [IndyArtifactsRegistry](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/service/IndyArtifactsRegistry.kt) - 
 A global Schema and Credential Definition discovery facility, a.k.a. an artifact registry. 
 May be removed in the future if Hyperledger provides a similar service.
+See the official documentation on [LIST_SCHEMA](https://github.com/hyperledger/indy-node/blob/c37af6befccf31afa8a31c032c88d110b819495b/design/anoncreds.md#list_schema) for details about the filters.
 
 
 ## Build
