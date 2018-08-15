@@ -11,7 +11,7 @@ import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
 
 /**
- * A Corda record of an issued Indy claim [claim] issued on request [claimReq]
+ * A Corda record of an Indy Credential [claim] issued on request [claimReq]
  * */
 open class IndyClaim(val id: String,
                      val claimReq: ClaimReq,
