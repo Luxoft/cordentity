@@ -17,7 +17,7 @@ import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
 
 /**
- * A flow to issue an Indy credential based on proposal [credProposal] and register it with an artifact registry [artifactoryName]
+ * A flow to issue an Indy credential based on proposal [credProposal]
  * */
 object IssueClaimFlow {
 
