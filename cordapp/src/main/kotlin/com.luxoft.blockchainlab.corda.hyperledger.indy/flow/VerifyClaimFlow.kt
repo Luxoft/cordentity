@@ -22,13 +22,25 @@ import net.corda.core.utilities.unwrap
 object VerifyClaimFlow {
 
     /**
-     * A reference to a field [field] in a credential definition by [credDefOwner] in a schema by [schemaDetails]
+     * A proof of a string Attribute with an optional check against [value]
+     * The Attribute is contained in a field [field] in a schema by [schemaDetails] in a credential definition by [credDefOwner]
+     *
+     * @param value             an optional value the Attribute is checked against
+     * @param field             the name of the field that provides this Attribute
+     * @param schemaDetails     details of the Schema that contains field [field]
+     * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaDetails]
      * */
     @CordaSerializable
     data class ProofAttribute(val schemaDetails: IndyUser.SchemaDetails, val credDefOwner: String, val field: String, val value: String = "")
 
     /**
-     * A logical predicate in the form `attribute <= [value]`, where attribute is a reference to field (see [ProofAttribute])
+     * A proof of a logical Predicate on an integer Attribute in the form `Attribute >= [value]`
+     * The Attribute is contained in a field [field] in a schema by [schemaDetails] in a credential definition by [credDefOwner]
+     *
+     * @param value             value in the predicate to compare the Attribute against
+     * @param field             the name of the field that provides the Attribute
+     * @param schemaDetails     details of the Schema that contains field [field]
+     * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaDetails]
      * */
     @CordaSerializable
     data class ProofPredicate(val schemaDetails: IndyUser.SchemaDetails, val credDefOwner: String, val field: String, val value: Int)
