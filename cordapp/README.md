@@ -10,12 +10,13 @@ Provides the basic Corda flows for working with an Indy Ledger
 
 Every Indy-enabled node should run an instance of [IndyService](#Services) to managed all the operations with the Indy Ledger.
 
-The local private state is stored in Wallet. 
+The private information such as Keys and Credentials are stored in Wallet. 
 The wallet is unique for every Indy user and must be created for every instance of [IndyService](#Services).
 By default it is in the `~/.indy_client/` folder. 
 Delete it manually or with a Gradle task `cleanDefaultPool` to have a clean run.
 
-The shared state is stored Indy Pool. We recommend running it as a Docker container.
+The shared information such as Shames and Credential Definitions are stored in Indy Pool. 
+We recommend running it as a Docker container, locally or remotely.
 You can download a pre-build Docker image from [DockerHub](https://hub.docker.com/r/teamblockchain/indy-pool/) or use [indy-sdk](https://github.com/hyperledger/indy-sdk) to compose an image yourselves.
 
 #### Indy Configuration
@@ -42,6 +43,7 @@ Example `indy.properties` file:
 - Attribute - a small piece of information (e.i. Bob's age)
 - Schema - a digital description of Attributes an entity can provide (e.i. Bob can provide his name and age) 
 - Credential - a statement about an Attribute that you can prove to 3rd party (e.i. Bob's age is more than 18)
+- Credential Definition - a signed template for a Credential (e.i. Bob is ready to issue Credentials about his age)
 - Wallet - local storage for private keys and saved Credentials
 
 
