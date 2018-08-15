@@ -54,6 +54,7 @@ Example `indy.properties` file:
 - Node - a peer that hosts a Corda service or executes a CorDapps application.
 - Flow - a sequence of steps involving multiple Nodes and updating the Corda ledger
 - State - data that can be transferred through the Corda network
+- Service - a.k.a. Node Service - a sub function of a Corda Node. Usually accessible through `ServiceHub`
 
 ## Components
 
