@@ -10,6 +10,9 @@ import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.CordaX500Name
 
 
+/**
+ * A flow to create a credential definition for schema [schemaDetails] and register it with an artifact registry [artifactoryName]
+ * */
 object CreateClaimDefFlow {
 
     @InitiatingFlow

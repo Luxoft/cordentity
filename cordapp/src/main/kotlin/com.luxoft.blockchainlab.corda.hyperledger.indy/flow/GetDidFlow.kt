@@ -9,6 +9,9 @@ import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
 
 
+/**
+ * A flow to request the DID (Decentralized ID) of another Corda party [authority]
+ **/
 object GetDidFlow {
 
     @InitiatingFlow

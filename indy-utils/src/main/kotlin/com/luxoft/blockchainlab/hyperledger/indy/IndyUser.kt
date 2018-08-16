@@ -18,6 +18,11 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.ExecutionException
 
 
+/**
+ * The central class that incapsulates Indy SDK calls and keeps the corresponding state.
+ *
+ * Create one instance per each server node that deals with Indy Ledger.
+ */
 open class IndyUser {
 
     @CordaSerializable
