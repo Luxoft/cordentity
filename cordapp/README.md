@@ -95,6 +95,4 @@ See the official documentation on [LIST_SCHEMA](https://github.com/hyperledger/i
 
 ## Build
 
-Before every run it is recommended to clean the default pool with 
-
-    gradle cleanDefaultPool
+    gradle clean build
