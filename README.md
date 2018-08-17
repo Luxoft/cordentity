@@ -55,6 +55,6 @@ Also re-creating the `indypool` docker container is needed to get a clean system
 
 ## Contributors
 
-- [Alexander Kopnin](https://github.com/akopnin)
+- [Alexander Kopnin](https://github.com/alkopnin)
 - [Alexey Koren](https://github.com/alexeykoren)
 - [Daniil Vodopian](https://github.com/voddan/)
