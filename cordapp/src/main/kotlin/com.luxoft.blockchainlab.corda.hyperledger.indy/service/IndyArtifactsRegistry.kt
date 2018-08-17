@@ -2,16 +2,18 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.service
 
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.ArtifactsRegistryFlow
-import com.luxoft.blockchainlab.hyperledger.indy.model.CredentialDefinition
+import com.luxoft.blockchainlab.hyperledger.indy.CredentialDefinition
+import com.luxoft.blockchainlab.hyperledger.indy.Schema
+import com.luxoft.blockchainlab.hyperledger.indy.utils.SerializationUtils
+import net.corda.core.flows.FlowException
+import net.corda.core.flows.FlowLogic
+import net.corda.core.flows.FlowSession
+import net.corda.core.flows.InitiatedBy
 import net.corda.core.node.AppServiceHub
 import net.corda.core.node.services.CordaService
-import net.corda.core.serialization.SingletonSerializeAsToken
-
-import com.luxoft.blockchainlab.hyperledger.indy.model.Schema
-import net.corda.core.flows.*
 import net.corda.core.serialization.CordaSerializable
+import net.corda.core.serialization.SingletonSerializeAsToken
 import net.corda.core.utilities.unwrap
-import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -30,7 +32,7 @@ object IndyArtifactsRegistry {
     data class QueryRequest(val type: ARTIFACT_TYPE, val filter: String)
 
     @CordaSerializable
-    data class PutRequest(val type: ARTIFACT_TYPE, val payloadJson: JSONObject)
+    data class PutRequest(val type: ARTIFACT_TYPE, val payloadJson: String)
 
     @CordaSerializable
     data class CheckRequest(val type: ARTIFACT_TYPE, val filter: String)
@@ -64,7 +66,7 @@ object IndyArtifactsRegistry {
                 }
 
                 flowSession.send(artifactId!!)
-            } catch(t: Throwable) {
+            } catch (t: Throwable) {
                 logger.error("", t)
                 throw FlowException(t.message)
             }
@@ -81,12 +83,20 @@ object IndyArtifactsRegistry {
                 val artifacts = serviceHub.cordaService(ArtifactsRegistry::class.java)
 
                 when (putRequest.type) {
-                    ARTIFACT_TYPE.Schema -> artifacts.addSchema(Schema(putRequest.payloadJson))
-                    ARTIFACT_TYPE.Definition -> artifacts.addCredentialDef(CredentialDefinition(putRequest.payloadJson))
-                    else -> throw FlowException("unknown indy artifact put request: " +
-                            "${putRequest.type}, ${putRequest.payloadJson}")
+                    ARTIFACT_TYPE.Schema -> {
+                        val schema = SerializationUtils.jSONToAny<Schema>(putRequest.payloadJson)
+                                ?: throw RuntimeException("Unable to parse schema from json")
+
+                        artifacts.addSchema(schema)
+                    }
+                    ARTIFACT_TYPE.Definition -> {
+                        val credentialDefinition = SerializationUtils.jSONToAny<CredentialDefinition>(putRequest.payloadJson)
+                                ?: throw RuntimeException("Unable to parse credential definition from json")
+
+                        artifacts.addCredentialDef(credentialDefinition)
+                    }
                 }
-            } catch(t: Throwable) {
+            } catch (t: Throwable) {
                 logger.error("", t)
                 throw FlowException(t.message)
             }
@@ -102,7 +112,7 @@ object IndyArtifactsRegistry {
 
                 val artifacts = serviceHub.cordaService(ArtifactsRegistry::class.java)
 
-                val isExist = when(checkRequest.type) {
+                val isExist = when (checkRequest.type) {
                     ARTIFACT_TYPE.Schema -> artifacts.schemaRegistry.contains(checkRequest.filter)
                     ARTIFACT_TYPE.Definition -> artifacts.credsDefRegistry.contains(checkRequest.filter)
                     else -> throw FlowException("unknown indy artifact check request: " +
@@ -110,7 +120,7 @@ object IndyArtifactsRegistry {
                 }
 
                 flowSession.send(isExist)
-            } catch(t: Throwable) {
+            } catch (t: Throwable) {
                 logger.error("", t)
                 throw FlowException(t.message)
             }
@@ -118,15 +128,15 @@ object IndyArtifactsRegistry {
     }
 
     @CordaService
-    class ArtifactsRegistry(services: AppServiceHub): SingletonSerializeAsToken() {
+    class ArtifactsRegistry(services: AppServiceHub) : SingletonSerializeAsToken() {
 
         val schemaRegistry = ConcurrentHashMap<String, String>()
         val credsDefRegistry = ConcurrentHashMap<String, String>()
 
         fun addSchema(schema: Schema) =
-                schemaRegistry.putIfAbsent(schema.filter, schema.id)
+                schemaRegistry.putIfAbsent(schema.getFilter(), schema.id)
 
         fun addCredentialDef(credentialDef: CredentialDefinition) =
-                credsDefRegistry.putIfAbsent(credentialDef.filter, credentialDef.id)
+                credsDefRegistry.putIfAbsent(credentialDef.getFilter(), credentialDef.id)
     }
 }

@@ -1,39 +1,27 @@
 package com.luxoft.blockchainlab.hyperledger.indy.utils
 
-import net.corda.core.serialization.SerializationCustomSerializer
-import org.json.JSONArray
-import org.json.JSONObject
-import kotlin.coroutines.experimental.buildIterator
-import kotlin.reflect.KProperty
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.PropertyNamingStrategy
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 
-fun JSONArray.toList(): List<String> = List(length()) { i -> getString(i) }
+/**
+ * Static class that makes serialization easier
+ */
+class SerializationUtils {
+    companion object {
+        val mapper: ObjectMapper = ObjectMapper().registerModule(KotlinModule())
 
-fun JSONArray.toObjectList(): List<JSONObject> = List(length()) { i -> getJSONObject(i) }
+        init {
+            mapper.propertyNamingStrategy = PropertyNamingStrategy.SNAKE_CASE
+        }
 
-operator fun JSONArray.iterator(): Iterator<String> = buildIterator {
-    for(i in 0 until length())
-        yield(get(i).toString())
-}
+        fun anyToJSON(obj: Any?): String = mapper.writeValueAsString(obj)
+        fun anyToBytes(obj: Any?): ByteArray = mapper.writeValueAsBytes(obj)
 
-operator fun JSONObject.getValue(thisRef: Any?, property: KProperty<*>): String = getString(property.name)
+        inline fun <reified T> jSONToAny(json: String): T? = mapper.readValue(json, T::class.java)
+        inline fun <reified T> bytesToAny(bytes: ByteArray): T? = mapper.readValue(bytes, T::class.java)
 
-fun JSONObject.getStringOrNull(key: String) = if(has(key) && get(key) != JSONObject.NULL) getString(key) else null
-fun JSONObject.getIntOrNull(key: String): Int? = if (has(key) && get(key) != JSONObject.NULL) getInt(key) else null
-
-fun JSONObject.toStringMap(): Map<String, String> {
-    val keys = keySet() as Set<String>
-    return keys.associateBy({ it }, { getString(it) })
-}
-
-fun JSONObject.toObjectMap(): Map<String, JSONObject> {
-    val keys = keySet() as Set<String>
-    return keys.associateBy({ it }, { getJSONObject(it) })
-}
-
-public class JSONObjectCordaSerializer : SerializationCustomSerializer<JSONObject, JSONObjectCordaSerializer.Proxy> {
-    class Proxy(val json: String)
-
-    override fun fromProxy(proxy: Proxy): JSONObject = JSONObject(proxy.json)
-
-    override fun toProxy(obj: JSONObject): Proxy = Proxy(obj.toString())
+        fun <T> jSONToAny(json: String, clazz: Class<T>): T? = mapper.readValue(json, clazz)
+        fun <T> bytesToAny(bytes: ByteArray, clazz: Class<T>): T? = mapper.readValue(bytes, clazz)
+    }
 }

@@ -1,7 +1,10 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.contract
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
-import net.corda.core.contracts.*
+import net.corda.core.contracts.CommandData
+import net.corda.core.contracts.Contract
+import net.corda.core.contracts.requireSingleCommand
+import net.corda.core.contracts.requireThat
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.LedgerTransaction
 import java.security.PublicKey
@@ -39,7 +42,7 @@ class DummyClaimChecker : Contract {
         "All of the participants must be signers." using (signers.containsAll(indyProof.participants.map { it.owningKey }))
 
         expectedAttrs.forEach {
-            "Proof provided for invalid value." using indyProof.proof.isAttributeExist(it.value)
+            "Proof provided for invalid value." using indyProof.proof.isAttributeExists(it.value)
         }
 
     }
