@@ -7,6 +7,9 @@ import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.utilities.unwrap
 
+/**
+ * An utility flow to initiate a bi-directional connection with the [authority] Corda node
+ * */
 object CreatePairwiseFlow {
 
     @InitiatingFlow

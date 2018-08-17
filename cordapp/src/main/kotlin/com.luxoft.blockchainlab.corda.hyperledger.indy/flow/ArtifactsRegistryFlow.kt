@@ -8,6 +8,10 @@ import net.corda.core.flows.InitiatingFlow
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.unwrap
 
+/**
+ * An utility flow to register a new [IndyArtifactsRegistry] service
+ * in the Corda network under the [artifactoryName] name
+ * */
 object ArtifactsRegistryFlow {
 
     @InitiatingFlow
