@@ -24,10 +24,15 @@ object IssueClaimFlow {
     /**
      * A flow to issue an Indy credential based on proposal [credProposal]
      *
-     * @param identifier        ID of the new credential
+     * [identifier] must be unique for the given Indy user to allow searching Credentials by `(identifier, issuerDID)`
+     *
+     * @param identifier        new unique ID for the new credential.
+     *                          Must be unique for the given Indy user to allow searching Credentials by `(identifier, issuerDID)`
+     *
      * @param schemaDetails     schema details to identify the credential definition
      * @param credProposal      credential JSON containing attribute values for each of requested attribute names.
      *                          See `credValuesJson` in [org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredential]
+     *
      * @param proverName        the node that can prove this credential
      * @param artifactoryName   the Artifactory service that has credential definition
      * */

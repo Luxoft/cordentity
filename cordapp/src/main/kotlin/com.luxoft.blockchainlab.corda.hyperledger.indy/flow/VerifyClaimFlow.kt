@@ -48,7 +48,7 @@ object VerifyClaimFlow {
     /**
      * A flow to verify a set of predicates [predicates] on a set of attributes [attributes]
      *
-     * @param identifier        unique ID for the new proof
+     * @param identifier        new unique ID for the new proof to allow searching Proofs by [identifier]
      * @param attributes        unordered list of attributes that are needed for verification
      * @param predicates        unordered list of predicates that will be checked
      * @param proverName        node that will prove the credentials
