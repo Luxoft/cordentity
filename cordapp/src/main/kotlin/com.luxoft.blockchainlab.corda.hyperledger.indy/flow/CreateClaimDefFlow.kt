@@ -2,7 +2,8 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyArtifactsRegistry
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
+import com.luxoft.blockchainlab.hyperledger.indy.SchemaDetails
+import com.luxoft.blockchainlab.hyperledger.indy.utils.SerializationUtils
 import net.corda.core.flows.FlowException
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.InitiatingFlow
@@ -17,7 +18,7 @@ object CreateClaimDefFlow {
 
     @InitiatingFlow
     @StartableByRPC
-    class Authority(private val schemaDetails: IndyUser.SchemaDetails,
+    class Authority(private val schemaDetails: SchemaDetails,
                     private val artifactoryName: CordaX500Name) : FlowLogic<String>() {
 
         @Suspendable
@@ -29,10 +30,12 @@ object CreateClaimDefFlow {
                 // TODO: check if claimDef already exist
 
                 val credDef = indyUser().createClaimDef(schemaId)
+                val credDefJson = SerializationUtils.anyToJSON(credDef)
 
                 // put definition on Artifactory
                 val definitionReq = IndyArtifactsRegistry.PutRequest(
-                        IndyArtifactsRegistry.ARTIFACT_TYPE.Definition, credDef.json)
+                        IndyArtifactsRegistry.ARTIFACT_TYPE.Definition, credDefJson
+                )
                 subFlow(ArtifactsRegistryFlow.ArtifactCreator(definitionReq, artifactoryName))
 
                 return credDef.id

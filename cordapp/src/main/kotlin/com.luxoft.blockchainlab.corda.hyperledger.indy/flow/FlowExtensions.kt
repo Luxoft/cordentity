@@ -2,9 +2,11 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyArtifactsRegistry
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
-import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
+import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
+import com.luxoft.blockchainlab.hyperledger.indy.CredentialDefDetails
+import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
+import com.luxoft.blockchainlab.hyperledger.indy.SchemaDetails
 import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
@@ -27,7 +29,7 @@ fun FlowLogic<Any>.indyUser(): IndyUser {
     return serviceHub.cordaService(IndyService::class.java).indyUser
 }
 
-fun FlowLogic<Any>.verifyClaimAttributeValues(claimRequest: ClaimReq): Boolean {
+fun FlowLogic<Any>.verifyClaimAttributeValues(claimRequest: ClaimRequestInfo): Boolean {
 
     return serviceHub.cordaService(IndyService::class.java).claimAttributeValuesChecker.verifyRequestedClaimAttributes(claimRequest)
 }
@@ -35,7 +37,7 @@ fun FlowLogic<Any>.verifyClaimAttributeValues(claimRequest: ClaimReq): Boolean {
 
 @Suspendable
 fun FlowLogic<Any>.getSchemaId(
-        schemaDetails: IndyUser.SchemaDetails,
+        schemaDetails: SchemaDetails,
         artifactoryName: CordaX500Name): String {
 
     val schemaReq = IndyArtifactsRegistry.QueryRequest(
@@ -45,7 +47,7 @@ fun FlowLogic<Any>.getSchemaId(
 
 @Suspendable
 fun FlowLogic<Any>.getCredDefId(
-        schemaDetails: IndyUser.SchemaDetails,
+        schemaDetails: SchemaDetails,
         credDefOwner: String,
         artifactoryName: CordaX500Name): String {
 
@@ -56,7 +58,7 @@ fun FlowLogic<Any>.getCredDefId(
     val schema = indyUser().getSchema(schemaId)
 
     // get credential identifier
-    val credDef = IndyUser.CredentialDefDetails(schema.seqNo!!, credDefOwner)
+    val credDef = CredentialDefDetails(schema.seqNo.toString(), credDefOwner)
     val credDefReq = IndyArtifactsRegistry.QueryRequest(
             IndyArtifactsRegistry.ARTIFACT_TYPE.Definition, credDef.filter)
     return subFlow(ArtifactsRegistryFlow.ArtifactAccessor(credDefReq, artifactoryName))
@@ -72,7 +74,7 @@ fun FlowLogic<Any>.getCredDefId(
     val schema = indyUser().getSchema(schemaId)
 
     // get credential identifier
-    val credDef = IndyUser.CredentialDefDetails(schema.seqNo!!, credDefOwner)
+    val credDef = CredentialDefDetails(schema.seqNo.toString(), credDefOwner)
     val credDefReq = IndyArtifactsRegistry.QueryRequest(
             IndyArtifactsRegistry.ARTIFACT_TYPE.Definition, credDef.filter)
     return subFlow(ArtifactsRegistryFlow.ArtifactAccessor(credDefReq, artifactoryName))
