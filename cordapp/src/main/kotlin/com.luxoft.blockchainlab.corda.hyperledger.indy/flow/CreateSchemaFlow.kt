@@ -7,10 +7,18 @@ import net.corda.core.flows.*
 import net.corda.core.identity.CordaX500Name
 
 /**
- * A flow to create an Indy scheme and register it with an artifact registry [artifactoryName]
+ * Flows to create an Indy scheme
  * */
 object CreateSchemaFlow {
 
+    /**
+     * A flow to create an Indy scheme and register it with an artifact registry [artifactoryName]
+     *
+     * @param schemaName        name of the new schema
+     * @param schemaVersion     version of the schema
+     * @param schemaAttributes  a list of attribute names
+     * @returns                 Schema ID
+     * */
     @InitiatingFlow
     @StartableByRPC
     class Authority (
