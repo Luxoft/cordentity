@@ -15,7 +15,7 @@ import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
 
-@Deprecated("")
+/** WORK IN PROGRESS */
 object VerifyClaimInContractFlow {
 
     @InitiatingFlow
