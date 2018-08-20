@@ -7,10 +7,10 @@ import net.corda.core.serialization.CordaSerializable
 data class ParsedPairwise(@JsonProperty("my_did") val myDid: String, val metadata: String)
 
 @CordaSerializable
-class CredFieldRef(val fieldName: String, val schemaId: String, val credDefId: String)
+data class CredFieldRef(val fieldName: String, val schemaId: String, val credDefId: String)
 
 @CordaSerializable
-class CredPredicate(val fieldRef: CredFieldRef, val value: Int, val type: String = ">=")
+data class CredPredicate(val fieldRef: CredFieldRef, val value: Int, val type: String = ">=")
 
 @CordaSerializable
 data class SchemaDetails(val name: String, val version: String, val owner: String) {
