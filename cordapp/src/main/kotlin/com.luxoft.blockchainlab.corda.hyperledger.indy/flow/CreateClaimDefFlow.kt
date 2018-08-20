@@ -11,10 +11,17 @@ import net.corda.core.identity.CordaX500Name
 
 
 /**
- * A flow to create a credential definition for schema [schemaDetails] and register it with an artifact registry [artifactoryName]
+ * Flows to create a credential definition for a schema
  * */
 object CreateClaimDefFlow {
 
+
+    /**
+     * A flow to create a credential definition for schema [schemaDetails]
+     * and register it with an artifact registry [artifactoryName]
+     *
+     * @returns credential definition ID
+     * */
     @InitiatingFlow
     @StartableByRPC
     class Authority(private val schemaDetails: IndyUser.SchemaDetails,

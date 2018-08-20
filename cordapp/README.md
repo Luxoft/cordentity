@@ -80,8 +80,6 @@ Example `indy.properties` file:
 
 - [CreatePairwiseFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreatePairwiseFlow.kt) - initiates a bi-directional connection
 
-- [VerifyClaimInContractFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyClaimInContractFlow.kt) - deprecated
-
 ### Services
 
 - [IndyService](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/service/IndyService.kt) - 
@@ -98,3 +96,9 @@ See the official documentation on [LIST_SCHEMA](https://github.com/hyperledger/i
 Before every run it is recommended to clean the default pool with 
 
     gradle cleanDefaultPool
+    
+## Net Topology
+
+The system assumes that the Corda network contains one [IndyArtifactsRegistry](#services) that keeps track of public artifacts and several [IndyService](#services) nodes that correspond to business entities. 
+
+At least one node must be a Trustee to be able to grant permissions to other nodes. In the curent realisation a Trustee must have `indyuser.seed=000000000000000000000000Trustee1` in its configuration file. 
