@@ -17,10 +17,20 @@ import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
 
 /**
- * A flow to issue an Indy credential based on proposal [credProposal]
+ * Flows to issue Indy credentials
  * */
 object IssueClaimFlow {
 
+    /**
+     * A flow to issue an Indy credential based on proposal [credProposal]
+     *
+     * @param identifier        ID of the new credential
+     * @param schemaDetails     schema details to identify the credential definition
+     * @param credProposal      credential JSON containing attribute values for each of requested attribute names.
+     *                          See `credValuesJson` in [org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredential]
+     * @param proverName        the node that can prove this credential
+     * @param artifactoryName   the Artifactory service that has credential definition
+     * */
     @InitiatingFlow
     @StartableByRPC
     open class Issuer(private val identifier: String,
