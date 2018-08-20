@@ -17,7 +17,7 @@ import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
 
 /**
- * A flow to verify a set of predicates [predicates] on a set of attributes [attributes]
+ * Flows to verify predicates on attributes
  * */
 object VerifyClaimFlow {
 
@@ -45,6 +45,17 @@ object VerifyClaimFlow {
     @CordaSerializable
     data class ProofPredicate(val schemaDetails: IndyUser.SchemaDetails, val credDefOwner: String, val field: String, val value: Int)
 
+    /**
+     * A flow to verify a set of predicates [predicates] on a set of attributes [attributes]
+     *
+     * @param identifier        unique ID for the new proof
+     * @param attributes        unordered list of attributes that are needed for verification
+     * @param predicates        unordered list of predicates that will be checked
+     * @param proverName        node that will prove the credentials
+     * @param artifactoryName   the Artifactory service that has schemas and credential definitions for all [attributes]
+     *
+     * @returns TRUE if verification succeeds
+     * */
     @InitiatingFlow
     @StartableByRPC
     open class Verifier (
