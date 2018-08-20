@@ -26,12 +26,28 @@ object IndyArtifactsRegistry {
     @CordaSerializable
     enum class ARTIFACT_TYPE { Schema, Definition }
 
+    /**
+     * A request to get Id of an artifact of type [type], matching filter [filter],
+     * from the Artifactory Service
+     * */
     @CordaSerializable
     data class QueryRequest(val type: ARTIFACT_TYPE, val filter: String)
 
+    /**
+     * A request to create a new artifact of type [type]
+     * and register it in the Artifactory Service
+     *
+     * @param payloadJson JSON to create the needed artifact
+     *  - for [ARTIFACT_TYPE.Schema] see [Schema]
+     *  - for [ARTIFACT_TYPE.Definition] see [CredentialDefinition]
+     * */
     @CordaSerializable
     data class PutRequest(val type: ARTIFACT_TYPE, val payloadJson: JSONObject)
 
+    /**
+     * A request to check if there is an artifact of type [type], matching filter [filter],
+     * registered in the Artifactory Service
+     * */
     @CordaSerializable
     data class CheckRequest(val type: ARTIFACT_TYPE, val filter: String)
 
@@ -118,6 +134,7 @@ object IndyArtifactsRegistry {
     }
 
     @CordaService
+    // todo: make private
     class ArtifactsRegistry(services: AppServiceHub): SingletonSerializeAsToken() {
 
         val schemaRegistry = ConcurrentHashMap<String, String>()
