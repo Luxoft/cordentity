@@ -1,8 +1,8 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.data.state
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.ClaimSchemaV1
-import com.luxoft.blockchainlab.hyperledger.indy.model.Claim
-import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
+import com.luxoft.blockchainlab.hyperledger.indy.ClaimInfo
+import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.AbstractParty
@@ -14,8 +14,8 @@ import net.corda.core.schemas.QueryableState
  * A Corda record of an Indy Credential [claim] issued on request [claimReq]
  * */
 open class IndyClaim(val id: String,
-                     val claimReq: ClaimReq,
-                     val claim: Claim,
+                     val claimRequestInfo: ClaimRequestInfo,
+                     val claimInfo: ClaimInfo,
                      val issuerDid: String,
                      override val participants: List<AbstractParty>): LinearState, QueryableState {
 

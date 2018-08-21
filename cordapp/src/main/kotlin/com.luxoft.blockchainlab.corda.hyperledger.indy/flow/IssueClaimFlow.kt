@@ -3,10 +3,9 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
-import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyArtifactsRegistry
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
-import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimOffer
-import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
+import com.luxoft.blockchainlab.hyperledger.indy.ClaimOffer
+import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
+import com.luxoft.blockchainlab.hyperledger.indy.SchemaDetails
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -39,7 +38,7 @@ object IssueClaimFlow {
     @InitiatingFlow
     @StartableByRPC
     open class Issuer(private val identifier: String,
-                      private val schemaDetails: IndyUser.SchemaDetails,
+                      private val schemaDetails: SchemaDetails,
                       private val credProposal: String,
                       private val proverName: CordaX500Name,
                       private val artifactoryName: CordaX500Name) : FlowLogic<Unit>() {
@@ -55,7 +54,7 @@ object IssueClaimFlow {
                     indyUser().createClaimOffer(credDefId)
                 }
 
-                val newClaimOut = flowSession.sendAndReceive<ClaimReq>(offer).unwrap { claimReq ->
+                val newClaimOut = flowSession.sendAndReceive<ClaimRequestInfo>(offer).unwrap { claimReq ->
                     verifyClaimAttributeValues(claimReq)
                     val claim = indyUser().issueClaim(claimReq, credProposal, offer)
                     val claimOut = IndyClaim(identifier, claimReq, claim, indyUser().did, listOf(ourIdentity, prover))
@@ -99,10 +98,8 @@ object IssueClaimFlow {
 
                 val offer = flowSession.sendAndReceive<ClaimOffer>(sessionDid).unwrap { offer -> offer }
 
-                val issuerDid = subFlow(GetDidFlow.Initiator(issuer))
-
-                val claimReq = indyUser().createClaimReq(issuerDid, sessionDid, offer)
-                flowSession.send(claimReq)
+                val claimRequestInfo = indyUser().createClaimReq(sessionDid, offer)
+                flowSession.send(claimRequestInfo)
 
                 val flow = object : SignTransactionFlow(flowSession) {
                     override fun checkTransaction(stx: SignedTransaction) {
@@ -110,8 +107,8 @@ object IssueClaimFlow {
                         val state = output!!.data
                         when(state) {
                             is IndyClaim -> {
-                                require(state.claimReq == claimReq) { "Received incorrected ClaimReq"}
-                                indyUser().receiveClaim(state.claim, state.claimReq, offer)
+                                require(state.claimRequestInfo == claimRequestInfo) { "Received incorrected ClaimReq"}
+                                indyUser().receiveClaim(state.claimInfo.claim, state.claimRequestInfo, offer)
                             }
                             else -> throw FlowException("invalid output state. IndyClaim is expected")
                         }
