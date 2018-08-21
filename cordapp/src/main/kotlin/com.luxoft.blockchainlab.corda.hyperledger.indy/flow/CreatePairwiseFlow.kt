@@ -7,8 +7,17 @@ import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
 import net.corda.core.utilities.unwrap
 
+/**
+ * Utility flows to initiate a bi-directional connection with a Corda node
+ * */
 object CreatePairwiseFlow {
 
+    /**
+     * An utility flow to initiate a bi-directional connection with a Corda node
+     *
+     * @param authority Corda node to connect to
+     * @returns         session DID
+     * */
     @InitiatingFlow
     open class Prover(private val authority: CordaX500Name) : FlowLogic<String>() {
 
