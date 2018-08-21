@@ -4,24 +4,23 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.module.kotlin.KotlinModule
 
+
 /**
- * Static class that makes serialization easier
+ * Object that makes serialization simplier
  */
-class SerializationUtils {
-    companion object {
-        val mapper: ObjectMapper = ObjectMapper().registerModule(KotlinModule())
+object SerializationUtils {
+    val mapper: ObjectMapper = ObjectMapper().registerModule(KotlinModule())
 
-        init {
-            mapper.propertyNamingStrategy = PropertyNamingStrategy.SNAKE_CASE
-        }
-
-        fun anyToJSON(obj: Any?): String = mapper.writeValueAsString(obj)
-        fun anyToBytes(obj: Any?): ByteArray = mapper.writeValueAsBytes(obj)
-
-        inline fun <reified T> jSONToAny(json: String): T? = mapper.readValue(json, T::class.java)
-        inline fun <reified T> bytesToAny(bytes: ByteArray): T? = mapper.readValue(bytes, T::class.java)
-
-        fun <T> jSONToAny(json: String, clazz: Class<T>): T? = mapper.readValue(json, clazz)
-        fun <T> bytesToAny(bytes: ByteArray, clazz: Class<T>): T? = mapper.readValue(bytes, clazz)
+    init {
+        mapper.propertyNamingStrategy = PropertyNamingStrategy.SNAKE_CASE
     }
+
+    fun anyToJSON(obj: Any?): String = mapper.writeValueAsString(obj)
+    fun anyToBytes(obj: Any?): ByteArray = mapper.writeValueAsBytes(obj)
+
+    inline fun <reified T> jSONToAny(json: String): T? = mapper.readValue(json, T::class.java)
+    inline fun <reified T> bytesToAny(bytes: ByteArray): T? = mapper.readValue(bytes, T::class.java)
+
+    fun <T> jSONToAny(json: String, clazz: Class<T>): T? = mapper.readValue(json, clazz)
+    fun <T> bytesToAny(bytes: ByteArray, clazz: Class<T>): T? = mapper.readValue(bytes, clazz)
 }

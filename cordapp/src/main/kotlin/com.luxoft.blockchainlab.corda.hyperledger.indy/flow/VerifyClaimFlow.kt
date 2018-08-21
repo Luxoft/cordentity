@@ -98,7 +98,7 @@ object VerifyClaimFlow {
                 return true
 
             } catch (e: Exception) {
-                e.printStackTrace()
+                logger.error("", e)
                 return false
             }
         }

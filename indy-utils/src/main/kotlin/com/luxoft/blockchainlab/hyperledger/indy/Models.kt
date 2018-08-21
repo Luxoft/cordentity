@@ -52,15 +52,15 @@ data class CredentialDefDetails(val schemaSeqNo: String, val owner: String) {
  * }
  **/
 @CordaSerializable
-data class KeyCorrectnessProof(val c: String, val xzCap: String, val xrCap: List<List<String>>)
-
-@CordaSerializable
 data class ClaimOffer(
         val schemaId: String,
         val credDefId: String,
         val keyCorrectnessProof: KeyCorrectnessProof,
         val nonce: String
 )
+
+@CordaSerializable
+data class KeyCorrectnessProof(val c: String, val xzCap: String, val xrCap: List<List<String>>)
 
 /**
  * Example of credential json
@@ -104,12 +104,6 @@ data class ClaimOffer(
  *   "witness":null
  *  }
  */
-
-typealias RawJsonMap = Map<String, String?>
-
-@CordaSerializable
-data class ClaimValue(val raw: String, val encoded: String)
-
 @CordaSerializable
 data class Claim(
         val schemaId: String,
@@ -121,6 +115,11 @@ data class Claim(
         val signature: Map<String, RawJsonMap?>,
         val signatureCorrectnessProof: RawJsonMap
 )
+
+typealias RawJsonMap = Map<String, String?>
+
+@CordaSerializable
+data class ClaimValue(val raw: String, val encoded: String)
 
 @CordaSerializable
 data class ClaimInfo(
@@ -158,6 +157,11 @@ data class ClaimInfo(
  *  "master_secret_name":"masterSecretId"
  * }
  **/
+@CordaSerializable
+data class ClaimRequestInfo(
+        val request: ClaimRequest,
+        val metadata: ClaimRequestMetadata
+)
 
 @CordaSerializable
 data class ClaimRequest(
@@ -173,12 +177,6 @@ data class ClaimRequestMetadata(
         val masterSecretBlindingData: RawJsonMap,
         val masterSecretName: String,
         val nonce: String
-)
-
-@CordaSerializable
-data class ClaimRequestInfo(
-        val request: ClaimRequest,
-        val metadata: ClaimRequestMetadata
 )
 
 /**
@@ -258,6 +256,12 @@ data class ClaimRequestInfo(
  * }
  */
 @CordaSerializable
+data class ProofRequestCredentials(
+        val attrs: Map<String, List<ClaimReferenceInfo>>,
+        val predicates: Map<String, List<ClaimReferenceInfo>>
+)
+
+@CordaSerializable
 data class ClaimReferenceInfo(val credInfo: ClaimReference, val interval: String?)
 
 @CordaSerializable
@@ -268,12 +272,6 @@ data class ClaimReference(
         val attrs: RawJsonMap,
         val credRevId: String?,
         val revRegId: String?
-)
-
-@CordaSerializable
-data class ProofRequestCredentials(
-        val attrs: Map<String, List<ClaimReferenceInfo>>,
-        val predicates: Map<String, List<ClaimReferenceInfo>>
 )
 
 @CordaSerializable
@@ -355,6 +353,15 @@ data class RequestedPredicateInfo(
  *     }
  * */
 @CordaSerializable
+data class ProofRequest(
+        val version: String,
+        val name: String,
+        val nonce: String,
+        val requestedAttributes: Map<String, ClaimFieldReference>,
+        val requestedPredicates: Map<String, ClaimPredicateReference>
+)
+
+@CordaSerializable
 data class ClaimFieldReference(
         val name: String,
         val schemaId: String,
@@ -367,14 +374,6 @@ data class ClaimPredicateReference(
         val p_value: Int,
         val schemaId: String,
         val credDefId: String
-)
-@CordaSerializable
-data class ProofRequest(
-        val version: String,
-        val name: String,
-        val nonce: String,
-        val requestedAttributes: Map<String, ClaimFieldReference>,
-        val requestedPredicates: Map<String, ClaimPredicateReference>
 )
 
 /**
@@ -535,6 +534,12 @@ data class ProofRequest(
  *  ]
  * }
  **/
+@CordaSerializable
+data class ParsedProof(
+        val proof: Proof,
+        val requestedProof: RequestedProof,
+        val identifiers: List<ProofIdentifier>
+)
 
 @CordaSerializable
 data class ProofInfo(
@@ -544,13 +549,6 @@ data class ProofInfo(
 ) {
     @JsonIgnore fun isAttributeExists(value: String) = proofData.requestedProof.revealedAttrs.values.any { it.raw == value }
 }
-
-@CordaSerializable
-data class ParsedProof(
-        val proof: Proof,
-        val requestedProof: RequestedProof,
-        val identifiers: List<ProofIdentifier>
-)
 
 @CordaSerializable
 data class ProofIdentifier(val schemaId: String, val credDefId: String, val revRegId: String?, val timestamp: Int?)
