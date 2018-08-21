@@ -3,8 +3,6 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
-import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyArtifactsRegistry
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimOffer
 import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
 import net.corda.core.contracts.Command
@@ -24,10 +22,9 @@ object IssueClaimFlow {
     @InitiatingFlow
     @StartableByRPC
     open class Issuer(private val identifier: String,
-                      private val schemaDetails: IndyUser.SchemaDetails,
+                      private val credDefId: String,
                       private val credProposal: String,
-                      private val proverName: CordaX500Name,
-                      private val artifactoryName: CordaX500Name) : FlowLogic<Unit>() {
+                      private val proverName: CordaX500Name) : FlowLogic<Unit>() {
 
         @Suspendable
         override fun call() {
@@ -35,10 +32,7 @@ object IssueClaimFlow {
             val flowSession: FlowSession = initiateFlow(prover)
 
             try {
-                val offer = flowSession.receive<String>().unwrap { sessionalDid ->
-                    val credDefId = getCredDefId(schemaDetails, indyUser().did, artifactoryName)
-                    indyUser().createClaimOffer(credDefId)
-                }
+                val offer = indyUser().createClaimOffer(credDefId)
 
                 val newClaimOut = flowSession.sendAndReceive<ClaimReq>(offer).unwrap { claimReq ->
                     verifyClaimAttributeValues(claimReq)
@@ -80,10 +74,8 @@ object IssueClaimFlow {
             try {
                 val issuer = flowSession.counterparty.name
 
+                val offer = flowSession.receive<ClaimOffer>().unwrap { offer -> offer }
                 val sessionDid = subFlow(CreatePairwiseFlow.Prover(issuer))
-
-                val offer = flowSession.sendAndReceive<ClaimOffer>(sessionDid).unwrap { offer -> offer }
-
                 val issuerDid = subFlow(GetDidFlow.Initiator(issuer))
 
                 val claimReq = indyUser().createClaimReq(issuerDid, sessionDid, offer)

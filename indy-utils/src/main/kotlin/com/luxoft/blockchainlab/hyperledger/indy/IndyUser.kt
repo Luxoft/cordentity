@@ -25,16 +25,6 @@ import java.util.concurrent.ExecutionException
  */
 open class IndyUser {
 
-    @CordaSerializable
-    data class SchemaDetails(val name: String, val version: String, val owner: String) {
-        val filter = """{name:${name},version:${version},owner:${owner}}"""
-    }
-
-    @CordaSerializable
-    data class CredentialDefDetails(val schemaSeqNo: String, val owner: String) {
-        val filter = """{schemaSeqNo:${schemaSeqNo},owner:${owner}}"""
-    }
-
     class IdentityDetails(val did: String, val verKey: String, val alias: String?, val role: String?) {
         constructor(identityRecord: String) : this(
                 JSONObject(identityRecord).get("did").toString(),
@@ -224,6 +214,7 @@ open class IndyUser {
      * Arguments: name 'Alex'
      */
     fun createProofReq(attributes: List<CredFieldRef>, predicates: List<CredPredicate>): ProofReq {
+
 
         // 1. Add attributes
         val requestedAttributes = attributes.withIndex().joinToString { (idx, data) ->
