@@ -52,3 +52,9 @@ Before every test run it is recommended to clean local pool and wallets data, wh
     gradle cleanDefaultPool
     
 Also re-creating the `indypool` docker container is needed to get a clean system.
+
+## Contributors
+
+- [Alexander Kopnin](https://github.com/alkopnin)
+- [Alexey Koren](https://github.com/alexeykoren)
+- [Daniil Vodopian](https://github.com/voddan/)
