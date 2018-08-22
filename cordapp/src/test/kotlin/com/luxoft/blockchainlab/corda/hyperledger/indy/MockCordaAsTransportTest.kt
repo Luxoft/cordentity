@@ -21,6 +21,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import java.time.Duration
 import java.util.*
+import kotlin.math.absoluteValue
 
 
 class MockCordaAsTransportTest {
@@ -33,6 +34,8 @@ class MockCordaAsTransportTest {
     private lateinit var artifactory: StartedNode<MockNode>
 
     private lateinit var parties: List<StartedNode<MockNode>>
+
+    private val RD = Random()
 
     companion object {
 
@@ -95,7 +98,7 @@ class MockCordaAsTransportTest {
                             "indyuser.seed" to "000000000000000000000000Trustee1"
                     ))
                 } else ConfigurationMap(mapOf(
-                        "indyuser.walletName" to name + System.currentTimeMillis().toString()
+                        "indyuser.walletName" to name + RD.nextLong().absoluteValue
                 ))
             }
         }
