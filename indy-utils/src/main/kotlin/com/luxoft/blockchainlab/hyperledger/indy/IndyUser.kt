@@ -3,6 +3,8 @@ package com.luxoft.blockchainlab.hyperledger.indy
 import com.luxoft.blockchainlab.hyperledger.indy.model.*
 import com.luxoft.blockchainlab.hyperledger.indy.utils.*
 import net.corda.core.serialization.CordaSerializable
+import org.hyperledger.indy.sdk.ErrorCode
+import org.hyperledger.indy.sdk.IndyException
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds
 import org.hyperledger.indy.sdk.anoncreds.CredDefAlreadyExistsException
 import org.hyperledger.indy.sdk.anoncreds.DuplicateMasterSecretNameException
@@ -15,6 +17,7 @@ import org.hyperledger.indy.sdk.wallet.Wallet
 import org.hyperledger.indy.sdk.wallet.WalletItemNotFoundException
 import org.json.JSONObject
 import org.slf4j.LoggerFactory
+import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutionException
 
 
@@ -130,47 +133,51 @@ open class IndyUser {
         return Pairwise(pairwiseJson).did
     }
 
-    fun createSchema(name: String, version: String, attributes: List<String>): Schema {
-        val attrStr = attributes.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
+    fun createSchema(name: String, version: String, attributes: List<String>): Schema =
+        try {
+            val schemaId = "$did:1:$name:$version"
+            getSchema(schemaId)
 
-        val schemaInfo = Anoncreds.issuerCreateSchema(did, name, version, attrStr).get()
-        val schemaRequest = Ledger.buildSchemaRequest(did, schemaInfo.schemaJson).get()
-        Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get()
+        } catch(e: ArtifactDoesntExist) {
+            val attrStr = attributes.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
 
-        val schema = getSchema(schemaInfo.schemaId)
-        assert(schema.id == schemaInfo.schemaId)
+            val schemaInfo = Anoncreds.issuerCreateSchema(did, name, version, attrStr).get()
+            val schemaRequest = Ledger.buildSchemaRequest(did, schemaInfo.schemaJson).get()
 
-        return schema
-    }
+            val res = ErrorHandler(Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get())
+
+            if (res.isFailed()) {
+                logger.error("New schema ${schemaInfo.schemaJson} request was failed with: ${res}")
+                throw ArtifactRequestFailed(schemaInfo.schemaId)
+            }
+
+            getSchema(schemaInfo.schemaId)
+        }
 
     fun createClaimDef(schemaId: String): CredentialDefinition {
         val schema = getSchema(schemaId)
 
-        // Let's hope this format is correct and stays unchanged
-        val supposedCredDefId = "$did:3:$SIGNATURE_TYPE:${schema.seqNo}:$TAG"
-
-        val credDefId = try {
+        val credDefId = "$did:3:$SIGNATURE_TYPE:${schema.seqNo}:$TAG"
+        try {
+            return getClaimDef(credDefId)
+        } catch (e: ArtifactDoesntExist) {
             val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schema.json.toString(), TAG, SIGNATURE_TYPE, null).get()
             val claimDefReq = Ledger.buildCredDefRequest(did, credDefInfo.credDefJson).get()
-            Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get()
+            val res = ErrorHandler(Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get())
 
-            val credDefId = credDefInfo.credDefId
-            assert(supposedCredDefId == credDefId) { "CredDefId format has been changed from $supposedCredDefId to $credDefId (not for production 0_o)" }
+            if (res.isFailed()) {
+                logger.error("New credential definition ${credDefInfo.credDefJson} request was failed with: ${res}")
+                throw ArtifactRequestFailed(credDefInfo.credDefId)
+            }
 
-            credDefId
+            return getClaimDef(credDefInfo.credDefId)
+
         } catch (e: Exception) {
             if(e.cause !is CredDefAlreadyExistsException) throw e.cause ?: e
 
-            // TODO: this have to be removed when IndyRegistry will be implemented
             logger.error("Credential Definiton for ${schemaId} already exist.")
-
-            supposedCredDefId
+            return getClaimDef(credDefId)
         }
-
-        val credDef = getClaimDef(credDefId)
-        assert(credDef.id == credDefId)
-
-        return credDef
     }
 
     fun createClaimOffer(credDefId: String): ClaimOffer {
@@ -385,23 +392,39 @@ open class IndyUser {
     }
 
     fun getSchema(schemaId: String): Schema {
-        val schemaReq = Ledger.buildGetSchemaRequest(did, schemaId).get()
-        val schemaRes = Ledger.submitRequest(pool, schemaReq).get()
-        val parsedRes = Ledger.parseGetSchemaResponse(schemaRes).get()
+        logger.info("getting schema from public ledger: $schemaId")
 
-        val schema = Schema(parsedRes.objectJson)
-        if(!schema.isValid())
-            throw ArtifactDoesntExist(schemaId)
+        val req = Ledger.buildGetSchemaRequest(did, schemaId).get()
+        val res = ErrorHandler(Ledger.submitRequest(pool, req).get(), Ledger::parseGetSchemaResponse)
 
-        return schema
+        return when(res.status) {
+            ErrorHandler.Status.EMPTY -> throw ArtifactDoesntExist(schemaId)
+            else -> {
+                if (res.isFailed()) throw ArtifactRequestFailed(schemaId)
+                else {
+                    logger.info("schema successfully found ${res.result!!.objectJson}")
+                    Schema(res.result!!.objectJson)
+                }
+            }
+        }
     }
 
     fun getClaimDef(credDefId: String): CredentialDefinition {
-        val getCredDefRequest = Ledger.buildGetCredDefRequest(did, credDefId).get()
-        val getCredDefResponse = Ledger.submitRequest(pool, getCredDefRequest).get()
-        val credDefIdInfo = Ledger.parseGetCredDefResponse(getCredDefResponse).get()
+        logger.info("getting credential definition from public ledger: $credDefId")
 
-        return CredentialDefinition(credDefIdInfo.objectJson)
+        val req = Ledger.buildGetCredDefRequest(did, credDefId).get()
+        val res = ErrorHandler(Ledger.submitRequest(pool, req).get(), Ledger::parseGetCredDefResponse)
+
+        return when(res.status) {
+            ErrorHandler.Status.EMPTY -> throw ArtifactDoesntExist(credDefId)
+            else -> {
+                if (res.isFailed()) throw ArtifactRequestFailed(credDefId)
+                else {
+                    logger.info("credential definition successfully found ${res.result!!.objectJson}")
+                    CredentialDefinition(res.result!!.objectJson)
+                }
+            }
+        }
     }
 
     companion object {
@@ -415,4 +438,5 @@ open class IndyUser {
     }
 
     class ArtifactDoesntExist(id: String) : IllegalArgumentException("Artifact with id ${id} doesnt exist on public ledger")
+    class ArtifactRequestFailed(id: String) : IllegalArgumentException("Request for artifact ${id} was failed")
 }
