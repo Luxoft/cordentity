@@ -61,9 +61,7 @@ allprojects {
 }
 
 
-def CORDA_GROUP = "corda"
-
-task deployNodes(type: net.corda.plugins.Cordform, group: CORDA_GROUP) {
+task deployNodes(type: net.corda.plugins.Cordform, group: "corda") {
     directory "./build/nodes"
 
     node {
@@ -102,7 +100,7 @@ task deployNodes(type: net.corda.plugins.Cordform, group: CORDA_GROUP) {
 
 }
 
-task runNodes(type: Exec, group: CORDA_GROUP) {
+task runNodes(type: Exec, group: "corda") {
     workingDir 'build/nodes'
     executable './runnodes'
 }
