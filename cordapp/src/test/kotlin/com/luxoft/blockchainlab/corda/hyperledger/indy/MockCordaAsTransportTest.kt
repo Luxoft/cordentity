@@ -34,6 +34,8 @@ class MockCordaAsTransportTest {
 
     private lateinit var parties: List<StartedNode<MockNode>>
 
+    private val RD = Random()
+
     companion object {
 
         @JvmStatic
@@ -95,7 +97,7 @@ class MockCordaAsTransportTest {
                             "indyuser.seed" to "000000000000000000000000Trustee1"
                     ))
                 } else ConfigurationMap(mapOf(
-                        "indyuser.walletName" to name + System.currentTimeMillis().toString()
+                        "indyuser.walletName" to name + RD.nextLong()
                 ))
             }
         }
