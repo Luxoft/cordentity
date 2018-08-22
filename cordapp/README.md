@@ -62,14 +62,9 @@ Example `indy.properties` file:
 
 ### Flows
 
-
-- [ArtifactsRegistryFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/ArtifactsRegistryFlow.kt)
-
 - [AssignPermissionsFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/AssignPermissionsFlow.kt) - changes permissions of another Corda party
 
 - [CreateClaimDefFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateClaimDefFlow.kt) - creates a credential definition for schema and registers it
-
-- [CreatePairwiseFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreatePairwiseFlow.kt)
 
 - [CreateSchemaFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateSchemaFlow.kt) - creates an Indy scheme and registers it
 
@@ -79,8 +74,11 @@ Example `indy.properties` file:
 
 - [VerifyClaimFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyClaimFlow.kt) - verifies a set of predicates
 
-- [VerifyClaimInContractFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyClaimInContractFlow.kt)
+### Utility Flows
 
+- [ArtifactsRegistryFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/ArtifactsRegistryFlow.kt) - registers a new [IndyArtifactsRegistry](#services) service
+
+- [CreatePairwiseFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreatePairwiseFlow.kt) - initiates a bi-directional connection
 
 ### Services
 
@@ -96,3 +94,9 @@ See the official documentation on [LIST_SCHEMA](https://github.com/hyperledger/i
 ## Build
 
     gradle clean build
+    
+## Net Topology
+
+The system assumes that the Corda network contains one [IndyArtifactsRegistry](#services) that keeps track of public artifacts and several [IndyService](#services) nodes that correspond to business entities. 
+
+At least one node must be a Trustee to be able to grant permissions to other nodes. In the curent realisation a Trustee must have `indyuser.seed=000000000000000000000000Trustee1` in its configuration file. 

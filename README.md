@@ -62,6 +62,6 @@ To manually start the `indy-pool` container on ports 9701-9708:
     
 ## Contributors
 
-- [Alexander Kopnin](https://github.com/akopnin)
+- [Alexander Kopnin](https://github.com/alkopnin)
 - [Alexey Koren](https://github.com/alexeykoren)
 - [Daniil Vodopian](https://github.com/voddan/)
