@@ -5,10 +5,10 @@ buildscript {
     ext.quasar_version = '0.7.9'
     ext.junit_version = '4.12'
     ext.kotlin_version = '1.2.30'
+    ext.indy_version = "1.5.0"
+    ext.jackson_version = '2.9.5'
 
     repositories {
-        mavenLocal()
-        mavenCentral()
         jcenter()
     }
 
@@ -17,7 +17,6 @@ buildscript {
         classpath "net.corda.plugins:cordapp:${corda_gradle_plugins_version}"
         classpath "net.corda.plugins:cordformation:${corda_gradle_plugins_version}"
         classpath "net.corda.plugins:quasar-utils:${corda_gradle_plugins_version}"
-//        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.2'
     }
 }
 
@@ -36,7 +35,6 @@ allprojects {
     apply plugin: 'idea'
     apply plugin: 'net.corda.plugins.cordformation'
     apply plugin: 'net.corda.plugins.quasar-utils'
-    //apply plugin: 'com.github.johnrengelman.shadow'
 
     sourceSets {
         main { resources { srcDir "config/dev"  } }
@@ -55,18 +53,15 @@ allprojects {
         testCompile "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
         testCompile "junit:junit:$junit_version"
     }
+
+    compileKotlin.kotlinOptions.jvmTarget = "1.8"
+    compileTestKotlin.kotlinOptions.jvmTarget = "1.8"
+    sourceCompatibility = 1.8
+    kotlin.experimental.coroutines = 'enable'
 }
 
-dependencies {
-    compile project(':indy-utils')
 
-    cordapp project(":cordapp")
-    cordapp project(":cordapp-contracts-states")
-}
-
-sourceCompatibility = 1.8
-
-task deployNodes(type: net.corda.plugins.Cordform) { //, dependsOn: ['shadowJar']) {
+task deployNodes(type: net.corda.plugins.Cordform, group: "corda") {
     directory "./build/nodes"
 
     node {
@@ -105,52 +100,15 @@ task deployNodes(type: net.corda.plugins.Cordform) { //, dependsOn: ['shadowJar'
 
 }
 
-task runNodes(type: Exec) {
+task runNodes(type: Exec, group: "corda") {
     workingDir 'build/nodes'
     executable './runnodes'
 }
 
-// TODO check dependencies
-//tasks {
-//    shadowJar {
-//        mergeServiceFiles()
-//
-//        // Place your shaded packages here!
-//        //relocate 'org.apache.commons.io', 'shadow.org.apache.commons.io'
-//
-//        configurations = [project.configurations.compile]
-//        baseName = jar.baseName + "-" + jar.version
-//        classifier = null
-//        version = null
-//        dependencies {
-//            include(dependency(".*:.*:.*"))
-//            exclude(dependency('org.jetbrains.kotlin:.*:.*'))
-//            exclude(dependency('net.corda:.*:.*'))
-//            exclude(dependency('org.apache.logging.*:.*:.*'))
-//            exclude(dependency('org.apache.activemq:.*:.*'))
-//            exclude(dependency('com.google.*:.*:.*'))
-//            exclude(dependency('io.reactivex:.*:.*'))
-//            exclude(dependency('org.bouncycastle.*:.*:.*'))
-//            exclude(dependency('org.glassfish.*:.*:.*'))
-//            exclude(dependency('co.paralleluniverse.*:.*:.*'))
-//            exclude(dependency('co.paralleluniverse.*:.*:.*'))
-//            exclude(dependency('com.typesafe.*:.*:.*'))
-//            exclude(dependency('com.esotericsoftware.*:.*:.*'))
-//            exclude(dependency('org.qpid.*:.*:.*'))
-//        }
-//    }
-//}
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
     kotlinOptions {
         jvmTarget = "1.8"
         javaParameters = true   // Useful for reflection.
     }
-}
-
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
 }
