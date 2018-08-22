@@ -2,7 +2,7 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
-import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
+import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
 import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
@@ -25,7 +25,7 @@ fun FlowLogic<Any>.indyUser(): IndyUser {
     return serviceHub.cordaService(IndyService::class.java).indyUser
 }
 
-fun FlowLogic<Any>.verifyClaimAttributeValues(claimRequest: ClaimReq): Boolean {
+fun FlowLogic<Any>.verifyClaimAttributeValues(claimRequest: ClaimRequestInfo): Boolean {
 
     return serviceHub.cordaService(IndyService::class.java).claimAttributeValuesChecker.verifyRequestedClaimAttributes(claimRequest)
 }

@@ -2,7 +2,10 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.contract
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
-import net.corda.core.contracts.*
+import net.corda.core.contracts.CommandData
+import net.corda.core.contracts.Contract
+import net.corda.core.contracts.requireSingleCommand
+import net.corda.core.contracts.requireThat
 import net.corda.core.serialization.CordaSerializable
 import net.corda.core.transactions.LedgerTransaction
 import java.security.PublicKey
@@ -42,7 +45,7 @@ class ClaimChecker : Contract {
         "IndyClaim should be verified." using (IndyUser.verifyProof(indyProof.proofReq, indyProof.proof))
 
         expectedAttrs.forEach {
-            "Proof provided for invalid value." using indyProof.proof.isAttributeExist(it.value)
+            "Proof provided for invalid value." using indyProof.proof.isAttributeExists(it.value)
         }
 
     }

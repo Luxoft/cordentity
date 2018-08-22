@@ -3,8 +3,8 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
-import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimOffer
-import com.luxoft.blockchainlab.hyperledger.indy.model.ClaimReq
+import com.luxoft.blockchainlab.hyperledger.indy.ClaimOffer
+import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -15,10 +15,24 @@ import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
 
 /**
- * A flow to issue an Indy credential based on proposal [credProposal]
+ * Flows to issue Indy credentials
  * */
 object IssueClaimFlow {
 
+    /**
+     * A flow to issue an Indy credential based on proposal [credProposal]
+     *
+     * [identifier] must be unique for the given Indy user to allow searching Credentials by `(identifier, issuerDID)`
+     *
+     * @param identifier        new unique ID for the new credential.
+     *                          Must be unique for the given Indy user to allow searching Credentials by `(identifier, issuerDID)`
+     *
+     * @param credDefId         TODO:
+     * @param credProposal      credential JSON containing attribute values for each of requested attribute names.
+     *                          See `credValuesJson` in [org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredential]
+     *
+     * @param proverName        the node that can prove this credential
+     * */
     @InitiatingFlow
     @StartableByRPC
     open class Issuer(private val identifier: String,
@@ -34,7 +48,7 @@ object IssueClaimFlow {
             try {
                 val offer = indyUser().createClaimOffer(credDefId)
 
-                val newClaimOut = flowSession.sendAndReceive<ClaimReq>(offer).unwrap { claimReq ->
+                val newClaimOut = flowSession.sendAndReceive<ClaimRequestInfo>(offer).unwrap { claimReq ->
                     verifyClaimAttributeValues(claimReq)
                     val claim = indyUser().issueClaim(claimReq, credProposal, offer)
                     val claimOut = IndyClaim(identifier, claimReq, claim, indyUser().did, listOf(ourIdentity, prover))
@@ -76,10 +90,9 @@ object IssueClaimFlow {
 
                 val offer = flowSession.receive<ClaimOffer>().unwrap { offer -> offer }
                 val sessionDid = subFlow(CreatePairwiseFlow.Prover(issuer))
-                val issuerDid = subFlow(GetDidFlow.Initiator(issuer))
 
-                val claimReq = indyUser().createClaimReq(issuerDid, sessionDid, offer)
-                flowSession.send(claimReq)
+                val claimRequestInfo = indyUser().createClaimReq(sessionDid, offer)
+                flowSession.send(claimRequestInfo)
 
                 val flow = object : SignTransactionFlow(flowSession) {
                     override fun checkTransaction(stx: SignedTransaction) {
@@ -87,8 +100,8 @@ object IssueClaimFlow {
                         val state = output!!.data
                         when(state) {
                             is IndyClaim -> {
-                                require(state.claimReq == claimReq) { "Received incorrected ClaimReq"}
-                                indyUser().receiveClaim(state.claim, state.claimReq, offer)
+                                require(state.claimRequestInfo == claimRequestInfo) { "Received incorrected ClaimReq"}
+                                indyUser().receiveClaim(state.claimInfo.claim, state.claimRequestInfo, offer)
                             }
                             else -> throw FlowException("invalid output state. IndyClaim is expected")
                         }

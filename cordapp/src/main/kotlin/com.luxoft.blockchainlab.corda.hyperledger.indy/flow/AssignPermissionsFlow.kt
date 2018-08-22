@@ -9,28 +9,32 @@ import net.corda.core.serialization.CordaSerializable
 import net.corda.core.utilities.unwrap
 
 /**
- * A flow to change permissions of another Corda party [authority]
- *
- * @param did          Target DID as base58-encoded string for 16 or 32 bit DID value.
- * @param verkey       Target identity verification key as base58-encoded string.
- * @param alias        NYM's alias.
- * @param role         Role of a user NYM record:
- *                     null (common USER)
- *                     TRUSTEE
- *                     STEWARD
- *                     TRUST_ANCHOR
- *                     empty string to reset role
- *
- *  TODO: investigate what does `NYM` mean in Indy
+ * Flows to change permissions of another Corda party [authority]
  * */
 object AssignPermissionsFlow {
 
+    /**
+     * @param did          Target DID as base58-encoded string for 16 or 32 bit DID value.
+     * @param verkey       Target identity verification key as base58-encoded string.
+     * @param alias        NYM's alias.
+     * @param role         Role of a user NYM record: { null (common USER), TRUSTEE, STEWARD, TRUST_ANCHOR, empty string (reset role) }
+     *
+     *  TODO: investigate what does `NYM` mean in Indy
+     * */
     @CordaSerializable
+    // TODO: make private
     data class IndyPermissionsRequest(val did: String = "",
                                       val verkey: String = "",
                                       val alias: String?,
                                       val role: String?)
 
+    /**
+     * A flow to change permissions of another Corda party [authority]
+     *
+     * @param authority    Corda party whose permissions are changing
+     * @param alias        NYM's alias.
+     * @param role         Role of a user NYM record: { null (common USER), TRUSTEE, STEWARD, TRUST_ANCHOR, empty string (reset role) }
+     * */
     @InitiatingFlow
     @StartableByRPC
     open class Issuer(

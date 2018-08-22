@@ -1,13 +1,8 @@
 group 'com.luxoft.blockchainlab.corda.hyperledger.indy'
 
-sourceCompatibility = 1.8
-
 apply plugin: 'net.corda.plugins.cordapp'
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    testCompile group: 'junit', name: 'junit', version: '4.12'
-
     cordaCompile "${corda_release_group}:corda-core:${corda_release_version}"
     cordaCompile "${corda_release_group}:corda-rpc:${corda_release_version}"
     cordaCompile "${corda_release_group}:corda-node-api:${corda_release_version}"
@@ -31,11 +26,4 @@ publishing {
             from components.java
         }
     }
-}
-
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
 }

@@ -1,6 +1,7 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
+
 import net.corda.core.flows.FlowException
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.InitiatingFlow
@@ -8,10 +9,17 @@ import net.corda.core.flows.StartableByRPC
 
 
 /**
- * A flow to create a credential definition for schema [schemaId]
+ * Flows to create a credential definition for a schema
  * */
 object CreateClaimDefFlow {
 
+
+    /**
+     * A flow to create a credential definition for schema [schemaDetails]
+     * and register it with an artifact registry [artifactoryName]
+     *
+     * @returns credential definition ID
+     * */
     @InitiatingFlow
     @StartableByRPC
     class Authority(private val schemaId: String) : FlowLogic<String>() {

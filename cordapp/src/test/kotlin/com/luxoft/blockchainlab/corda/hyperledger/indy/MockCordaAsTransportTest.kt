@@ -3,22 +3,24 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
+
 import com.natpryce.konfig.Configuration
 import com.natpryce.konfig.ConfigurationMap
 import com.natpryce.konfig.TestConfigurationsProvider
-import net.corda.node.internal.StartedNode
-import net.corda.testing.node.internal.InternalMockNetwork
-import net.corda.testing.node.internal.InternalMockNetwork.MockNode
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
+import net.corda.node.internal.StartedNode
 import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.core.singleIdentity
+import net.corda.testing.node.internal.InternalMockNetwork
+import net.corda.testing.node.internal.InternalMockNetwork.MockNode
 import net.corda.testing.node.internal.startFlow
 import org.junit.*
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import java.time.Duration
 import java.util.*
+import kotlin.math.absoluteValue
 
 
 class MockCordaAsTransportTest {
@@ -30,6 +32,8 @@ class MockCordaAsTransportTest {
     private lateinit var bob: StartedNode<MockNode>
 
     private lateinit var parties: List<StartedNode<MockNode>>
+
+    private val RD = Random()
 
     @Before
     fun setup() {
@@ -71,7 +75,7 @@ class MockCordaAsTransportTest {
                             "indyuser.seed" to "000000000000000000000000Trustee1"
                     ))
                 } else ConfigurationMap(mapOf(
-                        "indyuser.walletName" to name + System.currentTimeMillis().toString()
+                        "indyuser.walletName" to name + RD.nextLong().absoluteValue
                 ))
             }
         }

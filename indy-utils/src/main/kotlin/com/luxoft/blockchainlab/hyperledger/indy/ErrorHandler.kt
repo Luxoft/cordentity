@@ -1,17 +1,20 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
+import com.luxoft.blockchainlab.hyperledger.indy.utils.SerializationUtils
 import org.hyperledger.indy.sdk.ledger.LedgerInvalidTransactionException
 import org.hyperledger.indy.sdk.ledger.LedgerResults
-import org.json.JSONObject
 import java.util.concurrent.CompletableFuture
 
-class ErrorHandler(val execResult: String, indyParser: ((msg: String) -> CompletableFuture<LedgerResults.ParseResponseResult>)? = null) {
+class ErrorHandler(execResult: String, indyParser: ((msg: String) -> CompletableFuture<LedgerResults.ParseResponseResult>)? = null) {
+
+    data class IndyOpCode(val op: String, val result: Any?)
 
     var result: LedgerResults.ParseResponseResult? = null
 
     val status = try {
 
-        val _status = Status.valueOf(JSONObject(execResult).get("op").toString().toUpperCase())
+        val _status = Status.valueOf((SerializationUtils.jSONToAny<IndyOpCode>(execResult)
+                ?: throw IllegalArgumentException("Unable to extract op-code from response")).op)
 
         if(_status == Status.REPLY && indyParser != null) {
             try {
