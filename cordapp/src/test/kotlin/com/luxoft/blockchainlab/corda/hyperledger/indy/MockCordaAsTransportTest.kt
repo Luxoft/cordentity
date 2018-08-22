@@ -21,6 +21,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import java.time.Duration
 import java.util.*
+import kotlin.math.absoluteValue
 
 
 class MockCordaAsTransportTest {
@@ -97,7 +98,7 @@ class MockCordaAsTransportTest {
                             "indyuser.seed" to "000000000000000000000000Trustee1"
                     ))
                 } else ConfigurationMap(mapOf(
-                        "indyuser.walletName" to name + RD.nextLong()
+                        "indyuser.walletName" to name + RD.nextLong().absoluteValue
                 ))
             }
         }
