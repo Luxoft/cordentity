@@ -3,6 +3,8 @@ package com.luxoft.blockchainlab.hyperledger.indy
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import net.corda.core.serialization.CordaSerializable
+import org.hyperledger.indy.sdk.blob_storage.BlobStorageReader
+import org.hyperledger.indy.sdk.blob_storage.BlobStorageWriter
 
 data class ParsedPairwise(@JsonProperty("my_did") val myDid: String, val metadata: String)
 
@@ -258,7 +260,7 @@ data class ClaimRequestInfo(
  * }
  */
 @CordaSerializable
-data class ClaimReferenceInfo(val credInfo: ClaimReference, val interval: String?)
+data class ClaimReferenceInfo(val credInfo: ClaimReference, val interval: Interval? = null)
 
 @CordaSerializable
 data class ClaimReference(
@@ -286,12 +288,14 @@ data class RequestedCredentials(
 @CordaSerializable
 data class RequestedAttributeInfo(
         val credId: String,
-        val revealed: Boolean = true
+        val revealed: Boolean = true,
+        val timestamp: Int?
 )
 
 @CordaSerializable
 data class RequestedPredicateInfo(
-        val credId: String
+        val credId: String,
+        val timestamp: Int?
 )
 
 /**
@@ -354,28 +358,45 @@ data class RequestedPredicateInfo(
  *         "cred_def_id": string, (Optional)
  *     }
  * */
+abstract class AbstractClaimReference(
+        open val name: String,
+        open val schemaId: String
+)
+
 @CordaSerializable
 data class ClaimFieldReference(
-        val name: String,
-        val schemaId: String,
-        val credDefId: String
-)
+        override val name: String,
+        @JsonIgnore override val schemaId: String
+) : AbstractClaimReference(name, schemaId)
 @CordaSerializable
 data class ClaimPredicateReference(
-        val name: String,
+        override val name: String,
         val p_type: String,
         val p_value: Int,
-        val schemaId: String,
-        val credDefId: String
-)
+        @JsonIgnore override val schemaId: String
+) : AbstractClaimReference(name, schemaId)
 @CordaSerializable
 data class ProofRequest(
         val version: String,
         val name: String,
         val nonce: String,
         val requestedAttributes: Map<String, ClaimFieldReference>,
-        val requestedPredicates: Map<String, ClaimPredicateReference>
+        val requestedPredicates: Map<String, ClaimPredicateReference>,
+        val nonRevoked: Interval? // ignoring 'from' for now
 )
+
+@CordaSerializable
+data class Interval(val from: Int, val to: Int) {
+    companion object {
+        fun recent() = Interval(Timestamp.now() - 1, Timestamp.now())
+        fun allTime() = Interval(0, Timestamp.now())
+        fun now() = Interval(Timestamp.now(), Timestamp.now())
+    }
+}
+
+object Timestamp {
+    fun now() = (System.currentTimeMillis() / 1000).toInt()
+}
 
 /**
  * {
@@ -718,6 +739,11 @@ data class RevocationRegistryEntry(
 data class RevocationState(
         val witness: RawJsonMap,
         val revReg: RawJsonMap,
-        val timestamp: Int,
-        @JsonIgnore var requestedTimestamp: Int = 0
+        val timestamp: Int
 )
+
+data class BlobStorageHandler(val reader: BlobStorageReader, val writer: BlobStorageWriter)
+
+data class ReferentClaim(val key: String, val claimUuid: String)
+data class RevocationIds(val credRevId: String?, val revRegId: String?)
+data class ProofData(val claims: List<ReferentClaim>, val schemaIds: List<String>, val credDefIds: List<String>, val revIds: List<RevocationIds>)

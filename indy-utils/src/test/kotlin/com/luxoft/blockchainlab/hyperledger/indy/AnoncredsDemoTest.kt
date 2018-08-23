@@ -57,7 +57,7 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         pool.closePoolLedger().get()
     }
 
-/*    @Test
+    @Test
     @Throws(Exception::class)
     fun testAnoncredsDemo() {
         val issuer = IndyUser(pool, issuerWallet, issuerDid, TRUSTEE_IDENTITY_JSON)
@@ -65,7 +65,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         val gvtSchema = issuer.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
 
-        val credDef = issuer.createClaimDef(gvtSchema.id)
+        val credDef = issuer.createClaimDef(gvtSchema.id, true)
+
+        val from = Timestamp.now()
 
         val revRegInfo = issuer.createRevocationRegistry(credDef)
 
@@ -77,26 +79,32 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         val claimInfo = issuer.issueClaim(credReq, gvtCredentialValues, credOffer, revRegInfo.definition.id)
 
-        prover.receiveClaim(claimInfo, credReq, credOffer, revRegInfo.definition.id)
+        prover.receiveClaim(claimInfo, credReq, credOffer)
 
         val field_name = CredFieldRef("name", gvtSchema.id, credDef.id)
         val field_sex = CredFieldRef("sex", gvtSchema.id, credDef.id)
 //        val field_phone = IndyUser.CredFieldRef("phone", gvtSchema.id, credDef.id)
         val field_age = CredFieldRef("age", gvtSchema.id, credDef.id)
 
-        val proofReq = prover.createProofReq(listOf(field_name, field_sex), listOf(CredPredicate(field_age, 18)))
+        val to = Timestamp.now()
+
+        val proofReq = prover.createProofRequest(
+                attributes = listOf(field_name, field_sex),
+                predicates = listOf(CredPredicate(field_age, 18)),
+                nonRevoked = Interval(from, to)
+        )
         val proof = prover.createProof(proofReq, masterSecretId)
 
-        assertEquals("Alex", proof.proofData.requestedProof.revealedAttrs["attr0_referent"]!!.raw)
+        assertEquals("Alex", proof.proofData.requestedProof.revealedAttrs["name"]!!.raw)
 
 //        assertNotNull(proof.json.getJSONObject("requested_proof").getJSONObject("unrevealed_attrs").getJSONObject("attr1_referent").getInt("sub_proof_index"))
 
 //        assertEquals("8-800-300", proof.json.getJSONObject("requested_proof").getJSONObject("self_attested_attrs").getString("attr2_referent"))
 
-        assertTrue(IndyUser.verifyProof(proofReq, proof))
-    }*/
+        assertTrue(issuer.verifyProof(proofReq, proof))
+    }
 
-    @Test
+/*    @Test
     @Throws(Exception::class)
     fun testAnoncredsWorksForMultipleIssuerSingleProver() {
         val gvtIssuer = IndyUser(pool, issuerWallet, issuerDid, TRUSTEE_IDENTITY_JSON)
@@ -137,25 +145,27 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val field_status = CredFieldRef("status", xyzSchema.id, xyzCredDef.id)
         val field_period = CredFieldRef("period", xyzSchema.id, xyzCredDef.id)
 
-        val proofReq = prover.createProofReq(listOf(field_name, field_status), listOf(CredPredicate(field_age, 18), CredPredicate(field_period, 5)))
+        val proofReq = prover.createProofReq(
+                listOf(field_name, field_status),
+                listOf(CredPredicate(field_age, 18), CredPredicate(field_period, 5)),
+                null //Interval.recent()
+        )
 
         val proof = prover.createProof(proofReq, masterSecretId)
 
-
         // Verifier verify Proof
-        val revealedAttr0 = proof.proofData.requestedProof.revealedAttrs["attr0_referent"]!!
+        val revealedAttr0 = proof.proofData.requestedProof.revealedAttrs["name"]!!
         assertEquals("Alex", revealedAttr0.raw)
 
-        val revealedAttr1 = proof.proofData.requestedProof.revealedAttrs["attr1_referent"]!!
+        val revealedAttr1 = proof.proofData.requestedProof.revealedAttrs["status"]!!
         assertEquals("partial", revealedAttr1.raw)
-
 
         assertTrue(IndyUser.verifyProof(proofReq, proof))
 
         // Close and delete Issuer2 Wallet
         issuerXyzWallet.closeWallet().get()
         Wallet.deleteWallet("issuer2Wallet", CREDENTIALS).get()
-    }
+    }*/
 
     /*@Test
     @Throws(Exception::class)

@@ -10,8 +10,6 @@ internal object EnvironmentUtils {
             return testPoolIp ?: "127.0.0.1"
         }
 
-    fun getCurrentUnixEpochTime() = (System.currentTimeMillis() / 1000).toInt()
-
     val tmpPath: String
         get() = System.getProperty("java.io.tmpdir") + "/indy/"
 

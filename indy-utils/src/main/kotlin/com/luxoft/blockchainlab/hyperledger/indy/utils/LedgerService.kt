@@ -112,7 +112,7 @@ class LedgerService(
                 ?: throw RuntimeException("Unable to parse revocation registry definition from json from ledger")
     }
 
-    fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Int = EnvironmentUtils.getCurrentUnixEpochTime()): RevocationRegistryEntry {
+    fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Int): RevocationRegistryEntry {
         val request = Ledger.buildGetRevocRegRequest(did, revRegId, timestamp).get()
         val response = Ledger.submitRequest(pool, request).get()
         val revRegJson = Ledger.parseGetRevocRegResponse(response).get().objectJson
@@ -121,16 +121,15 @@ class LedgerService(
                 ?: throw RuntimeException("Unable to parse revocation registry entry from json from ledger")
     }
 
-    // returns json for now
     fun retrieveRevocationRegistryDelta(
             revRegDefId: String,
-            from: Int = -1,
-            to: Int = EnvironmentUtils.getCurrentUnixEpochTime()
-    ): String {
-        val request = Ledger.buildGetRevocRegDeltaRequest(did, revRegDefId, from, to).get()
+            interval: Interval
+    ): RevocationRegistryEntry {
+        val request = Ledger.buildGetRevocRegDeltaRequest(did, revRegDefId, interval.from, interval.to).get()
         val response = Ledger.submitRequest(pool, request).get()
         val revRegDeltaJson = Ledger.parseGetRevocRegDeltaResponse(response).get()
 
-        return revRegDeltaJson.objectJson
+        return SerializationUtils.jSONToAny(revRegDeltaJson.objectJson)
+                ?: throw RuntimeException("Unable to parse revocation registry delta from json from ledger")
     }
 }
