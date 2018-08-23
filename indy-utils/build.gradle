@@ -1,56 +1,13 @@
-buildscript {
-    ext.indy_version = "1.5.0"
-
-    repositories {
-        mavenCentral()
-        maven { url 'https://repo.evernym.com/artifactory/libindy-maven-local' }
-    }
-}
-
-plugins {
-    id 'com.palantir.docker-run' version '0.19.2'
-}
-
-//apply plugin: 'kotlin'
-
-repositories {
-    mavenCentral()
-    mavenLocal()
-    maven {
-        url 'https://repo.evernym.com/artifactory/libindy-maven-local'
-    }
-}
-
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
-    compile "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
-
     compile group: 'org.hyperledger', name: 'indy', version: "$indy_version"
     compile "$corda_release_group:corda-core:$corda_release_version"
 
-    compile group: 'org.json', name: 'json', version: '20160212'
+    compile "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
+    compile "com.fasterxml.jackson.module:jackson-module-kotlin:$jackson_version"
+
     //compile group: 'commons-io', name: 'commons-io', version: '2.6'
 
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.21'
-
-    testCompile "junit:junit:$junit_version"
 }
 
-dockerRun {
-    name "indy-pool"
-    image "teamblockchain/indy-pool:$indy_version"
-    ports '9701:9701','9702:9702','9703:9703','9704:9704','9705:9705','9706:9706','9707:9707','9708:9708'
-    daemonize true
-}
-
-compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
-}
-
-task cleanDefaultPool(type: Delete) {
-    def home = System.getProperty("user.home")
-    delete "$home/.indy_client/"
-}
+apply from: "$rootDir/indy-run.gradle"

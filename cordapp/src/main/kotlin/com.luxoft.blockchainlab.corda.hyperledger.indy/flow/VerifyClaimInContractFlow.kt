@@ -1,11 +1,12 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
-import com.luxoft.blockchainlab.hyperledger.indy.model.Proof
-import com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
+import com.luxoft.blockchainlab.hyperledger.indy.CredFieldRef
+import com.luxoft.blockchainlab.hyperledger.indy.CredPredicate
+import com.luxoft.blockchainlab.hyperledger.indy.ProofInfo
+import com.luxoft.blockchainlab.hyperledger.indy.ProofRequest
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -36,7 +37,7 @@ object VerifyClaimInContractFlow {
 
                 val proofRequest = indyUser().createProofReq(fieldRefFromAttributes(attributes), fieldRefFromPredicates(predicates))
 
-                val verifyClaimOut = flowSession.sendAndReceive<Proof>(proofRequest).unwrap { proof ->
+                val verifyClaimOut = flowSession.sendAndReceive<ProofInfo>(proofRequest).unwrap { proof ->
                     val claimProofOut = IndyClaimProof(identifier, proofRequest, proof, listOf(ourIdentity, prover))
                     StateAndContract(claimProofOut, ClaimChecker::class.java.name)
                 }
@@ -76,16 +77,16 @@ object VerifyClaimInContractFlow {
             val schemaId = getSchemaId(it.schemaDetails, artifactoryName)
             val credDefId = getCredDefId(schemaId, it.credDefOwner, artifactoryName)
 
-            IndyUser.CredFieldRef(it.field, schemaId, credDefId)
+            CredFieldRef(it.field, schemaId, credDefId)
         }
 
         private fun fieldRefFromPredicates(predicates: List<VerifyClaimFlow.ProofPredicate>) = predicates.map {
             val schemaId = getSchemaId(it.schemaDetails, artifactoryName)
             val credDefId = getCredDefId(schemaId, it.credDefOwner, artifactoryName)
 
-            val fieldRef = IndyUser.CredFieldRef(it.field, schemaId, credDefId)
+            val fieldRef = CredFieldRef(it.field, schemaId, credDefId)
 
-            IndyUser.CredPredicate(fieldRef, it.value)
+            CredPredicate(fieldRef, it.value)
         }
     }
 
@@ -94,7 +95,7 @@ object VerifyClaimInContractFlow {
         @Suspendable
         override fun call() {
             try {
-                flowSession.receive(ProofReq::class.java).unwrap { indyProofReq ->
+                flowSession.receive(ProofRequest::class.java).unwrap { indyProofReq ->
                     // TODO: Master Secret should be received from the outside
                     val masterSecretId = indyUser().defaultMasterSecretId
                     flowSession.send(indyUser().createProof(indyProofReq, masterSecretId))
