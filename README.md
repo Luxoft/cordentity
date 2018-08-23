@@ -104,6 +104,29 @@ The connected parties in this case would usually be Insurance Providers, Patient
 The sensitive information may include patient’s age, nationality, results of medical analyses or guarantee of insurance coverage.
 
 Thanks to our Indy CorDapp solution, patient’s personal data is disclosed only to the eligible parties and only to the extent required in each particular business case.
+
+### Installation
+
+    repositories {
+        maven { url 'https://jitpack.io' }
+    }
+
+    dependencies {
+        cordapp "com.github.Luxoft:indy-cordapp:cordapp:0.4.6"
+        cordapp "com.github.Luxoft:indy-cordapp:cordapp-contracts-states:0.4.6"
+    }
+
+On all machines that are going to run [IndyService](cordapp/README.md#services) install the `libindy` package:
+
+    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 68DB5E88
+    sudo add-apt-repository "deb https://repo.sovrin.org/sdk/deb xenial stable"
+    sudo apt-get update
+    sudo apt-get install -y libindy=1.5.0
+    
+Please follow to the official [indy-sdk repo](https://github.com/hyperledger/indy-sdk#installing-the-sdk) 
+for installation instructions for Windows, iOS, Android and MacOS.
+
+# Development
  
 
 ## Subprojects
