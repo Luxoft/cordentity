@@ -1,11 +1,13 @@
-# Indy + Corda Luxoft template
+# Cordentity
+
+![logo](03_cordentity_app_LOGO_color.svg)
 
 The basis project combining [Hyperledger Indy Ledger](https://www.hyperledger.org/projects/hyperledger-indy) with [Corda Platform](https://www.corda.net/index.html).
 
 It is often required to share parts of private data and prove assertions based on such data. 
 For example, a person can prove that her age is above the legal age without disclosing how old she is.
 Indy makes it possible to prove a statement is true while preserving confidentiality.
-Indy-Cordapp project integrates Indy capabilities into a Corda-based environment.
+Cordentity project integrates Indy capabilities into a Corda-based environment.
 
 ## Usage
 
