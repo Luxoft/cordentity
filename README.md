@@ -15,7 +15,7 @@ For full information about the processes and APIs see [cordapp/README](cordapp/R
    
 In many countries a person must be above the legal age to purchase alcohol drinks.
 Using services and flows provided by Indy-Codrapp it is possible to create a system 
-that proves that the age of a customer is above the legal limit without exposing their actual age.
+that proves that the age of a customer is above the legal limit without exposing their actual age or other personal details.
    
 Lets assume that those 4 nodes are connected as a part of a Corda network:
  - ministry - the Ministry of Home Affairs service
@@ -35,7 +35,7 @@ Each Corda node has a X500 name:
     val aliceX500 = alice.info.singleIdentity().name
     val artifactoryX500 = artifactory.info.singleIdentity().name
 
-And each Indy node has a Decentralized Identity:
+And each Indy node has a DID, a.k.a Decentralized ID:
 
     val ministryDID = store.services.startFlow(
                     GetDidFlow.Initiator(ministryX500)).resultFuture.get()
@@ -94,9 +94,7 @@ If the verification succeeds, the store can be sure that Alice's age is above 18
 
 ### Business Cases "Personalized Health Care Supply Chain"
 
-//todo: Link to poc-supply -chain
-
-Another use case for Indy CorDapp is a Personalized Health Care Supply Chain.
+Another use case for Indy CorDapp is a [Personalized Health Care Supply Chain](https://luxproject.luxoft.com/stash/projects/BLCSMPL/repos/poc-supply-chain/browse) project (in early development).
 
 This system allows sharing private patients' information while providing extensive control over the usage of that information.
 
