@@ -94,7 +94,7 @@ If the verification succeeds, the store can be sure that Alice's age is above 18
 
 ### Business Cases "Personalized Health Care Supply Chain"
 
-Another use case for Indy CorDapp is a [Personalized Health Care Supply Chain](https://luxproject.luxoft.com/stash/projects/BLCSMPL/repos/poc-supply-chain/browse) project (in early development).
+Another use case for Indy CorDapp is a [Personalized Health Care Supply Chain](https://github.com/Luxoft/cordentity-poc-supply-chain) project (in early development).
 
 This system allows sharing private patients' information while providing extensive control over the usage of that information.
 
@@ -110,8 +110,8 @@ Thanks to our Indy CorDapp solution, patient’s personal data is disclosed only
     }
 
     dependencies {
-        cordapp "com.github.Luxoft:indy-cordapp:cordapp:0.4.6"
-        cordapp "com.github.Luxoft:indy-cordapp:cordapp-contracts-states:0.4.6"
+        cordapp "com.github.Luxoft:cordentity:cordapp:0.4.6"
+        cordapp "com.github.Luxoft:cordentity:cordapp-contracts-states:0.4.6"
     }
 
 On all machines that are going to run [IndyService](cordapp/README.md#services) install the `libindy` package:
