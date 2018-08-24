@@ -1,6 +1,7 @@
 package com.luxoft.blockchainlab.hyperledger.indy.utils
 
 import com.luxoft.blockchainlab.hyperledger.indy.*
+import org.hyperledger.indy.sdk.IndyException
 import org.hyperledger.indy.sdk.ledger.Ledger
 import org.hyperledger.indy.sdk.pool.Pool
 import org.hyperledger.indy.sdk.wallet.Wallet
@@ -12,10 +13,6 @@ class LedgerService(
         private val wallet: Wallet,
         private val pool: Pool
 ) {
-    companion object {
-        val logger = LoggerFactory.getLogger(IndyUser::class.java.name)!!
-    }
-
     private fun store(data: String) {
         val attemptId = Random().nextLong()
         logger.debug("Trying to store data on ledger [attempt id = $attemptId]: $data")
@@ -37,99 +34,118 @@ class LedgerService(
 
     fun storeSchema(schema: Schema) {
         val schemaJson = SerializationUtils.anyToJSON(schema)
-        storeSchema(schemaJson)
-    }
-
-    fun storeSchema(schemaJson: String) {
         val schemaRequest = Ledger.buildSchemaRequest(did, schemaJson).get()
         store(schemaRequest)
     }
 
     fun storeRevocationRegistryDefinition(revRegDef: RevocationRegistryDefinition) {
         val defJson = SerializationUtils.anyToJSON(revRegDef)
-        storeRevocationRegistryDefinition(defJson)
-    }
-
-    fun storeRevocationRegistryDefinition(revRegDefJson: String) {
-        val defRequest = Ledger.buildRevocRegDefRequest(did, revRegDefJson).get()
+        val defRequest = Ledger.buildRevocRegDefRequest(did, defJson).get()
         store(defRequest)
     }
 
     fun storeRevocationRegistryEntry(revRegEntry: RevocationRegistryEntry, revRegId: String, revRegDefType: String) {
         val entryJson = SerializationUtils.anyToJSON(revRegEntry)
-        storeRevocationRegistryEntry(entryJson, revRegId, revRegDefType)
-    }
-
-    fun storeRevocationRegistryEntry(revRegEntryJson: String, revRegId: String, revRegDefType: String) {
-        val entryRequest = Ledger.buildRevocRegEntryRequest(
-                did,
-                revRegId,
-                revRegDefType,
-                revRegEntryJson
-        ).get()
+        val entryRequest = Ledger.buildRevocRegEntryRequest(did, revRegId, revRegDefType, entryJson).get()
         store(entryRequest)
     }
 
     fun storeCredentialDefinition(credDef: CredentialDefinition) {
         val credDefJson = SerializationUtils.anyToJSON(credDef)
-        storeCredentialDefinition(credDefJson)
-    }
-
-    fun storeCredentialDefinition(credDefJson: String) {
         val request = Ledger.buildCredDefRequest(did, credDefJson).get()
         store(request)
     }
 
-    fun retrieveSchema(schemaId: String): Schema {
-        val schemaReq = Ledger.buildGetSchemaRequest(did, schemaId).get()
-        val schemaRes = Ledger.submitRequest(pool, schemaReq).get()
-        val parsedRes = Ledger.parseGetSchemaResponse(schemaRes).get()
+    fun retrieveSchema(schemaId: String) = LedgerService.retrieveSchema(did, pool, schemaId)
+    fun retrieveCredentialDefinition(credDefId: String) = LedgerService.retrieveCredentialDefinition(did, pool, credDefId)
+    fun retrieveRevocationRegistryDefinition(revRegDefId: String) = LedgerService.retrieveRevocationRegistryDefinition(did, pool, revRegDefId)
+    fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Int) = LedgerService.retrieveRevocationRegistryEntry(did, pool, revRegId, timestamp)
+    fun retrieveRevocationRegistryDelta(revRegDefId: String, interval: Interval) = LedgerService.retrieveRevocationRegistryDelta(did, pool, revRegDefId, interval)
 
-        val schema = SerializationUtils.jSONToAny<Schema>(parsedRes.objectJson)
-                ?: throw RuntimeException("Unable to parse schema from json")
+    companion object {
+        val logger = LoggerFactory.getLogger(IndyUser::class.java.name)!!
 
-        if (!schema.isValid())
-            throw IndyUser.ArtifactDoesntExist(schemaId)
+        fun retrieveSchema(did: String?, pool: Pool, schemaId: String): Schema? {
+            return try {
+                val schemaReq = Ledger.buildGetSchemaRequest(did, schemaId).get()
+                val schemaRes = Ledger.submitRequest(pool, schemaReq).get()
+                val parsedRes = Ledger.parseGetSchemaResponse(schemaRes).get()
 
-        return schema
-    }
+                SerializationUtils.jSONToAny<Schema>(parsedRes.objectJson)
+                        ?: throw RuntimeException("Unable to parse schema from json")
 
-    fun retrieveCredentialDefinition(credDefId: String): CredentialDefinition {
-        val getCredDefRequest = Ledger.buildGetCredDefRequest(did, credDefId).get()
-        val getCredDefResponse = Ledger.submitRequest(pool, getCredDefRequest).get()
-        val credDefIdInfo = Ledger.parseGetCredDefResponse(getCredDefResponse).get()
+            } catch (e: IndyException) {
+                logger.error("", e)
+                null
+            }
+        }
 
-        return SerializationUtils.jSONToAny(credDefIdInfo.objectJson)
-                ?: throw RuntimeException("Unable to parse credential definition from json")
-    }
+        fun retrieveCredentialDefinition(did: String?, pool: Pool, credDefId: String): CredentialDefinition? {
+            return try {
+                val getCredDefRequest = Ledger.buildGetCredDefRequest(did, credDefId).get()
+                val getCredDefResponse = Ledger.submitRequest(pool, getCredDefRequest).get()
+                val credDefIdInfo = Ledger.parseGetCredDefResponse(getCredDefResponse).get()
 
-    fun retrieveRevocationRegistryDefinition(revRegDefId: String): RevocationRegistryDefinition {
-        val request = Ledger.buildGetRevocRegDefRequest(did, revRegDefId).get()
-        val response = Ledger.submitRequest(pool, request).get()
-        val revRegDefJson = Ledger.parseGetRevocRegDefResponse(response).get().objectJson
+                SerializationUtils.jSONToAny(credDefIdInfo.objectJson)
+                        ?: throw RuntimeException("Unable to parse credential definition from json")
+            } catch (e: IndyException) {
+                logger.error("", e)
+                null
+            }
+        }
 
-        return SerializationUtils.jSONToAny(revRegDefJson)
-                ?: throw RuntimeException("Unable to parse revocation registry definition from json from ledger")
-    }
+        fun retrieveRevocationRegistryDefinition(did: String?, pool: Pool, revRegDefId: String): RevocationRegistryDefinition? {
+            return try {
+                val request = Ledger.buildGetRevocRegDefRequest(did, revRegDefId).get()
+                val response = Ledger.submitRequest(pool, request).get()
+                val revRegDefJson = Ledger.parseGetRevocRegDefResponse(response).get().objectJson
 
-    fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Int): RevocationRegistryEntry {
-        val request = Ledger.buildGetRevocRegRequest(did, revRegId, timestamp).get()
-        val response = Ledger.submitRequest(pool, request).get()
-        val revRegJson = Ledger.parseGetRevocRegResponse(response).get().objectJson
+                SerializationUtils.jSONToAny(revRegDefJson)
+                        ?: throw RuntimeException("Unable to parse revocation registry definition from json from ledger")
+            } catch (e: IndyException) {
+                logger.error("", e)
+                null
+            }
+        }
 
-        return SerializationUtils.jSONToAny(revRegJson)
-                ?: throw RuntimeException("Unable to parse revocation registry entry from json from ledger")
-    }
+        fun retrieveRevocationRegistryEntry(did: String?, pool: Pool, revRegId: String, timestamp: Int): Pair<Int, RevocationRegistryEntry>? {
+            return try {
+                val request = Ledger.buildGetRevocRegRequest(did, revRegId, timestamp).get()
+                val response = Ledger.submitRequest(pool, request).get()
+                val revReg = Ledger.parseGetRevocRegResponse(response).get()
 
-    fun retrieveRevocationRegistryDelta(
-            revRegDefId: String,
-            interval: Interval
-    ): RevocationRegistryEntry {
-        val request = Ledger.buildGetRevocRegDeltaRequest(did, revRegDefId, interval.from, interval.to).get()
-        val response = Ledger.submitRequest(pool, request).get()
-        val revRegDeltaJson = Ledger.parseGetRevocRegDeltaResponse(response).get()
+                val tmsp = revReg.timestamp
+                val revRegEntry = SerializationUtils.jSONToAny<RevocationRegistryEntry>(revReg.objectJson)
+                        ?: throw RuntimeException("Unable to parse revocation registry entry from json from ledger")
 
-        return SerializationUtils.jSONToAny(revRegDeltaJson.objectJson)
-                ?: throw RuntimeException("Unable to parse revocation registry delta from json from ledger")
+                Pair(tmsp, revRegEntry)
+            } catch (e: IndyException) {
+                logger.error("", e)
+                null
+            }
+        }
+
+        fun retrieveRevocationRegistryDelta(
+                did: String?, pool: Pool,
+                revRegDefId: String,
+                interval: Interval
+        ): Pair<Int, RevocationRegistryEntry>? {
+            return try {
+                val from = interval.from ?: -1
+
+                val request = Ledger.buildGetRevocRegDeltaRequest(did, revRegDefId, from, interval.to).get()
+                val response = Ledger.submitRequest(pool, request).get()
+                val revRegDeltaJson = Ledger.parseGetRevocRegDeltaResponse(response).get()
+
+                val timestamp = revRegDeltaJson.timestamp
+                val revRegDelta = SerializationUtils.jSONToAny<RevocationRegistryEntry>(revRegDeltaJson.objectJson)
+                        ?: throw RuntimeException("Unable to parse revocation registry delta from json from ledger")
+
+                Pair(timestamp, revRegDelta)
+            } catch (e: IndyException) {
+                logger.error("", e)
+                null
+            }
+        }
     }
 }

@@ -386,11 +386,10 @@ data class ProofRequest(
 )
 
 @CordaSerializable
-data class Interval(val from: Int, val to: Int) {
+data class Interval(val from: Int?, val to: Int) {
     companion object {
         fun recent() = Interval(Timestamp.now() - 1, Timestamp.now())
-        fun allTime() = Interval(0, Timestamp.now())
-        fun now() = Interval(Timestamp.now(), Timestamp.now())
+        fun allTime() = Interval(null, Timestamp.now())
     }
 }
 
@@ -559,9 +558,7 @@ object Timestamp {
 
 @CordaSerializable
 data class ProofInfo(
-        val proofData: ParsedProof,
-        val usedSchemas: Map<String, Schema>,
-        val usedClaimDefs: Map<String, CredentialDefinition>
+        val proofData: ParsedProof
 ) {
     @JsonIgnore fun isAttributeExists(value: String) = proofData.requestedProof.revealedAttrs.values.any { it.raw == value }
 }
@@ -739,7 +736,8 @@ data class RevocationRegistryEntry(
 data class RevocationState(
         val witness: RawJsonMap,
         val revReg: RawJsonMap,
-        val timestamp: Int
+        val timestamp: Int,
+        @JsonIgnore var revRegId: String? = null
 )
 
 data class BlobStorageHandler(val reader: BlobStorageReader, val writer: BlobStorageWriter)

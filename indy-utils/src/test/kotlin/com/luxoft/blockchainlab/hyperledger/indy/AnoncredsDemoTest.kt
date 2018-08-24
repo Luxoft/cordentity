@@ -1,108 +1,132 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
+import com.luxoft.blockchainlab.hyperledger.indy.utils.InitHelper
 import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolUtils
+import com.luxoft.blockchainlab.hyperledger.indy.utils.StorageUtils
+import junit.framework.Assert.assertFalse
+import org.hyperledger.indy.sdk.did.Did
 import org.hyperledger.indy.sdk.pool.Pool
-import org.hyperledger.indy.sdk.pool.PoolJSONParameters
 import org.hyperledger.indy.sdk.wallet.Wallet
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.util.*
 
 class AnoncredsDemoTest : IndyIntegrationTest() {
 
     private lateinit var pool: Pool
     private lateinit var issuerWallet: Wallet
     private lateinit var proverWallet: Wallet
+    private lateinit var issuerDid: String
+    private lateinit var proverDid: String
     private lateinit var poolName: String
     private val masterSecretId = "masterSecretId"
     private val credentialId1 = "id1"
     private val credentialId2 = "id2"
-    private val issuerDid = "NcYxiDXkpYi6ov5FcYDi1e"
-    private val proverDid = "CnEDk9HrMnmiHXEV1WFgbVCRteYnPqsJwrTdcZaNhFVW"
     private val gvtCredentialValues = GVT_CRED_VALUES
     private val xyzCredentialValues = """{"status":{"raw":"partial","encoded":"51792877103171595686471452153480627530895"},"period":{"raw":"8","encoded":"8"}}"""
 
+    private val attemptId = Random().nextInt()
+    private val proverWalletName = "prover${attemptId}Wallet"
+    private val issuerWalletName = "issuer${attemptId}Wallet"
+
     @Before
     @Throws(Exception::class)
-    fun createWallet() {
+    fun setUp() {
+        // Init libindy
+        InitHelper.init()
+
+        // Clean indy stuff
+        StorageUtils.cleanupStorage()
+
         // Set protocol version
         Pool.setProtocolVersion(PROTOCOL_VERSION).get()
 
         // Create and Open Pool
         poolName = PoolUtils.createPoolLedgerConfig()
-
-        val config = PoolJSONParameters.OpenPoolLedgerJSONParameter(null, null, null)
-        pool = Pool.openPoolLedger(poolName, config.toJson()).get()
+        pool = PoolUtils.createAndOpenPoolLedger(poolName)
 
         // Issuer Create and Open Wallet
-        Wallet.createWallet(poolName, "issuerWallet", TYPE, null, CREDENTIALS).get()
-        issuerWallet = Wallet.openWallet("issuerWallet", null, CREDENTIALS).get()
+        Wallet.createWallet(poolName, issuerWalletName, TYPE, null, CREDENTIALS).get()
+        issuerWallet = Wallet.openWallet(issuerWalletName, null, CREDENTIALS).get()
+        issuerDid = Did.createAndStoreMyDid(issuerWallet, TRUSTEE_IDENTITY_JSON).get().did
 
         // Prover Create and Open Wallet
-        Wallet.createWallet(poolName, "proverWallet", TYPE, null, CREDENTIALS).get()
-        proverWallet = Wallet.openWallet("proverWallet", null, CREDENTIALS).get()
+        Wallet.createWallet(poolName, proverWalletName, TYPE, null, CREDENTIALS).get()
+        proverWallet = Wallet.openWallet(proverWalletName, null, CREDENTIALS).get()
+        proverDid = Did.createAndStoreMyDid(proverWallet, "{}").get().did
     }
 
     @After
     @Throws(Exception::class)
-    fun deleteWallet() {
+    fun tearDown() {
+        // Issuer Remove Wallet
         issuerWallet.closeWallet().get()
-        Wallet.deleteWallet("issuerWallet", CREDENTIALS).get()
+        Wallet.deleteWallet(issuerWalletName, CREDENTIALS).get()
 
+        // Prover Remove Wallet
         proverWallet.closeWallet().get()
-        Wallet.deleteWallet("proverWallet", CREDENTIALS).get()
+        Wallet.deleteWallet(proverWalletName, CREDENTIALS).get()
 
+        // Close pool
         pool.closePoolLedger().get()
+        Pool.deletePoolLedgerConfig(poolName)
+
+        // Cleanup
+        StorageUtils.cleanupStorage()
     }
 
     @Test
     @Throws(Exception::class)
     fun testAnoncredsDemo() {
-        val issuer = IndyUser(pool, issuerWallet, issuerDid, TRUSTEE_IDENTITY_JSON)
-        val prover = IndyUser(pool, proverWallet, proverDid, TRUSTEE_IDENTITY_JSON)
+        val issuer = IndyUser(pool, issuerWallet, issuerDid)
+        val prover = IndyUser(pool, proverWallet, proverDid)
 
         val gvtSchema = issuer.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
-
         val credDef = issuer.createClaimDef(gvtSchema.id, true)
-
-        val from = Timestamp.now()
-
         val revRegInfo = issuer.createRevocationRegistry(credDef)
 
         prover.createMasterSecret(masterSecretId)
 
         val credOffer = issuer.createClaimOffer(credDef.id)
-
         val credReq = prover.createClaimReq(prover.did, credOffer, masterSecretId)
-
         val claimInfo = issuer.issueClaim(credReq, gvtCredentialValues, credOffer, revRegInfo.definition.id)
-
         prover.receiveClaim(claimInfo, credReq, credOffer)
+
+        Thread.sleep(3000)
 
         val field_name = CredFieldRef("name", gvtSchema.id, credDef.id)
         val field_sex = CredFieldRef("sex", gvtSchema.id, credDef.id)
-//        val field_phone = IndyUser.CredFieldRef("phone", gvtSchema.id, credDef.id)
         val field_age = CredFieldRef("age", gvtSchema.id, credDef.id)
-
-        val to = Timestamp.now()
-
-        val proofReq = prover.createProofRequest(
+        val proofReq = IndyUser.createProofRequest(
                 attributes = listOf(field_name, field_sex),
                 predicates = listOf(CredPredicate(field_age, 18)),
-                nonRevoked = Interval(from, to)
+                nonRevoked = Interval.allTime()
         )
+
         val proof = prover.createProof(proofReq, masterSecretId)
 
         assertEquals("Alex", proof.proofData.requestedProof.revealedAttrs["name"]!!.raw)
+        assertTrue(IndyUser.verifyProof(DID_MY1, pool, proofReq, proof))
 
-//        assertNotNull(proof.json.getJSONObject("requested_proof").getJSONObject("unrevealed_attrs").getJSONObject("attr1_referent").getInt("sub_proof_index"))
+        issuer.revokeClaim(claimInfo.claim.revRegId!!, claimInfo.credRevocId!!)
+        Thread.sleep(3000)
 
-//        assertEquals("8-800-300", proof.json.getJSONObject("requested_proof").getJSONObject("self_attested_attrs").getString("attr2_referent"))
+        val proofReqAfterRevocation = IndyUser.createProofRequest(
+                attributes = listOf(field_name, field_sex),
+                predicates = listOf(CredPredicate(field_age, 18)),
+                nonRevoked = Interval.recent()
+        )
+        val proofAfterRevocation = prover.createProof(proofReqAfterRevocation, masterSecretId)
 
-        assertTrue(issuer.verifyProof(proofReq, proof))
+        assertFalse(IndyUser.verifyProof(DID_MY1, pool, proofReqAfterRevocation, proofAfterRevocation))
     }
+
+    /**
+     * TODO: add annotation about docker reset
+     */
 
 /*    @Test
     @Throws(Exception::class)
