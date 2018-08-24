@@ -128,7 +128,6 @@ open class IndyUser {
 
         val pairwiseJson = Pairwise.getPairwise(wallet, identityRecord.did).get()
         val pairwise = SerializationUtils.jSONToAny<ParsedPairwise>(pairwiseJson)
-                ?: throw RuntimeException("Unable to parse pairwise from json")
 
         return pairwise.myDid
     }
@@ -182,7 +181,6 @@ open class IndyUser {
         val credOfferJson = Anoncreds.issuerCreateCredentialOffer(wallet, credDefId).get()
 
         return SerializationUtils.jSONToAny<ClaimOffer>(credOfferJson)
-                ?: throw RuntimeException("Unable to parse claim offer from json")
     }
 
     fun createClaimReq(sessionDid: String, offer: ClaimOffer, masterSecretId: String = defaultMasterSecretId): ClaimRequestInfo {
@@ -198,10 +196,8 @@ open class IndyUser {
         ).get()
 
         val claimRequest = SerializationUtils.jSONToAny<ClaimRequest>(credReq.credentialRequestJson)
-                ?: throw RuntimeException("Unable to parse claim request from json")
 
         val claimRequestMetadata = SerializationUtils.jSONToAny<ClaimRequestMetadata>(credReq.credentialRequestMetadataJson)
-                ?: throw RuntimeException("Unable to parse claim request metadata from json")
 
         return ClaimRequestInfo(claimRequest, claimRequestMetadata)
     }
@@ -220,8 +216,6 @@ open class IndyUser {
         ).get()
 
         val claim = SerializationUtils.jSONToAny<Claim>(createClaimResult.credentialJson)
-                ?: throw RuntimeException("Unable to parse claim from a given credential json")
-
         return ClaimInfo(claim, createClaimResult.revocId, createClaimResult.revocRegDeltaJson)
     }
 
@@ -288,7 +282,6 @@ open class IndyUser {
         val proofRequestJson = SerializationUtils.anyToJSON(proofRequest)
         val proverGetCredsForProofReq = Anoncreds.proverGetCredentialsForProofReq(wallet, proofRequestJson).get()
         val requiredClaimsForProof = SerializationUtils.jSONToAny<ProofRequestCredentials>(proverGetCredsForProofReq)
-                ?: throw RuntimeException("Unable to parse credentials for proof request from json")
 
         logger.debug("requiredClaimsForProof = $requiredClaimsForProof")
 
@@ -319,8 +312,6 @@ open class IndyUser {
         ).get()
 
         val proof = SerializationUtils.jSONToAny<ParsedProof>(proverProof)
-                ?: throw RuntimeException("Unable to parse proof from json")
-
         return ProofInfo(proof, usedSchemas, usedClaimDefs)
     }
 

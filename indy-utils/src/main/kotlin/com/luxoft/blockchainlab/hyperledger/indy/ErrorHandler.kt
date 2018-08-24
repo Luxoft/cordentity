@@ -17,7 +17,6 @@ data class IndyOpCode(val op: Status, val result: Any?)
 inline fun IndyUser.errorHandler(execResult: String) {
     val res = try {
          SerializationUtils.jSONToAny<IndyOpCode>(execResult)
-                ?: throw ArtifactRequestFailed("Unable to extract op-code from the response")
     } catch (e: IllegalArgumentException) {
         logger.info("Can not extract op-code from the response ", e)
         throw ArtifactRequestFailed("Unknown command received: " + e.message)
@@ -36,7 +35,6 @@ inline fun <reified T: Any>IndyUser.extractResult(execResult: String,
 
             val payload = indyParser(execResult).get()
             val output = SerializationUtils.jSONToAny(payload.objectJson!!, T::class.java)
-                    ?: throw RuntimeException("Unable to parse payload from json")
 
             logger.info("Payload successfully parsed ${payload.id}:${payload.objectJson}")
             return output
