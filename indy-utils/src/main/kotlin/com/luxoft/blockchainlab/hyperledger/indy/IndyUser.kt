@@ -36,7 +36,7 @@ open class IndyUser {
         @JsonIgnore fun getIdentityRecord() = "{\"did\":\"$did\", \"verkey\":\"$verkey\"}"
     }
 
-    internal val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
+    val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
 
     val defaultMasterSecretId = "master"
     val did: String
@@ -389,35 +389,14 @@ open class IndyUser {
         logger.info("getting schema from public ledger: $schemaId")
 
         val req = Ledger.buildGetSchemaRequest(did, schemaId).get()
-        try {
-
-            val res = errorHandler(Ledger.submitRequest(pool, req).get(), Ledger::parseGetSchemaResponse)
-            logger.info("schema successfully found ${res}")
-            return SerializationUtils.jSONToAny(res)
-                    ?: throw RuntimeException("Unable to parse schema from json")
-
-        } catch (e: ArtifactDoesntExist) {
-            throw ArtifactDoesntExist(schemaId)
-        } catch (e: ArtifactRequestFailed) {
-            throw ArtifactRequestFailed(schemaId)
-        }
+        return extractResult(Ledger.submitRequest(pool, req).get(), Ledger::parseGetSchemaResponse)
     }
 
     fun getClaimDef(credDefId: String): CredentialDefinition {
         logger.info("getting credential definition from public ledger: $credDefId")
 
         val req = Ledger.buildGetCredDefRequest(did, credDefId).get()
-        try {
-            val res = errorHandler(Ledger.submitRequest(pool, req).get(), Ledger::parseGetCredDefResponse)
-            logger.info("credential definition successfully found ${res}")
-            return SerializationUtils.jSONToAny(res)
-                    ?: throw RuntimeException("Unable to parse credential definition from json")
-
-        } catch (e: ArtifactDoesntExist) {
-            throw ArtifactDoesntExist(credDefId)
-        } catch (e: ArtifactRequestFailed) {
-            throw ArtifactRequestFailed(credDefId)
-        }
+        return extractResult(Ledger.submitRequest(pool, req).get(), Ledger::parseGetCredDefResponse)
     }
 
     companion object {
