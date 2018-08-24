@@ -26,7 +26,7 @@ object VerifyClaimFlow {
      * @param value             an optional value the Attribute is checked against
      * @param field             the name of the field that provides this Attribute
      * @param schemaId          id of the Schema that contains field [field]
-     * @param credDefId         TODO:
+     * @param credDefId         id of the Credential Definition that produced by issuer
      * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaDetails]
      * */
     @CordaSerializable
@@ -39,7 +39,7 @@ object VerifyClaimFlow {
      * @param value             value in the predicate to compare the Attribute against
      * @param field             the name of the field that provides the Attribute
      * @param schemaId          id of the Schema that contains field [field]
-     * @param credDefId         TODO:
+     * @param credDefId         id of the Credential Definition that produced by issuer
      * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaDetails]
      * */
     @CordaSerializable

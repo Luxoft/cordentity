@@ -27,11 +27,15 @@ object IssueClaimFlow {
      * @param identifier        new unique ID for the new credential.
      *                          Must be unique for the given Indy user to allow searching Credentials by `(identifier, issuerDID)`
      *
-     * @param credDefId         TODO:
+     * @param credDefId         id of the credential definition to create new statement (credential)
      * @param credProposal      credential JSON containing attribute values for each of requested attribute names.
      *                          See `credValuesJson` in [org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredential]
      *
      * @param proverName        the node that can prove this credential
+     *
+     * @note Flows starts by Issuer.
+     * E.g User initially comes to university where asks for new education credential.
+     * When user verification is completed the University runs IssueClaimFlow to produce required credential.
      * */
     @InitiatingFlow
     @StartableByRPC

@@ -85,18 +85,12 @@ Example `indy.properties` file:
 - [IndyService](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/service/IndyService.kt) - 
 A Corda service for dealing with Indy Ledger infrastructure such as pools, credentials, wallets.
 
-- [IndyArtifactsRegistry](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/service/IndyArtifactsRegistry.kt) - 
-A global Schema and Credential Definition discovery facility, a.k.a. an artifact registry. 
-May be removed in the future if Hyperledger provides a similar service.
-See the official documentation on [LIST_SCHEMA](https://github.com/hyperledger/indy-node/blob/c37af6befccf31afa8a31c032c88d110b819495b/design/anoncreds.md#list_schema) for details about the filters.
-
-
 ## Build
 
     gradle clean build
     
 ## Net Topology
 
-The system assumes that the Corda network contains one [IndyArtifactsRegistry](#services) that keeps track of public artifacts and several [IndyService](#services) nodes that correspond to business entities. 
+The system assumes that the Corda network contains several [IndyService](#services) nodes that correspond to business entities. 
 
-At least one node must be a Trustee to be able to grant permissions to other nodes. In the curent realisation a Trustee must have `indyuser.seed=000000000000000000000000Trustee1` in its configuration file. 
+At least one node must be a Trustee to be able to grant permissions to other nodes. In the current realisation a Trustee must have `indyuser.seed=000000000000000000000000Trustee1` in its configuration file. 

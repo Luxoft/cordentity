@@ -36,7 +36,7 @@ open class IndyUser {
         @JsonIgnore fun getIdentityRecord() = "{\"did\":\"$did\", \"verkey\":\"$verkey\"}"
     }
 
-    private val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
+    internal val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
 
     val defaultMasterSecretId = "master"
     val did: String
@@ -135,7 +135,7 @@ open class IndyUser {
 
     fun createSchema(name: String, version: String, attributes: List<String>): Schema =
         try {
-            val schemaId = "$did:1:$name:$version"
+            val schemaId = getSchemaId(did, name, version)
             getSchema(schemaId)
 
         } catch(e: ArtifactDoesntExist) {
@@ -144,10 +144,10 @@ open class IndyUser {
             val schemaInfo = Anoncreds.issuerCreateSchema(did, name, version, attrStr).get()
             val schemaRequest = Ledger.buildSchemaRequest(did, schemaInfo.schemaJson).get()
 
-            val res = ErrorHandler(Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get())
-
-            if (res.isFailed()) {
-                logger.error("New schema ${schemaInfo.schemaJson} request was failed with: ${res}")
+            try {
+                errorHandler(Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get())
+            } catch (e: IndyWrapperException) {
+                logger.error("New schema ${schemaInfo.schemaJson} request was failed with: ${e.message}")
                 throw ArtifactRequestFailed(schemaInfo.schemaId)
             }
 
@@ -158,17 +158,18 @@ open class IndyUser {
         val schema = getSchema(schemaId)
         val schemaJson = SerializationUtils.anyToJSON(schema)
 
-        val credDefId = "$did:3:$SIGNATURE_TYPE:${schema.seqNo}:$TAG"
+        val credDefId = getCredDefId(did, schema.seqNo!!)
+
         try {
             return getClaimDef(credDefId)
         } catch (e: ArtifactDoesntExist) {
             val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schemaJson, TAG, SIGNATURE_TYPE, null).get()
-
             val claimDefReq = Ledger.buildCredDefRequest(did, credDefInfo.credDefJson).get()
-            val res = ErrorHandler(Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get())
 
-            if (res.isFailed()) {
-                logger.error("New credential definition ${credDefInfo.credDefJson} request was failed with: ${res}")
+            try {
+                errorHandler(Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get())
+            } catch (e: IndyWrapperException) {
+                logger.error("New credential definition ${credDefInfo.credDefJson} request was failed with: ${e.message}")
                 throw ArtifactRequestFailed(credDefInfo.credDefId)
             }
 
@@ -388,19 +389,17 @@ open class IndyUser {
         logger.info("getting schema from public ledger: $schemaId")
 
         val req = Ledger.buildGetSchemaRequest(did, schemaId).get()
-        val res = ErrorHandler(Ledger.submitRequest(pool, req).get(), Ledger::parseGetSchemaResponse)
+        try {
 
-        return when(res.status) {
-            ErrorHandler.Status.EMPTY -> throw ArtifactDoesntExist(schemaId)
-            else -> {
-                if (res.isFailed()) throw ArtifactRequestFailed(schemaId)
-                else {
-                    logger.info("schema successfully found ${res.result!!.objectJson}")
+            val res = errorHandler(Ledger.submitRequest(pool, req).get(), Ledger::parseGetSchemaResponse)
+            logger.info("schema successfully found ${res}")
+            return SerializationUtils.jSONToAny(res)
+                    ?: throw RuntimeException("Unable to parse schema from json")
 
-                    return SerializationUtils.jSONToAny<Schema>(res.result!!.objectJson)
-                            ?: throw RuntimeException("Unable to parse schema from json")
-                }
-            }
+        } catch (e: ArtifactDoesntExist) {
+            throw ArtifactDoesntExist(schemaId)
+        } catch (e: ArtifactRequestFailed) {
+            throw ArtifactRequestFailed(schemaId)
         }
     }
 
@@ -408,19 +407,16 @@ open class IndyUser {
         logger.info("getting credential definition from public ledger: $credDefId")
 
         val req = Ledger.buildGetCredDefRequest(did, credDefId).get()
-        val res = ErrorHandler(Ledger.submitRequest(pool, req).get(), Ledger::parseGetCredDefResponse)
+        try {
+            val res = errorHandler(Ledger.submitRequest(pool, req).get(), Ledger::parseGetCredDefResponse)
+            logger.info("credential definition successfully found ${res}")
+            return SerializationUtils.jSONToAny(res)
+                    ?: throw RuntimeException("Unable to parse credential definition from json")
 
-        return when(res.status) {
-            ErrorHandler.Status.EMPTY -> throw ArtifactDoesntExist(credDefId)
-            else -> {
-                if (res.isFailed()) throw ArtifactRequestFailed(credDefId)
-                else {
-                    logger.info("credential definition successfully found ${res.result!!.objectJson}")
-
-                    return SerializationUtils.jSONToAny(res.result!!.objectJson)
-                            ?: throw RuntimeException("Unable to parse credential definition from json")
-                }
-            }
+        } catch (e: ArtifactDoesntExist) {
+            throw ArtifactDoesntExist(credDefId)
+        } catch (e: ArtifactRequestFailed) {
+            throw ArtifactRequestFailed(credDefId)
         }
     }
 
@@ -437,8 +433,8 @@ open class IndyUser {
             return Anoncreds.verifierVerifyProof(
                     proofRequestJson, proofJson, usedSchemasJson, usedClaimDefsJson, "{}", "{}").get()
         }
-    }
 
-    class ArtifactDoesntExist(id: String) : IllegalArgumentException("Artifact with id ${id} doesnt exist on public ledger")
-    class ArtifactRequestFailed(id: String) : IllegalArgumentException("Request for artifact ${id} was failed")
+        fun getSchemaId(did: String, name: String, version: String): String = "$did:1:$name:$version"
+        fun getCredDefId(did: String, schemaSeqNo: Int): String = "$did:3:$SIGNATURE_TYPE:${schemaSeqNo}:$TAG"
+    }
 }
