@@ -31,7 +31,6 @@ object GetDidFlow {
 
                 return flowSession.receive<String>().unwrap {
                     val identityDetails = SerializationUtils.jSONToAny<IndyUser.IdentityDetails>(it)
-                            ?: throw RuntimeException("Unable to parse identity details from json")
 
                     identityDetails.did
                 }

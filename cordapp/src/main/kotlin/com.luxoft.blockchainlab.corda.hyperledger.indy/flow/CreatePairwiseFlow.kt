@@ -30,7 +30,6 @@ object CreatePairwiseFlow {
 
                 val sessionDid = flowSession.receive<String>().unwrap { theirIdentityRecord ->
                     val identityDetails = SerializationUtils.jSONToAny<IndyUser.IdentityDetails>(theirIdentityRecord)
-                            ?: throw RuntimeException("Unable to parse identity details from json")
 
                     indyUser().createSessionDid(identityDetails)
                 }
@@ -57,7 +56,6 @@ object CreatePairwiseFlow {
 
                 flowSession.sendAndReceive<String>(myIdentityRecord).unwrap { theirIdentityRecord ->
                     val identityDetails = SerializationUtils.jSONToAny<IndyUser.IdentityDetails>(theirIdentityRecord)
-                            ?: throw RuntimeException("Unable to parse identity details from json")
 
                     indyUser().addKnownIdentities(identityDetails)
                 }
