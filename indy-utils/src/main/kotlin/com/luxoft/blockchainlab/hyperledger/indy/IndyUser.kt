@@ -135,7 +135,7 @@ open class IndyUser {
 
     fun createSchema(name: String, version: String, attributes: List<String>): Schema =
         try {
-            val schemaId = getSchemaId(did, name, version)
+            val schemaId = buildSchemaId(did, name, version)
             getSchema(schemaId)
 
         } catch(e: ArtifactDoesntExist) {
@@ -155,7 +155,7 @@ open class IndyUser {
         val schema = getSchema(schemaId)
         val schemaJson = SerializationUtils.anyToJSON(schema)
 
-        val credDefId = getCredDefId(did, schema.seqNo!!)
+        val credDefId = buildCredDefId(did, schema.seqNo!!)
 
         try {
             return getClaimDef(credDefId)
@@ -408,7 +408,7 @@ open class IndyUser {
                     proofRequestJson, proofJson, usedSchemasJson, usedClaimDefsJson, "{}", "{}").get()
         }
 
-        fun getSchemaId(did: String, name: String, version: String): String = "$did:1:$name:$version"
-        fun getCredDefId(did: String, schemaSeqNo: Int): String = "$did:3:$SIGNATURE_TYPE:${schemaSeqNo}:$TAG"
+        fun buildSchemaId(did: String, name: String, version: String): String = "$did:1:$name:$version"
+        fun buildCredDefId(did: String, schemaSeqNo: Int): String = "$did:3:$SIGNATURE_TYPE:${schemaSeqNo}:$TAG"
     }
 }
