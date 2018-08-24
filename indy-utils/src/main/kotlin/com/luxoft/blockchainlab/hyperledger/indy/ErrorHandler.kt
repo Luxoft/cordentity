@@ -14,14 +14,8 @@ class ArtifactRequestFailed(msg: String) : IndyWrapperException("Request to publ
 enum class Status { REJECT, REPLY }
 data class IndyOpCode(val op: Status, val result: Any?)
 
-inline fun IndyUser.errorHandler(execResult: String) {
-    val res = try {
-         SerializationUtils.jSONToAny<IndyOpCode>(execResult)
-    } catch (e: IllegalArgumentException) {
-        logger.info("Can not extract op-code from the response ", e)
-        throw ArtifactRequestFailed("Unknown command received: " + e.message)
-    }
-
+fun IndyUser.errorHandler(execResult: String) {
+    val res = SerializationUtils.jSONToAny<IndyOpCode>(execResult)
     when (res.op) {
         Status.REJECT -> throw ArtifactRequestFailed("Request has been rejected: ${res.result}")
         Status.REPLY -> logger.info("Request successfully completed: ${res.result}")
