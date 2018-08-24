@@ -144,13 +144,10 @@ open class IndyUser {
             val schemaInfo = Anoncreds.issuerCreateSchema(did, name, version, attrStr).get()
             val schemaRequest = Ledger.buildSchemaRequest(did, schemaInfo.schemaJson).get()
 
-            try {
-                errorHandler(Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get())
-            } catch (e: IndyWrapperException) {
-                logger.error("New schema ${schemaInfo.schemaJson} request was failed with: ${e.message}")
-                throw ArtifactRequestFailed(schemaInfo.schemaId)
-            }
+            logger.error("Request to create new schema " +
+                    "${schemaInfo.schemaId}:${schemaInfo.schemaJson}")
 
+            errorHandler(Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get())
             getSchema(schemaInfo.schemaId)
         }
 
@@ -162,23 +159,21 @@ open class IndyUser {
 
         try {
             return getClaimDef(credDefId)
+
         } catch (e: ArtifactDoesntExist) {
             val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schemaJson, TAG, SIGNATURE_TYPE, null).get()
             val claimDefReq = Ledger.buildCredDefRequest(did, credDefInfo.credDefJson).get()
 
-            try {
-                errorHandler(Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get())
-            } catch (e: IndyWrapperException) {
-                logger.error("New credential definition ${credDefInfo.credDefJson} request was failed with: ${e.message}")
-                throw ArtifactRequestFailed(credDefInfo.credDefId)
-            }
+            logger.info("Request to create new credential definition " +
+                    "${credDefInfo.credDefId}:${credDefInfo.credDefJson}")
 
+            errorHandler(Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get())
             return getClaimDef(credDefInfo.credDefId)
 
         } catch (e: Exception) {
             if (e.cause !is CredDefAlreadyExistsException) throw e.cause ?: e
 
-            logger.error("Credential Definiton for ${schemaId} already exist.")
+            logger.error("Credential Definiton for ${schemaId} already exist ${e.message}")
             return getClaimDef(credDefId)
         }
     }
