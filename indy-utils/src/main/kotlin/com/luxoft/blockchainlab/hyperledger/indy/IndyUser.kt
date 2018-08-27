@@ -146,7 +146,7 @@ open class IndyUser {
             logger.error("Request to create new schema " +
                     "${schemaInfo.schemaId}:${schemaInfo.schemaJson}")
 
-            errorHandler(Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get())
+            handleError(Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get())
             getSchema(schemaInfo.schemaId)
         }
 
@@ -166,7 +166,7 @@ open class IndyUser {
             logger.info("Request to create new credential definition " +
                     "${credDefInfo.credDefId}:${credDefInfo.credDefJson}")
 
-            errorHandler(Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get())
+            handleError(Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get())
             return getClaimDef(credDefInfo.credDefId)
 
         } catch (e: Exception) {
