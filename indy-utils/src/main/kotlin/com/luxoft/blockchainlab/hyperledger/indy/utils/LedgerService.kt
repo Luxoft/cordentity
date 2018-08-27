@@ -20,18 +20,6 @@ class LedgerService(
         logger.debug("Ledger responded [attempt id = $attemptId]: $response")
     }
 
-    fun nymFor(identityDetails: IndyUser.IdentityDetails) {
-        val nymRequest = Ledger.buildNymRequest(
-                did,
-                identityDetails.did,
-                identityDetails.verkey,
-                identityDetails.alias,
-                identityDetails.role
-        ).get()
-
-        Ledger.signAndSubmitRequest(pool, wallet, did, nymRequest).get()
-    }
-
     fun storeSchema(schema: Schema) {
         val schemaJson = SerializationUtils.anyToJSON(schema)
         val schemaRequest = Ledger.buildSchemaRequest(did, schemaJson).get()
@@ -62,8 +50,25 @@ class LedgerService(
     fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Int) = LedgerService.retrieveRevocationRegistryEntry(did, pool, revRegId, timestamp)
     fun retrieveRevocationRegistryDelta(revRegDefId: String, interval: Interval) = LedgerService.retrieveRevocationRegistryDelta(did, pool, revRegDefId, interval)
 
+    fun addNym(constructAbout: () -> IndyUser.IdentityDetails) = LedgerService.addNym(did, pool, wallet, constructAbout)
+    fun addNym(about: IndyUser.IdentityDetails) = LedgerService.addNym(did, pool, wallet) { about }
+
     companion object {
         val logger = LoggerFactory.getLogger(IndyUser::class.java.name)!!
+
+        fun addNym(did: String?, pool: Pool, wallet: Wallet, constructAbout: () -> IndyUser.IdentityDetails) {
+            val about = constructAbout()
+
+            val nymRequest = Ledger.buildNymRequest(
+                    did,
+                    about.did,
+                    about.verkey,
+                    about.alias,
+                    about.role
+            ).get()
+
+            Ledger.signAndSubmitRequest(pool, wallet, did, nymRequest).get()
+        }
 
         fun retrieveSchema(did: String?, pool: Pool, schemaId: String): Schema? {
             return try {

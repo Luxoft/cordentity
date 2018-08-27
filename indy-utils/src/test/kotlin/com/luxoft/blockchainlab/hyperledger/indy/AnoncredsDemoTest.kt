@@ -1,10 +1,12 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
 import com.luxoft.blockchainlab.hyperledger.indy.utils.InitHelper
+import com.luxoft.blockchainlab.hyperledger.indy.utils.LedgerService
 import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolUtils
 import com.luxoft.blockchainlab.hyperledger.indy.utils.StorageUtils
 import junit.framework.Assert.assertFalse
 import org.hyperledger.indy.sdk.did.Did
+import org.hyperledger.indy.sdk.did.DidResults
 import org.hyperledger.indy.sdk.pool.Pool
 import org.hyperledger.indy.sdk.wallet.Wallet
 import org.junit.After
@@ -12,25 +14,22 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import java.util.*
+
 
 class AnoncredsDemoTest : IndyIntegrationTest() {
 
     private lateinit var pool: Pool
     private lateinit var issuerWallet: Wallet
+    private lateinit var issuer2Wallet: Wallet
     private lateinit var proverWallet: Wallet
-    private lateinit var issuerDid: String
-    private lateinit var proverDid: String
     private lateinit var poolName: String
     private val masterSecretId = "masterSecretId"
-    private val credentialId1 = "id1"
-    private val credentialId2 = "id2"
     private val gvtCredentialValues = GVT_CRED_VALUES
     private val xyzCredentialValues = """{"status":{"raw":"partial","encoded":"51792877103171595686471452153480627530895"},"period":{"raw":"8","encoded":"8"}}"""
 
-    private val attemptId = Random().nextInt()
-    private val proverWalletName = "prover${attemptId}Wallet"
-    private val issuerWalletName = "issuer${attemptId}Wallet"
+    private val proverWalletName = "proverWallet"
+    private val issuerWalletName = "issuerWallet"
+    private val issuer2WalletName = "issuer2Wallet"
 
     @Before
     @Throws(Exception::class)
@@ -51,12 +50,13 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         // Issuer Create and Open Wallet
         Wallet.createWallet(poolName, issuerWalletName, TYPE, null, CREDENTIALS).get()
         issuerWallet = Wallet.openWallet(issuerWalletName, null, CREDENTIALS).get()
-        issuerDid = Did.createAndStoreMyDid(issuerWallet, TRUSTEE_IDENTITY_JSON).get().did
+
+        Wallet.createWallet(poolName, issuer2WalletName, TYPE, null, CREDENTIALS).get()
+        issuer2Wallet = Wallet.openWallet(issuer2WalletName, null, CREDENTIALS).get()
 
         // Prover Create and Open Wallet
         Wallet.createWallet(poolName, proverWalletName, TYPE, null, CREDENTIALS).get()
         proverWallet = Wallet.openWallet(proverWalletName, null, CREDENTIALS).get()
-        proverDid = Did.createAndStoreMyDid(proverWallet, "{}").get().did
     }
 
     @After
@@ -65,6 +65,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         // Issuer Remove Wallet
         issuerWallet.closeWallet().get()
         Wallet.deleteWallet(issuerWalletName, CREDENTIALS).get()
+
+        issuer2Wallet.closeWallet().get()
+        Wallet.deleteWallet(issuer2WalletName, CREDENTIALS).get()
 
         // Prover Remove Wallet
         proverWallet.closeWallet().get()
@@ -78,11 +81,33 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         StorageUtils.cleanupStorage()
     }
 
+    private fun createTrusteeDid(wallet: Wallet) = Did.createAndStoreMyDid(wallet, """{"seed":"$TRUSTEE_SEED"}""").get()
+    private fun createDid(wallet: Wallet) = Did.createAndStoreMyDid(wallet, "{}").get()
+
+    private fun linkIssuerToTrustee(trusteeDid: String, issuerWallet: Wallet, issuerDidInfo: DidResults.CreateAndStoreMyDidResult) {
+        LedgerService.addNym(trusteeDid, pool, issuerWallet) {
+            IndyUser.IdentityDetails(issuerDidInfo.did, issuerDidInfo.verkey, null, "TRUSTEE")
+        }
+    }
+
+    private fun linkProverToIssuer(issuerDid: String, issuerWallet: Wallet, proverDidInfo: DidResults.CreateAndStoreMyDidResult) {
+        LedgerService.addNym(issuerDid, pool, issuerWallet) {
+            IndyUser.IdentityDetails(proverDidInfo.did, proverDidInfo.verkey, null, null)
+        }
+    }
+
     @Test
     @Throws(Exception::class)
-    fun testAnoncredsDemo() {
-        val issuer = IndyUser(pool, issuerWallet, issuerDid)
-        val prover = IndyUser(pool, proverWallet, proverDid)
+    fun `revocation works fine`() {
+        val trusteeDidInfo = createTrusteeDid(issuerWallet)
+        val issuerDidInfo = createDid(issuerWallet)
+        linkIssuerToTrustee(trusteeDidInfo.did, issuerWallet, issuerDidInfo)
+
+        val proverDidInfo = createDid(proverWallet)
+        linkProverToIssuer(issuerDidInfo.did, issuerWallet, proverDidInfo)
+
+        val issuer = IndyUser(pool, issuerWallet, issuerDidInfo.did)
+        val prover = IndyUser(pool, proverWallet, proverDidInfo.did)
 
         val gvtSchema = issuer.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
         val credDef = issuer.createClaimDef(gvtSchema.id, true)
@@ -103,7 +128,7 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val proofReq = IndyUser.createProofRequest(
                 attributes = listOf(field_name, field_sex),
                 predicates = listOf(CredPredicate(field_age, 18)),
-                nonRevoked = Interval.allTime()
+                nonRevoked = Interval.recent()
         )
 
         val proof = prover.createProof(proofReq, masterSecretId)
@@ -124,55 +149,89 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         assertFalse(IndyUser.verifyProof(DID_MY1, pool, proofReqAfterRevocation, proofAfterRevocation))
     }
 
-    /**
-     * TODO: add annotation about docker reset
-     */
-
-/*    @Test
+    @Test
     @Throws(Exception::class)
-    fun testAnoncredsWorksForMultipleIssuerSingleProver() {
-        val gvtIssuer = IndyUser(pool, issuerWallet, issuerDid, TRUSTEE_IDENTITY_JSON)
+    fun `1 issuer 1 prover 1 claim setup works fine`() {
+        val trusteeDidInfo = createTrusteeDid(issuerWallet)
+        val issuerDidInfo = createDid(issuerWallet)
+        linkIssuerToTrustee(trusteeDidInfo.did, issuerWallet, issuerDidInfo)
 
-        Wallet.createWallet(poolName, "issuer2Wallet", "default", null, CREDENTIALS).get()
-        val issuerXyzWallet = Wallet.openWallet("issuer2Wallet", null, CREDENTIALS).get()
-        val xyzIssuer = IndyUser(pool, issuerXyzWallet, "VsKV7grR1BUE29mG2Fm2kX", TRUSTEE_IDENTITY_JSON)
+        val proverDidInfo = createDid(proverWallet)
+        linkProverToIssuer(issuerDidInfo.did, issuerWallet, proverDidInfo)
 
-        val prover = IndyUser(pool, proverWallet, proverDid, TRUSTEE_IDENTITY_JSON)
+        val issuer = IndyUser(pool, issuerWallet, issuerDidInfo.did)
+        val prover = IndyUser(pool, proverWallet, proverDidInfo.did)
 
-
-        val gvtSchema = gvtIssuer.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
-        val gvtCredDef = gvtIssuer.createClaimDef(gvtSchema.id)
-
-        val xyzSchema = xyzIssuer.createSchema(XYZ_SCHEMA_NAME, SCHEMA_VERSION, XYZ_SCHEMA_ATTRIBUTES)
-        val xyzCredDef = xyzIssuer.createClaimDef(xyzSchema.id)
-
-        val gvtRevRegInfo = gvtIssuer.createRevocationRegistry(gvtCredDef)
-        val xyzRevRegInfo = xyzIssuer.createRevocationRegistry(xyzCredDef)
+        val gvtSchema = issuer.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
+        val credDef = issuer.createClaimDef(gvtSchema.id, false)
 
         prover.createMasterSecret(masterSecretId)
 
-        val gvtCredOffer = gvtIssuer.createClaimOffer(gvtCredDef.id)
-        val xyzCredOffer = xyzIssuer.createClaimOffer(xyzCredDef.id)
+        val credOffer = issuer.createClaimOffer(credDef.id)
+        val credReq = prover.createClaimReq(prover.did, credOffer, masterSecretId)
+        val claimInfo = issuer.issueClaim(credReq, gvtCredentialValues, credOffer, null)
+        prover.receiveClaim(claimInfo, credReq, credOffer)
+
+        val field_name = CredFieldRef("name", gvtSchema.id, credDef.id)
+        val field_sex = CredFieldRef("sex", gvtSchema.id, credDef.id)
+        val field_age = CredFieldRef("age", gvtSchema.id, credDef.id)
+        val proofReq = IndyUser.createProofRequest(
+                attributes = listOf(field_name, field_sex),
+                predicates = listOf(CredPredicate(field_age, 18)),
+                nonRevoked = null
+        )
+
+        val proof = prover.createProof(proofReq, masterSecretId)
+
+        assertEquals("Alex", proof.proofData.requestedProof.revealedAttrs["name"]!!.raw)
+        assertTrue(IndyUser.verifyProof(DID_MY1, pool, proofReq, proof))
+    }
+
+    @Test
+    @Throws(Exception::class)
+    fun `2 issuers 1 prover 2 claims setup works fine`() {
+        val trusteeDidInfo = createTrusteeDid(issuerWallet)
+        val issuerDidInfo = createDid(issuerWallet)
+        linkIssuerToTrustee(trusteeDidInfo.did, issuerWallet, issuerDidInfo)
+
+        val issuer2DidInfo = createDid(issuer2Wallet)
+        linkIssuerToTrustee(trusteeDidInfo.did, issuerWallet, issuer2DidInfo)
+
+        val proverDidInfo = createDid(proverWallet)
+        linkProverToIssuer(issuerDidInfo.did, issuerWallet, proverDidInfo)
+
+        val issuer1 = IndyUser(pool, issuerWallet, issuerDidInfo.did)
+        val issuer2 = IndyUser(pool, issuer2Wallet, issuer2DidInfo.did)
+        val prover = IndyUser(pool, proverWallet, proverDidInfo.did)
+
+        val schema1 = issuer1.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
+        val credDef1 = issuer1.createClaimDef(schema1.id, false)
+
+        val schema2 = issuer2.createSchema(XYZ_SCHEMA_NAME, SCHEMA_VERSION, XYZ_SCHEMA_ATTRIBUTES)
+        val credDef2 = issuer2.createClaimDef(schema2.id, false)
+
+        prover.createMasterSecret(masterSecretId)
+
+        val gvtCredOffer = issuer1.createClaimOffer(credDef1.id)
+        val xyzCredOffer = issuer2.createClaimOffer(credDef2.id)
 
         val gvtCredReq = prover.createClaimReq(prover.did, gvtCredOffer, masterSecretId)
-        val gvtCredential = gvtIssuer.issueClaim(gvtCredReq, gvtCredentialValues, gvtCredOffer, gvtRevRegInfo.definition.id)
-        prover.receiveClaim(gvtCredential, gvtCredReq, gvtCredOffer, gvtRevRegInfo.definition.id)
-
+        val gvtCredential = issuer1.issueClaim(gvtCredReq, gvtCredentialValues, gvtCredOffer, null)
+        prover.receiveClaim(gvtCredential, gvtCredReq, gvtCredOffer)
 
         val xyzCredReq = prover.createClaimReq(prover.did, xyzCredOffer, masterSecretId)
-        val xyzCredential = xyzIssuer.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer, xyzRevRegInfo.definition.id)
-        prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer, xyzRevRegInfo.definition.id)
+        val xyzCredential = issuer2.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer, null)
+        prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer)
 
+        val field_name = CredFieldRef("name", schema1.id, credDef1.id)
+        val field_age = CredFieldRef("age", schema1.id, credDef1.id)
+        val field_status = CredFieldRef("status", schema2.id, credDef2.id)
+        val field_period = CredFieldRef("period", schema2.id, credDef2.id)
 
-        val field_name = CredFieldRef("name", gvtSchema.id, gvtCredDef.id)
-        val field_age = CredFieldRef("age", gvtSchema.id, gvtCredDef.id)
-        val field_status = CredFieldRef("status", xyzSchema.id, xyzCredDef.id)
-        val field_period = CredFieldRef("period", xyzSchema.id, xyzCredDef.id)
-
-        val proofReq = prover.createProofReq(
-                listOf(field_name, field_status),
-                listOf(CredPredicate(field_age, 18), CredPredicate(field_period, 5)),
-                null //Interval.recent()
+        val proofReq = IndyUser.createProofRequest(
+                attributes = listOf(field_name, field_status),
+                predicates = listOf(CredPredicate(field_age, 18), CredPredicate(field_period, 5)),
+                nonRevoked = null
         )
 
         val proof = prover.createProof(proofReq, masterSecretId)
@@ -184,24 +243,27 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val revealedAttr1 = proof.proofData.requestedProof.revealedAttrs["status"]!!
         assertEquals("partial", revealedAttr1.raw)
 
-        assertTrue(IndyUser.verifyProof(proofReq, proof))
+        assertTrue(IndyUser.verifyProof(DID_MY1, pool, proofReq, proof))
+    }
 
-        // Close and delete Issuer2 Wallet
-        issuerXyzWallet.closeWallet().get()
-        Wallet.deleteWallet("issuer2Wallet", CREDENTIALS).get()
-    }*/
-
-    /*@Test
+    @Test
     @Throws(Exception::class)
-    fun testAnoncredsWorksForSingleIssuerSingleProverMultipleCredentials() {
-        val issuer = IndyUser(pool, issuerWallet, issuerDid, TRUSTEE_IDENTITY_JSON)
-        val prover = IndyUser(pool, proverWallet, proverDid, TRUSTEE_IDENTITY_JSON)
+    fun `1 issuer 1 prover 2 claims setup works fine`() {
+        val trusteeDidInfo = createTrusteeDid(issuerWallet)
+        val issuerDidInfo = createDid(issuerWallet)
+        linkIssuerToTrustee(trusteeDidInfo.did, issuerWallet, issuerDidInfo)
+
+        val proverDidInfo = createDid(proverWallet)
+        linkProverToIssuer(issuerDidInfo.did, issuerWallet, proverDidInfo)
+
+        val issuer = IndyUser(pool, issuerWallet, issuerDidInfo.did)
+        val prover = IndyUser(pool, proverWallet, proverDidInfo.did)
 
         val gvtSchema = issuer.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
-        val gvtCredDef = issuer.createClaimDef(gvtSchema.id)
+        val gvtCredDef = issuer.createClaimDef(gvtSchema.id, false)
 
         val xyzSchema = issuer.createSchema(XYZ_SCHEMA_NAME, SCHEMA_VERSION, XYZ_SCHEMA_ATTRIBUTES)
-        val xyzCredDef = issuer.createClaimDef(xyzSchema.id)
+        val xyzCredDef = issuer.createClaimDef(xyzSchema.id, false)
 
         prover.createMasterSecret(masterSecretId)
 
@@ -210,193 +272,32 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         val gvtCredReq = prover.createClaimReq(prover.did, gvtCredOffer, masterSecretId)
         val gvtCredential = issuer.issueClaim(gvtCredReq, gvtCredentialValues, gvtCredOffer)
-        prover.receiveClaim(gvtCredential.claim, gvtCredReq, gvtCredOffer)
-
+        prover.receiveClaim(gvtCredential, gvtCredReq, gvtCredOffer)
 
         val xyzCredReq = prover.createClaimReq(prover.did, xyzCredOffer, masterSecretId)
         val xyzCredential = issuer.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer)
-        prover.receiveClaim(xyzCredential.claim, xyzCredReq, xyzCredOffer)
+        prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer)
 
         val field_name = CredFieldRef("name", gvtSchema.id, gvtCredDef.id)
         val field_age = CredFieldRef("age", gvtSchema.id, gvtCredDef.id)
         val field_status = CredFieldRef("status", xyzSchema.id, xyzCredDef.id)
         val field_period = CredFieldRef("period", xyzSchema.id, xyzCredDef.id)
 
-        val proofReq = prover.createProofReq(listOf(field_name, field_status), listOf(CredPredicate(field_age, 18), CredPredicate(field_period, 5)))
+        val proofReq = IndyUser.createProofRequest(
+                attributes = listOf(field_name, field_status),
+                predicates = listOf(CredPredicate(field_age, 18), CredPredicate(field_period, 5)),
+                nonRevoked = null
+        )
 
         val proof = prover.createProof(proofReq, masterSecretId)
 
-
         // Verifier verify Proof
-        val revealedAttr0 = proof.proofData.requestedProof.revealedAttrs["attr0_referent"]!!
+        val revealedAttr0 = proof.proofData.requestedProof.revealedAttrs["name"]!!
         assertEquals("Alex", revealedAttr0.raw)
 
-        val revealedAttr1 = proof.proofData.requestedProof.revealedAttrs["attr1_referent"]!!
+        val revealedAttr1 = proof.proofData.requestedProof.revealedAttrs["status"]!!
         assertEquals("partial", revealedAttr1.raw)
 
-
-        assertTrue(IndyUser.verifyProof(proofReq, proof))
+        assertTrue(IndyUser.verifyProof(DID_MY1, pool, proofReq, proof))
     }
-
-*//*
-    @Test
-    @Throws(Exception::class)
-    fun testAnoncredsWorksForRevocationProof() {
-
-        // Issuer create Schema
-        val createSchemaResult = Anoncreds.issuerCreateSchema(issuerDid, GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES).get()
-        val gvtSchemaId = createSchemaResult.schemaId
-        val schemaJson = createSchemaResult.schemaJson
-
-        // Issuer create credential definition
-        val revocationCredentialDefConfig = "{\"support_revocation\":true}"
-        val createCredentialDefResult = Anoncreds.issuerCreateAndStoreCredentialDef(issuerWallet!!, issuerDid, schemaJson, TAG, null, revocationCredentialDefConfig).get()
-        val credDefId = createCredentialDefResult.credDefId
-        val credDef = createCredentialDefResult.credDefJson
-
-        // Issuer create revocation registry
-        val revRegConfig = JSONObject("{\"issuance_type\":null,\"max_cred_num\":5}").toString()
-        val tailsWriterConfig = JSONObject(String.format("{\"base_dir\":\"%s\", \"uri_pattern\":\"\"}", getIndyHomePath("tails")).replace('\\', '/')).toString()
-        val tailsWriter = BlobStorageWriter.openWriter("default", tailsWriterConfig).get()
-
-        val createRevRegResult = Anoncreds.issuerCreateAndStoreRevocReg(issuerWallet!!, issuerDid, null, TAG, credDefId, revRegConfig, tailsWriter).get()
-        val revRegId = createRevRegResult.revRegId
-        val revRegDef = createRevRegResult.revRegDefJson
-
-        // Prover create Master Secret
-        Anoncreds.proverCreateMasterSecret(proverWallet!!, masterSecretId).get()
-
-        // Issuer create Credential Offer
-        val credOffer = Anoncreds.issuerCreateCredentialOffer(issuerWallet!!, credDefId).get()
-
-        // Prover create Credential Request
-        val createCredReqResult = Anoncreds.proverCreateCredentialReq(proverWallet!!, proverDid, credOffer, credDef, masterSecretId).get()
-        val credReq = createCredReqResult.credentialRequestJson
-        val credReqMetadata = createCredReqResult.credentialRequestMetadataJson
-
-        // Issuer open TailsReader
-        val blobStorageReaderCfg = BlobStorageReader.openReader("default", tailsWriterConfig).get()
-        val blobStorageReaderHandleCfg = blobStorageReaderCfg.blobStorageReaderHandle
-
-        // Issuer create Credential
-        val createCredentialResult = Anoncreds.issuerCreateCredential(issuerWallet!!, credOffer, credReq, gvtCredentialValues, revRegId, blobStorageReaderHandleCfg).get()
-        val credential = createCredentialResult.credentialJson
-        val revRegDelta = createCredentialResult.revocRegDeltaJson
-        val credRevId = createCredentialResult.revocId
-
-        // Prover store received Credential
-        Anoncreds.proverStoreCredential(proverWallet!!, credentialId1, credReqMetadata, credential, credDef, revRegDef).get()
-
-        // Prover gets Credentials for Proof Request
-        val proofRequest = JSONObject("{\n" +
-                "                   \"nonce\":\"123432421212\",\n" +
-                "                   \"name\":\"proof_req_1\",\n" +
-                "                   \"version\":\"0.1\", " +
-                "                   \"requested_attributes\":{" +
-                "                          \"attr1_referent\":{\"name\":\"name\"}" +
-                "                    },\n" +
-                "                    \"requested_predicates\":{" +
-                "                          \"predicate1_referent\":{\"name\":\"age\",\"p_type\":\">=\",\"p_value\":18}" +
-                "                    }" +
-                "               }").toString()
-
-        val credentialsJson = Anoncreds.proverGetCredentialsForProofReq(proverWallet!!, proofRequest).get()
-        val credentials = JSONObject(credentialsJson)
-        val credentialsForAttr1 = credentials.getJSONObject("attrs").getJSONArray("attr1_referent")
-
-        val credentialUuid = credentialsForAttr1.getJSONObject(0).getJSONObject("cred_info").getString("referent")
-
-        // Prover create RevocationState
-        val timestamp = 100
-        val revStateJson = Anoncreds.createRevocationState(blobStorageReaderHandleCfg, revRegDef, revRegDelta, timestamp, credRevId).get()
-
-
-        // Prover create Proof
-        val requestedCredentialsJson = JSONObject(String.format("{" +
-                "\"self_attested_attributes\":{}," +
-                "\"requested_attributes\":{\"attr1_referent\":{\"cred_id\":\"%s\", \"revealed\":true, \"timestamp\":%d }}," +
-                "\"requested_predicates\":{\"predicate1_referent\":{\"cred_id\":\"%s\", \"timestamp\":%d}}" +
-                "}", credentialUuid, timestamp, credentialUuid, timestamp)).toString()
-
-        val schemas = JSONObject(String.format("{\"%s\":%s}", gvtSchemaId, schemaJson)).toString()
-        val credentialDefs = JSONObject(String.format("{\"%s\":%s}", credDefId, credDef)).toString()
-        val revStates = JSONObject(String.format("{\"%s\": { \"%s\":%s }}", revRegId, timestamp, revStateJson)).toString()
-
-        val proofJson = Anoncreds.proverCreateProof(proverWallet!!, proofRequest, requestedCredentialsJson, masterSecretId, schemas,
-                credentialDefs, revStates).get()
-        val proof = JSONObject(proofJson)
-
-        // Verifier verify proof
-        val revealedAttr1 = proof.getJSONObject("requested_proof").getJSONObject("revealed_attrs").getJSONObject("attr1_referent")
-        assertEquals("Alex", revealedAttr1.getString("raw"))
-
-        val revRegDefs = JSONObject(String.format("{\"%s\":%s}", revRegId, revRegDef)).toString()
-        val revRegs = JSONObject(String.format("{\"%s\": { \"%s\":%s }}", revRegId, timestamp, revRegDelta)).toString()
-
-        val valid = Anoncreds.verifierVerifyProof(proofRequest, proofJson, schemas, credentialDefs, revRegDefs, revRegs).get()
-        assertTrue(valid)
-    }
-*//*
-
-    @Test
-    @Throws(Exception::class)
-    fun testVerifyProofWorksForProofDoesNotCorrespondToProofRequest() {
-
-//        thrown.expect(ExecutionException::class.java)
-//        thrown.expectCause(isA<T>(InvalidStructureException::class.java))
-
-        val issuer = IndyUser(pool, issuerWallet, issuerDid, TRUSTEE_IDENTITY_JSON)
-        val prover = IndyUser(pool, proverWallet, proverDid, TRUSTEE_IDENTITY_JSON)
-
-        val gvtSchema = issuer.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
-        val credDef = issuer.createClaimDef(gvtSchema.id)
-
-        prover.createMasterSecret(masterSecretId)
-
-        val credOffer = issuer.createClaimOffer(credDef.id)
-
-        val credReq = prover.createClaimReq(prover.did, credOffer, masterSecretId)
-
-        val credential = issuer.issueClaim(credReq, gvtCredentialValues, credOffer)
-
-        prover.receiveClaim(credential.claim, credReq, credOffer)
-
-        val field_name = CredFieldRef("name", gvtSchema.id, credDef.id)
-        val field_sex = CredFieldRef("sex", gvtSchema.id, credDef.id)
-        val field_phone = CredFieldRef("phone", gvtSchema.id, credDef.id)
-        val field_age = CredFieldRef("age", gvtSchema.id, credDef.id)
-
-        val proofReq = prover.createProofReq(listOf(field_name, field_sex), listOf())
-
-        val proof = prover.createProof(proofReq, masterSecretId)
-
-
-
-
-
-//        // Prover gets Credentials for Proof Request
-//        var proofRequestJson = JSONObject(String.format("{" +
-//                "                    \"nonce\":\"123432421212\",\n" +
-//                "                    \"name\":\"proof_req_1\",\n" +
-//                "                    \"version\":\"0.1\", " +
-//                "                    \"requested_attrs\": {" +
-//                "                          \"attr1_referent\":{ \"name\":\"name\", \"restrictions\":[{\"schema_id\":\"%s\"}]}," +
-//                "                          \"attr2_referent\":{ \"name\":\"phone\"}" +
-//                "                     }," +
-//                "                    \"requested_predicates\":{}" +
-//                "                  }", gvtSchemaId)).toString()
-
-
-        // Prover create Proof
-
-
-        // Verifier verify Proof
-        val revealedAttr0 = proof.proofData.requestedProof.revealedAttrs["attr0_referent"]!!
-        assertEquals("Alex", revealedAttr0.raw)
-
-//        assertEquals("8-800-300", proof.json.getJSONObject("requested_proof").getJSONObject("self_attested_attrs").getString("attr2_referent"))
-
-
-        IndyUser.verifyProof(proofReq, proof)
-    }*/
 }

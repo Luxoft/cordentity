@@ -201,7 +201,7 @@ open class IndyUser {
 
     fun setPermissionsFor(identityDetails: IdentityDetails) {
         addKnownIdentities(identityDetails)
-        ledgerService.nymFor(identityDetails)
+        ledgerService.addNym(identityDetails)
     }
 
     fun createMasterSecret(masterSecretId: String) {
