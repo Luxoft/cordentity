@@ -146,7 +146,7 @@ open class IndyUser {
             logger.error("Request to create new schema " +
                     "${schemaInfo.schemaId}:${schemaInfo.schemaJson}")
 
-            handleError(Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get())
+            handleIndyError(Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get())
             getSchema(schemaInfo.schemaId)
         }
 
@@ -166,7 +166,7 @@ open class IndyUser {
             logger.info("Request to create new credential definition " +
                     "${credDefInfo.credDefId}:${credDefInfo.credDefJson}")
 
-            handleError(Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get())
+            handleIndyError(Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get())
             return getClaimDef(credDefInfo.credDefId)
 
         } catch (e: Exception) {
@@ -375,19 +375,19 @@ open class IndyUser {
         logger.info("getting schema from public ledger: $schemaId")
 
         val req = Ledger.buildGetSchemaRequest(did, schemaId).get()
-        return extractResult(Ledger.submitRequest(pool, req).get(), Ledger::parseGetSchemaResponse)
+        return extractIndyResult(Ledger.submitRequest(pool, req).get(), Ledger::parseGetSchemaResponse)
     }
 
     fun getClaimDef(credDefId: String): CredentialDefinition {
         logger.info("getting credential definition from public ledger: $credDefId")
 
         val req = Ledger.buildGetCredDefRequest(did, credDefId).get()
-        return extractResult(Ledger.submitRequest(pool, req).get(), Ledger::parseGetCredDefResponse)
+        return extractIndyResult(Ledger.submitRequest(pool, req).get(), Ledger::parseGetCredDefResponse)
     }
 
     companion object {
-        private const val SIGNATURE_TYPE = "CL"
-        private const val TAG = "TAG_1"
+        const val SIGNATURE_TYPE = "CL"
+        const val TAG = "TAG_1"
 
         fun verifyProof(proofReq: ProofRequest, proof: ProofInfo): Boolean {
             val proofRequestJson = SerializationUtils.anyToJSON(proofReq)
@@ -399,7 +399,7 @@ open class IndyUser {
                     proofRequestJson, proofJson, usedSchemasJson, usedClaimDefsJson, "{}", "{}").get()
         }
 
-        fun buildSchemaId(did: String, name: String, version: String): String = "$did:1:$name:$version"
+        fun buildSchemaId(did: String, name: String, version: String): String = "$did:2:$name:$version"
         fun buildCredDefId(did: String, schemaSeqNo: Int): String = "$did:3:$SIGNATURE_TYPE:${schemaSeqNo}:$TAG"
     }
 }
