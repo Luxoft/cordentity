@@ -5,7 +5,6 @@ import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
 import com.luxoft.blockchainlab.hyperledger.indy.ClaimOffer
 import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
-import com.luxoft.blockchainlab.hyperledger.indy.SchemaDetails
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -28,20 +27,22 @@ object IssueClaimFlow {
      * @param identifier        new unique ID for the new credential.
      *                          Must be unique for the given Indy user to allow searching Credentials by `(identifier, issuerDID)`
      *
-     * @param schemaDetails     schema details to identify the credential definition
+     * @param credDefId         id of the credential definition to create new statement (credential)
      * @param credProposal      credential JSON containing attribute values for each of requested attribute names.
      *                          See `credValuesJson` in [org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredential]
      *
      * @param proverName        the node that can prove this credential
-     * @param artifactoryName   the Artifactory service that has credential definition
+     *
+     * @note Flows starts by Issuer.
+     * E.g User initially comes to university where asks for new education credential.
+     * When user verification is completed the University runs IssueClaimFlow to produce required credential.
      * */
     @InitiatingFlow
     @StartableByRPC
     open class Issuer(private val identifier: String,
-                      private val schemaDetails: SchemaDetails,
+                      private val credDefId: String,
                       private val credProposal: String,
-                      private val proverName: CordaX500Name,
-                      private val artifactoryName: CordaX500Name) : FlowLogic<Unit>() {
+                      private val proverName: CordaX500Name) : FlowLogic<Unit>() {
 
         @Suspendable
         override fun call() {
@@ -49,10 +50,7 @@ object IssueClaimFlow {
             val flowSession: FlowSession = initiateFlow(prover)
 
             try {
-                val offer = flowSession.receive<String>().unwrap { sessionalDid ->
-                    val credDefId = getCredDefId(schemaDetails, indyUser().did, artifactoryName)
-                    indyUser().createClaimOffer(credDefId)
-                }
+                val offer = indyUser().createClaimOffer(credDefId)
 
                 val newClaimOut = flowSession.sendAndReceive<ClaimRequestInfo>(offer).unwrap { claimReq ->
                     verifyClaimAttributeValues(claimReq)
@@ -94,9 +92,8 @@ object IssueClaimFlow {
             try {
                 val issuer = flowSession.counterparty.name
 
+                val offer = flowSession.receive<ClaimOffer>().unwrap { offer -> offer }
                 val sessionDid = subFlow(CreatePairwiseFlow.Prover(issuer))
-
-                val offer = flowSession.sendAndReceive<ClaimOffer>(sessionDid).unwrap { offer -> offer }
 
                 val claimRequestInfo = indyUser().createClaimReq(sessionDid, offer)
                 flowSession.send(claimRequestInfo)

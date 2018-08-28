@@ -36,7 +36,7 @@ open class IndyUser {
         @JsonIgnore fun getIdentityRecord() = "{\"did\":\"$did\", \"verkey\":\"$verkey\"}"
     }
 
-    private val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
+    val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
 
     val defaultMasterSecretId = "master"
     val did: String
@@ -128,60 +128,59 @@ open class IndyUser {
 
         val pairwiseJson = Pairwise.getPairwise(wallet, identityRecord.did).get()
         val pairwise = SerializationUtils.jSONToAny<ParsedPairwise>(pairwiseJson)
-                ?: throw RuntimeException("Unable to parse pairwise from json")
 
         return pairwise.myDid
     }
 
-    fun createSchema(name: String, version: String, attributes: List<String>): Schema {
-        val attrStr = attributes.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
+    fun createSchema(name: String, version: String, attributes: List<String>): Schema =
+        try {
+            val schemaId = buildSchemaId(did, name, version)
+            getSchema(schemaId)
 
-        val schemaInfo = Anoncreds.issuerCreateSchema(did, name, version, attrStr).get()
-        val schemaRequest = Ledger.buildSchemaRequest(did, schemaInfo.schemaJson).get()
-        Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get()
+        } catch(e: ArtifactDoesntExist) {
+            val attrStr = attributes.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
 
-        val schema = getSchema(schemaInfo.schemaId)
-        assert(schema.id == schemaInfo.schemaId) { "Got invalid schema" }
+            val schemaInfo = Anoncreds.issuerCreateSchema(did, name, version, attrStr).get()
+            val schemaRequest = Ledger.buildSchemaRequest(did, schemaInfo.schemaJson).get()
 
-        return schema
-    }
+            logger.error("Request to create new schema " +
+                    "${schemaInfo.schemaId}:${schemaInfo.schemaJson}")
+
+            handleIndyError(Ledger.signAndSubmitRequest(pool, wallet, did, schemaRequest).get())
+            getSchema(schemaInfo.schemaId)
+        }
 
     fun createClaimDef(schemaId: String): CredentialDefinition {
         val schema = getSchema(schemaId)
         val schemaJson = SerializationUtils.anyToJSON(schema)
 
-        // Let's hope this format is correct and stays unchanged
-        val supposedCredDefId = "$did:3:$SIGNATURE_TYPE:${schema.seqNo}:$TAG"
+        val credDefId = buildCredDefId(did, schema.seqNo!!)
 
-        val credDefId = try {
+        try {
+            return getClaimDef(credDefId)
+
+        } catch (e: ArtifactDoesntExist) {
             val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(wallet, did, schemaJson, TAG, SIGNATURE_TYPE, null).get()
             val claimDefReq = Ledger.buildCredDefRequest(did, credDefInfo.credDefJson).get()
-            Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get()
 
-            val credDefId = credDefInfo.credDefId
-            assert(supposedCredDefId == credDefId) { "CredDefId format has been changed from $supposedCredDefId to $credDefId (not for production 0_o)" }
+            logger.info("Request to create new credential definition " +
+                    "${credDefInfo.credDefId}:${credDefInfo.credDefJson}")
 
-            credDefId
+            handleIndyError(Ledger.signAndSubmitRequest(pool, wallet, did, claimDefReq).get())
+            return getClaimDef(credDefInfo.credDefId)
+
         } catch (e: Exception) {
             if (e.cause !is CredDefAlreadyExistsException) throw e.cause ?: e
 
-            // TODO: this have to be removed when IndyRegistry will be implemented
-            logger.error("Credential Definiton for $schemaId already exist.")
-
-            supposedCredDefId
+            logger.error("Credential Definiton for ${schemaId} already exist ${e.message}")
+            return getClaimDef(credDefId)
         }
-
-        val credDef = getClaimDef(credDefId)
-        assert(credDef.id == credDefId)
-
-        return credDef
     }
 
     fun createClaimOffer(credDefId: String): ClaimOffer {
         val credOfferJson = Anoncreds.issuerCreateCredentialOffer(wallet, credDefId).get()
 
         return SerializationUtils.jSONToAny<ClaimOffer>(credOfferJson)
-                ?: throw RuntimeException("Unable to parse claim offer from json")
     }
 
     fun createClaimReq(sessionDid: String, offer: ClaimOffer, masterSecretId: String = defaultMasterSecretId): ClaimRequestInfo {
@@ -197,10 +196,8 @@ open class IndyUser {
         ).get()
 
         val claimRequest = SerializationUtils.jSONToAny<ClaimRequest>(credReq.credentialRequestJson)
-                ?: throw RuntimeException("Unable to parse claim request from json")
 
         val claimRequestMetadata = SerializationUtils.jSONToAny<ClaimRequestMetadata>(credReq.credentialRequestMetadataJson)
-                ?: throw RuntimeException("Unable to parse claim request metadata from json")
 
         return ClaimRequestInfo(claimRequest, claimRequestMetadata)
     }
@@ -219,8 +216,6 @@ open class IndyUser {
         ).get()
 
         val claim = SerializationUtils.jSONToAny<Claim>(createClaimResult.credentialJson)
-                ?: throw RuntimeException("Unable to parse claim from a given credential json")
-
         return ClaimInfo(claim, createClaimResult.revocId, createClaimResult.revocRegDeltaJson)
     }
 
@@ -246,6 +241,7 @@ open class IndyUser {
      * Arguments: name 'Alex'
      */
     fun createProofReq(attributes: List<CredFieldRef>, predicates: List<CredPredicate>): ProofRequest {
+
 
         // 1. Add attributes
         val requestedAttributes = attributes
@@ -286,7 +282,6 @@ open class IndyUser {
         val proofRequestJson = SerializationUtils.anyToJSON(proofRequest)
         val proverGetCredsForProofReq = Anoncreds.proverGetCredentialsForProofReq(wallet, proofRequestJson).get()
         val requiredClaimsForProof = SerializationUtils.jSONToAny<ProofRequestCredentials>(proverGetCredsForProofReq)
-                ?: throw RuntimeException("Unable to parse credentials for proof request from json")
 
         logger.debug("requiredClaimsForProof = $requiredClaimsForProof")
 
@@ -317,8 +312,6 @@ open class IndyUser {
         ).get()
 
         val proof = SerializationUtils.jSONToAny<ParsedProof>(proverProof)
-                ?: throw RuntimeException("Unable to parse proof from json")
-
         return ProofInfo(proof, usedSchemas, usedClaimDefs)
     }
 
@@ -379,31 +372,22 @@ open class IndyUser {
     }
 
     fun getSchema(schemaId: String): Schema {
-        val schemaReq = Ledger.buildGetSchemaRequest(did, schemaId).get()
-        val schemaRes = Ledger.submitRequest(pool, schemaReq).get()
-        val parsedRes = Ledger.parseGetSchemaResponse(schemaRes).get()
+        logger.info("getting schema from public ledger: $schemaId")
 
-        val schema = SerializationUtils.jSONToAny<Schema>(parsedRes.objectJson)
-                ?: throw RuntimeException("Unable to parse schema from json")
-
-        if (!schema.isValid())
-            throw ArtifactDoesntExist(schemaId)
-
-        return schema
+        val req = Ledger.buildGetSchemaRequest(did, schemaId).get()
+        return extractIndyResult(Ledger.submitRequest(pool, req).get(), Ledger::parseGetSchemaResponse)
     }
 
     fun getClaimDef(credDefId: String): CredentialDefinition {
-        val getCredDefRequest = Ledger.buildGetCredDefRequest(did, credDefId).get()
-        val getCredDefResponse = Ledger.submitRequest(pool, getCredDefRequest).get()
-        val credDefIdInfo = Ledger.parseGetCredDefResponse(getCredDefResponse).get()
+        logger.info("getting credential definition from public ledger: $credDefId")
 
-        return SerializationUtils.jSONToAny(credDefIdInfo.objectJson)
-                ?: throw RuntimeException("Unable to parse credential definition from json")
+        val req = Ledger.buildGetCredDefRequest(did, credDefId).get()
+        return extractIndyResult(Ledger.submitRequest(pool, req).get(), Ledger::parseGetCredDefResponse)
     }
 
     companion object {
-        private const val SIGNATURE_TYPE = "CL"
-        private const val TAG = "TAG_1"
+        const val SIGNATURE_TYPE = "CL"
+        const val TAG = "TAG_1"
 
         fun verifyProof(proofReq: ProofRequest, proof: ProofInfo): Boolean {
             val proofRequestJson = SerializationUtils.anyToJSON(proofReq)
@@ -414,7 +398,8 @@ open class IndyUser {
             return Anoncreds.verifierVerifyProof(
                     proofRequestJson, proofJson, usedSchemasJson, usedClaimDefsJson, "{}", "{}").get()
         }
-    }
 
-    class ArtifactDoesntExist(id: String) : IllegalArgumentException("Artifact with id ${id} doesnt exist on public ledger")
+        fun buildSchemaId(did: String, name: String, version: String): String = "$did:2:$name:$version"
+        fun buildCredDefId(did: String, schemaSeqNo: Int): String = "$did:3:$SIGNATURE_TYPE:${schemaSeqNo}:$TAG"
+    }
 }
