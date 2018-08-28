@@ -48,12 +48,18 @@ open class IndyUser {
         fun getTailsConfig() = """{"base_dir":"${getIndyHomePath("tails")}","uri_pattern":""}"""
                 .replace('\\', '/')
 
-        fun getCredDefConfig() = """{"support_revocation":true}"""
+        fun getCredentialDefinitionConfig() = """{"support_revocation":true}"""
 
-        fun verifyProof(did: String, pool: Pool, proofReq: ProofRequest, proof: ProofInfo): Boolean {
+        fun verifyProof(proofReq: ProofRequest, proof: ProofInfo, usedData: DataUsedInProofJson): Boolean {
             val proofRequestJson = SerializationUtils.anyToJSON(proofReq)
             val proofJson = SerializationUtils.anyToJSON(proof.proofData)
 
+            return Anoncreds.verifierVerifyProof(
+                    proofRequestJson, proofJson, usedData.schemas, usedData.claimDefs, usedData.revRegDefs, usedData.revRegs
+            ).get()
+        }
+
+        fun getDataUsedInProof(did: String, pool: Pool, proofRequest: ProofRequest, proof: ProofInfo): DataUsedInProofJson {
             val usedSchemas = proof.proofData.identifiers
                     .map { it.schemaId }
                     .distinct()
@@ -74,7 +80,7 @@ open class IndyUser {
                     .associate { it.id to it }
             val usedClaimDefsJson = SerializationUtils.anyToJSON(usedClaimDefs)
 
-            val (revRegDefsJson, revRegDeltasJson) = if (proofReq.nonRevoked != null) {
+            val (revRegDefsJson, revRegDeltasJson) = if (proofRequest.nonRevoked != null) {
                 val revRegDefs = proof.proofData.identifiers
                         .map { it.revRegId!! }
                         .distinct()
@@ -101,9 +107,7 @@ open class IndyUser {
                 Pair(SerializationUtils.anyToJSON(revRegDefs), SerializationUtils.anyToJSON(revRegDeltas))
             } else Pair(EMPTY_OBJECT, EMPTY_OBJECT)
 
-            return Anoncreds.verifierVerifyProof(
-                    proofRequestJson, proofJson, usedSchemasJson, usedClaimDefsJson, revRegDefsJson, revRegDeltasJson
-            ).get()
+            return DataUsedInProofJson(usedSchemasJson, usedClaimDefsJson, revRegDefsJson, revRegDeltasJson)
         }
 
         fun createProofRequest(
@@ -231,32 +235,43 @@ open class IndyUser {
     fun createSchema(name: String, version: String, attributes: List<String>): Schema {
         val attrStr = attributes.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
 
-        val schemaInfo = Anoncreds.issuerCreateSchema(did, name, version, attrStr).get()
-        val schema = SerializationUtils.jSONToAny<Schema>(schemaInfo.schemaJson)
-                ?: throw RuntimeException("Unable to parse schema from json")
+        val schemaId = "$did:2:$name:$version"
+        val schemaFromLedger = ledgerService.retrieveSchema(schemaId)
 
-        ledgerService.storeSchema(schema)
+        return if (schemaFromLedger == null) {
+            val schemaInfo = Anoncreds.issuerCreateSchema(did, name, version, attrStr).get()
 
-        return schema
+            val schema = SerializationUtils.jSONToAny<Schema>(schemaInfo.schemaJson)
+                    ?: throw RuntimeException("Unable to parse schema from json")
+
+            ledgerService.storeSchema(schema)
+
+            schema
+        } else schemaFromLedger
     }
 
-    fun createClaimDef(schemaId: String, enableRevocation: Boolean): CredentialDefinition {
+    fun createClaimDefinition(schemaId: String, enableRevocation: Boolean): CredentialDefinition {
         val schema = ledgerService.retrieveSchema(schemaId)
                 ?: throw RuntimeException("Schema $schemaId doesn't exist in ledger")
         val schemaJson = SerializationUtils.anyToJSON(schema)
 
-        val credDefConfigJson = if (enableRevocation) getCredDefConfig() else EMPTY_OBJECT
+        val credDefConfigJson = if (enableRevocation) getCredentialDefinitionConfig() else EMPTY_OBJECT
 
-        val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(
-                wallet, did, schemaJson, TAG, SIGNATURE_TYPE, credDefConfigJson
-        ).get()
+        val credDefId = "$did:3:$SIGNATURE_TYPE:${schema.seqNo}:$TAG"
+        val credDefFromLedger = ledgerService.retrieveCredentialDefinition(credDefId)
 
-        val credDef = SerializationUtils.jSONToAny<CredentialDefinition>(credDefInfo.credDefJson)
-                ?: throw RuntimeException("Unable to parse credential definition from json")
+        return if (credDefFromLedger == null) {
+            val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(
+                    wallet, did, schemaJson, TAG, SIGNATURE_TYPE, credDefConfigJson
+            ).get()
 
-        ledgerService.storeCredentialDefinition(credDef)
+            val credDef = SerializationUtils.jSONToAny<CredentialDefinition>(credDefInfo.credDefJson)
+                    ?: throw RuntimeException("Unable to parse credential definition from json")
 
-        return credDef
+            ledgerService.storeCredentialDefinition(credDef)
+
+            credDef
+        } else credDefFromLedger
     }
 
     fun createRevocationRegistry(credentialDefinition: CredentialDefinition, maxCredentialNumber: Int = 5): RevocationRegistryInfo {
@@ -264,20 +279,30 @@ open class IndyUser {
         val revRegDefConfigJson = SerializationUtils.anyToJSON(revRegDefConfig)
         val tailsWriter = getTailsHandler().writer
 
-        val createRevRegResult =
-                Anoncreds.issuerCreateAndStoreRevocReg(
-                        wallet, did, null, REV_TAG, credentialDefinition.id, revRegDefConfigJson, tailsWriter
-                ).get()
+        val revRegId = "$did:4:${credentialDefinition.id}:CL_ACCUM:$REV_TAG"
+        val definitionFromLedger = ledgerService.retrieveRevocationRegistryDefinition(revRegId)
 
-        val definition = SerializationUtils.jSONToAny<RevocationRegistryDefinition>(createRevRegResult.revRegDefJson)
-                ?: throw RuntimeException("Unable to parse revocation registry definition from json")
-        val entry = SerializationUtils.jSONToAny<RevocationRegistryEntry>(createRevRegResult.revRegEntryJson)
-                ?: throw RuntimeException("Unable to parse revocation registry entry from json")
+        if (definitionFromLedger == null) {
+            val createRevRegResult =
+                    Anoncreds.issuerCreateAndStoreRevocReg(
+                            wallet, did, null, REV_TAG, credentialDefinition.id, revRegDefConfigJson, tailsWriter
+                    ).get()
 
-        ledgerService.storeRevocationRegistryDefinition(definition)
-        ledgerService.storeRevocationRegistryEntry(entry, definition.id, definition.revDefType)
+            val definition = SerializationUtils.jSONToAny<RevocationRegistryDefinition>(createRevRegResult.revRegDefJson)
+                    ?: throw RuntimeException("Unable to parse revocation registry definition from json")
+            val entry = SerializationUtils.jSONToAny<RevocationRegistryEntry>(createRevRegResult.revRegEntryJson)
+                    ?: throw RuntimeException("Unable to parse revocation registry entry from json")
 
-        return RevocationRegistryInfo(definition, entry)
+            ledgerService.storeRevocationRegistryDefinition(definition)
+            ledgerService.storeRevocationRegistryEntry(entry, definition.id, definition.revDefType)
+
+            return RevocationRegistryInfo(definition, entry)
+        }
+
+        val entryFromLedger = ledgerService.retrieveRevocationRegistryEntry(revRegId, Timestamp.now())
+                ?: throw RuntimeException("Unable to get revocation registry entry of existing definition $revRegId from ledger")
+
+        return RevocationRegistryInfo(definitionFromLedger, entryFromLedger.second)
     }
 
     private var cachedTailsHandler: BlobStorageHandler? = null
@@ -301,7 +326,7 @@ open class IndyUser {
                 ?: throw RuntimeException("Unable to parse claim offer from json")
     }
 
-    fun createClaimReq(sessionDid: String, offer: ClaimOffer, masterSecretId: String = defaultMasterSecretId): ClaimRequestInfo {
+    fun createClaimRequest(sessionDid: String, offer: ClaimOffer, masterSecretId: String = defaultMasterSecretId): ClaimRequestInfo {
         val credDef = ledgerService.retrieveCredentialDefinition(offer.credDefId)
                 ?: throw RuntimeException("Credential definition ${offer.credDefId} doesn't exist in ledger")
 
@@ -323,7 +348,7 @@ open class IndyUser {
         return ClaimRequestInfo(claimRequest, claimRequestMetadata)
     }
 
-    fun issueClaim(claimReq: ClaimRequestInfo, proposal: String, offer: ClaimOffer, revRegId: String? = null): ClaimInfo {
+    fun issueClaim(claimReq: ClaimRequestInfo, proposal: String, offer: ClaimOffer, revRegId: String?): ClaimInfo {
         val claimRequestJson = SerializationUtils.anyToJSON(claimReq.request)
         val claimOfferJson = SerializationUtils.anyToJSON(offer)
         val tailsReaderHandle = getTailsHandler().reader.blobStorageReaderHandle
@@ -528,4 +553,13 @@ open class IndyUser {
 
         return revState
     }
+
+    fun getDataUsedInProof(proofRequest: ProofRequest, proof: ProofInfo) = IndyUser.getDataUsedInProof(did, pool, proofRequest, proof)
+    fun verifyProof(proofRequest: ProofRequest, proof: ProofInfo, usedData: DataUsedInProofJson) = IndyUser.verifyProof(proofRequest, proof, usedData)
+
+    fun retrieveSchema(schemaId: String) = ledgerService.retrieveSchema(schemaId)
+    fun retrieveClaimDefinition(claimDefId: String) = ledgerService.retrieveCredentialDefinition(claimDefId)
+    fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Int) = ledgerService.retrieveRevocationRegistryEntry(revRegId, timestamp)
+    fun retrieveRevocationRegistryDelta(revRegId: String, interval: Interval) = ledgerService.retrieveRevocationRegistryDelta(revRegId, interval)
+    fun retrieveRevocationRegistryDefinition(revRegId: String) = ledgerService.retrieveRevocationRegistryDefinition(revRegId)
 }

@@ -4,6 +4,7 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyArtifactsRegistry
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
+import com.luxoft.blockchainlab.hyperledger.indy.Interval
 import com.luxoft.blockchainlab.hyperledger.indy.SchemaDetails
 import com.natpryce.konfig.Configuration
 import com.natpryce.konfig.ConfigurationMap
@@ -23,7 +24,7 @@ import java.time.Duration
 import java.util.*
 
 
-class MockCordaAsTransportTest {
+class CordentityE2E {
 
     private lateinit var net: InternalMockNetwork
     private lateinit var notary: StartedNode<MockNode>
@@ -73,7 +74,7 @@ class MockCordaAsTransportTest {
             it.registerInitiatedFlow(CreatePairwiseFlow.Issuer::class.java)
             it.registerInitiatedFlow(IssueClaimFlow.Prover::class.java)
             it.registerInitiatedFlow(VerifyClaimFlow.Prover::class.java)
-            it.registerInitiatedFlow(VerifyClaimFlow.Prover::class.java)
+            it.registerInitiatedFlow(RevokeClaimFlow.Prover::class.java)
         }
 
         artifactory.registerInitiatedFlow(IndyArtifactsRegistry.QueryHandler::class.java)
@@ -125,7 +126,7 @@ class MockCordaAsTransportTest {
 
     private fun issueSchemaAndClaimDef(schemaOwner: StartedNode<MockNode>,
                                        claimDefOwner: StartedNode<MockNode>,
-                                       schema: Schema): Unit {
+                                       schema: Schema): CreateClaimDefFlowResult {
 
         // create schema
         val schemaFuture = schemaOwner.services.startFlow(
@@ -133,7 +134,9 @@ class MockCordaAsTransportTest {
                         schema.schemaName,
                         schema.schemaVersion,
                         schema.schemaAttrs,
-                        artifactory.getName())).resultFuture
+                        artifactory.getName()
+                )
+        ).resultFuture
 
         net.runNetwork()
         val schemaId = schemaFuture.getOrThrow(Duration.ofSeconds(30))
@@ -142,20 +145,24 @@ class MockCordaAsTransportTest {
         val schemaDetails = SchemaDetails(
                 schema.schemaName,
                 schema.schemaVersion,
-                schemaOwner.getPartyDid())
+                schemaOwner.getPartyDid()
+        )
 
         val claimDefFuture = claimDefOwner.services.startFlow(
-                CreateClaimDefFlow.Authority(schemaDetails, artifactory.getName())).resultFuture
+                CreateClaimDefFlow.Authority(schemaDetails, 100, artifactory.getName())
+        ).resultFuture
 
         net.runNetwork()
-        val credDefId = claimDefFuture.getOrThrow(Duration.ofSeconds(30))
+        return claimDefFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
     private fun issueClaim(claimProver: StartedNode<MockNode>,
                            claimIssuer: StartedNode<MockNode>,
                            schemaOwner: StartedNode<MockNode>,
                            claimProposal: String,
-                           schema: Schema) {
+                           schema: Schema,
+                           revRegId: String): String {
+
         val identifier = UUID.randomUUID().toString()
 
         val schemaOwnerDid = schemaOwner.getPartyDid()
@@ -163,23 +170,41 @@ class MockCordaAsTransportTest {
         val schemaDetails = SchemaDetails(
                 schema.schemaName,
                 schema.schemaVersion,
-                schemaOwnerDid)
+                schemaOwnerDid
+        )
 
         val claimFuture = claimIssuer.services.startFlow(
                 IssueClaimFlow.Issuer(
                         identifier,
                         schemaDetails,
                         claimProposal,
+                        revRegId,
                         claimProver.getName(),
-                        artifactory.getName())
+                        artifactory.getName()
+                )
         ).resultFuture
 
         net.runNetwork()
-        claimFuture.getOrThrow(Duration.ofSeconds(30))
+        return claimFuture.getOrThrow(Duration.ofSeconds(30))
+    }
+
+    private fun revokeClaim(
+            issuer: StartedNode<MockNode>,
+            revRegId: String,
+            credRevId: String
+    ) {
+        val flowResult = issuer.services.startFlow(
+                RevokeClaimFlow.Issuer(revRegId, credRevId)
+        ).resultFuture
+
+        net.runNetwork()
+
+        flowResult.getOrThrow(Duration.ofSeconds(30))
     }
 
     private fun verifyClaim(verifier: StartedNode<MockNode>,
                             prover: StartedNode<MockNode>,
+                            nonRevoked: Interval,
                             attributes: List<VerifyClaimFlow.ProofAttribute>,
                             predicates: List<VerifyClaimFlow.ProofPredicate>): Boolean {
         val identifier = UUID.randomUUID().toString()
@@ -189,8 +214,11 @@ class MockCordaAsTransportTest {
                         identifier,
                         attributes,
                         predicates,
+                        nonRevoked,
                         prover.getName(),
-                        artifactory.getName())).resultFuture
+                        artifactory.getName()
+                )
+        ).resultFuture
 
         net.runNetwork()
         return proofCheckResultFuture.getOrThrow(Duration.ofSeconds(30))
@@ -208,18 +236,18 @@ class MockCordaAsTransportTest {
         val schemaPerson = SchemaPerson()
         val schemaEducation = SchemaEducation()
 
-        issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
-        issueSchemaAndClaimDef(issuer, bob, schemaEducation)
+        val claimDefResult1 = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+        val claimDefResult2 = issueSchemaAndClaimDef(issuer, bob, schemaEducation)
 
         // Issue claim #1
         var claimProposal = schemaPerson.formatProposal(attr1.key, "119191919", pred1.key, pred1.key)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson)
+        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, claimDefResult1.revRegId)
 
         // Issue claim #2
         claimProposal = schemaEducation.formatProposal(attr2.key, "119191918", pred2.key, pred2.key)
 
-        issueClaim(alice, bob, issuer, claimProposal, schemaEducation)
+        issueClaim(alice, bob, issuer, claimProposal, schemaEducation, claimDefResult2.revRegId)
 
         // Verify claims
         val schemaOwner = issuer.getPartyDid()
@@ -236,11 +264,11 @@ class MockCordaAsTransportTest {
                 VerifyClaimFlow.ProofPredicate(schemaEducationDetails, bob.getPartyDid(), schemaEducation.schemaAttr2, pred2.value.toInt())
         )
 
-        return verifyClaim(bob, alice, attributes, predicates)
+        return verifyClaim(bob, alice, Interval.allTime(), attributes, predicates)
     }
 
     @Test
-    fun validMultipleClaimsByDiffIssuers() {
+    fun `2 issuers 1 prover 2 claims setup works fine`() {
         val attributes = mapOf(
                 "John Smith" to "John Smith",
                 "University" to "University")
@@ -253,7 +281,7 @@ class MockCordaAsTransportTest {
     }
 
     @Test
-    fun `invalid predicates of multiple claims issued by diff authorities`() {
+    fun `2 issuers 1 prover 2 claims invalid predicates setup works fine`() {
         val attributes = mapOf(
                 "John Smith" to "John Smith",
                 "University" to "University")
@@ -266,7 +294,7 @@ class MockCordaAsTransportTest {
     }
 
     @Test
-    fun `invalid attributes of multiple claims issued by diff authorities`() {
+    fun `2 issuers 1 prover 2 claims invalid attributes setup works fine`() {
         val attributes = mapOf(
                 "John Smith" to "Vanga",
                 "University" to "University")
@@ -279,18 +307,18 @@ class MockCordaAsTransportTest {
     }
 
     @Test
-    fun `single claim full lifecycle`() {
+    fun `1 claim 1 prover setup works fine`() {
 
         val schemaPerson = SchemaPerson()
 
         // Verify ClaimSchema & Defs
-        issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+        val claimDefResult = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
 
         // Issue claim
         val schemaAttrInt = "1988"
         val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson)
+        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, claimDefResult.revRegId)
 
         // Verify claim
         val schemaOwner = issuer.getPartyDid()
@@ -303,30 +331,66 @@ class MockCordaAsTransportTest {
                 // -10 to check >=
                 VerifyClaimFlow.ProofPredicate(schemaDetails, issuer.getPartyDid(), schemaPerson.schemaAttr2, schemaAttrInt.toInt() - 10))
 
-        val claimVerified = verifyClaim(bob, alice, attributes, predicates)
+        val claimVerified = verifyClaim(bob, alice, Interval.allTime(), attributes, predicates)
         assertTrue(claimVerified)
     }
 
     @Test
-    fun multipleClaimsBySameIssuer() {
+    fun `revocation works fine`() {
+
+        val schemaPerson = SchemaPerson()
+
+        // Verify ClaimSchema & Defs
+        val claimDefResult = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+
+        // Issue claim
+        val schemaAttrInt = "1988"
+        val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
+
+        val credRevId = issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, claimDefResult.revRegId)
+
+        // Verify claim
+        val schemaOwner = issuer.getPartyDid()
+        val schemaDetails = SchemaDetails(schemaPerson.schemaName, schemaPerson.schemaVersion, schemaOwner)
+
+        val attributes = listOf(
+                VerifyClaimFlow.ProofAttribute(schemaDetails, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith")
+        )
+
+        val predicates = listOf(
+                // -10 to check >=
+                VerifyClaimFlow.ProofPredicate(schemaDetails, issuer.getPartyDid(), schemaPerson.schemaAttr2, schemaAttrInt.toInt() - 10)
+        )
+
+        val claimVerified = verifyClaim(bob, alice, Interval.recent(), attributes, predicates)
+        assertTrue(claimVerified)
+
+        revokeClaim(issuer, claimDefResult.revRegId, credRevId)
+
+        val claimAfterRevocationVerified = verifyClaim(bob, alice, Interval.recent(), attributes, predicates)
+        assertFalse(claimAfterRevocationVerified)
+    }
+
+    @Test
+    fun `2 claims 1 issuer 1 prover setup works fine`() {
 
         val schemaPerson = SchemaPerson()
         val schemaEducation = SchemaEducation()
 
-        issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
-        issueSchemaAndClaimDef(issuer, issuer, schemaEducation)
+        val claimDefResult1 = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+        val claimDefResult2 = issueSchemaAndClaimDef(issuer, issuer, schemaEducation)
 
         // Issue claim #1
         val schemaPersonAttrInt = "1988"
         var claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaPersonAttrInt, schemaPersonAttrInt)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson)
+        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, claimDefResult1.revRegId)
 
         // Issue claim #2
         val schemaEducationAttrInt = "2016"
         claimProposal = schemaEducation.formatProposal("University", "119191918", schemaEducationAttrInt, schemaEducationAttrInt)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaEducation)
+        issueClaim(alice, issuer, issuer, claimProposal, schemaEducation, claimDefResult2.revRegId)
 
         // Verify claims
         val schemaOwner = issuer.getPartyDid()
@@ -344,23 +408,23 @@ class MockCordaAsTransportTest {
                 VerifyClaimFlow.ProofPredicate(schemaEducationDetails, issuer.getPartyDid(), schemaEducation.schemaAttr2, schemaEducationAttrInt.toInt() - 10)
         )
 
-        val claimVerified = verifyClaim(bob, alice, attributes, predicates)
+        val claimVerified = verifyClaim(bob, alice, Interval.allTime(), attributes, predicates)
         assertTrue(claimVerified)
     }
 
     @Test
-    fun `empty Predicates on verification for single issued claim`() {
+    fun `1 claim 1 prover without predicates setup works fine`() {
 
         val schemaPerson = SchemaPerson()
 
         // Verify ClaimSchema & Defs
-        issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+        val claimDefResult1 = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
 
         // Issue claim
         val schemaAttrInt = "1988"
         val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson)
+        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, claimDefResult1.revRegId)
 
         // Verify claim
         val schemaOwner = issuer.getPartyDid()
@@ -370,23 +434,23 @@ class MockCordaAsTransportTest {
                 VerifyClaimFlow.ProofAttribute(schemaDetails, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith")
         )
 
-        val claimVerified = verifyClaim(bob, alice, attributes, emptyList())
+        val claimVerified = verifyClaim(bob, alice, Interval.allTime(), attributes, emptyList())
         assertTrue(claimVerified)
     }
 
     @Test
-    fun `not all attributes to verify`() {
+    fun `1 claim 1 prover not all attributes to verify setup works fine`() {
 
         val schemaPerson = SchemaPerson()
 
         // Verify ClaimSchema & Defs
-        issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+        val claimDefResult = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
 
         // Issue claim
         val schemaAttrInt = "1988"
         val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson)
+        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, claimDefResult.revRegId)
 
         // Verify claim
         val schemaOwner = issuer.getPartyDid()
@@ -397,7 +461,7 @@ class MockCordaAsTransportTest {
                 VerifyClaimFlow.ProofAttribute(schemaDetails, issuer.getPartyDid(), schemaPerson.schemaAttr2, "")
         )
 
-        val claimVerified = verifyClaim(bob, alice, attributes, emptyList())
+        val claimVerified = verifyClaim(bob, alice, Interval.allTime(), attributes, emptyList())
         assertTrue(claimVerified)
     }
 }

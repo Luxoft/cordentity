@@ -19,10 +19,8 @@ import org.junit.Test
 class AnoncredsDemoTest : IndyIntegrationTest() {
 
     private lateinit var pool: Pool
-    private lateinit var issuerWallet: Wallet
-    private lateinit var issuer2Wallet: Wallet
-    private lateinit var proverWallet: Wallet
     private lateinit var poolName: String
+
     private val masterSecretId = "masterSecretId"
     private val gvtCredentialValues = GVT_CRED_VALUES
     private val xyzCredentialValues = """{"status":{"raw":"partial","encoded":"51792877103171595686471452153480627530895"},"period":{"raw":"8","encoded":"8"}}"""
@@ -30,6 +28,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     private val proverWalletName = "proverWallet"
     private val issuerWalletName = "issuerWallet"
     private val issuer2WalletName = "issuer2Wallet"
+    private lateinit var issuerWallet: Wallet
+    private lateinit var issuer2Wallet: Wallet
+    private lateinit var proverWallet: Wallet
 
     @Before
     @Throws(Exception::class)
@@ -110,13 +111,13 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val prover = IndyUser(pool, proverWallet, proverDidInfo.did)
 
         val gvtSchema = issuer.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
-        val credDef = issuer.createClaimDef(gvtSchema.id, true)
+        val credDef = issuer.createClaimDefinition(gvtSchema.id, true)
         val revRegInfo = issuer.createRevocationRegistry(credDef)
 
         prover.createMasterSecret(masterSecretId)
 
         val credOffer = issuer.createClaimOffer(credDef.id)
-        val credReq = prover.createClaimReq(prover.did, credOffer, masterSecretId)
+        val credReq = prover.createClaimRequest(prover.did, credOffer, masterSecretId)
         val claimInfo = issuer.issueClaim(credReq, gvtCredentialValues, credOffer, revRegInfo.definition.id)
         prover.receiveClaim(claimInfo, credReq, credOffer)
 
@@ -133,8 +134,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         val proof = prover.createProof(proofReq, masterSecretId)
 
+        val usedData = IndyUser.getDataUsedInProof(DID_MY1, pool, proofReq, proof)
         assertEquals("Alex", proof.proofData.requestedProof.revealedAttrs["name"]!!.raw)
-        assertTrue(IndyUser.verifyProof(DID_MY1, pool, proofReq, proof))
+        assertTrue(IndyUser.verifyProof(proofReq, proof, usedData))
 
         issuer.revokeClaim(claimInfo.claim.revRegId!!, claimInfo.credRevocId!!)
         Thread.sleep(3000)
@@ -146,7 +148,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         )
         val proofAfterRevocation = prover.createProof(proofReqAfterRevocation, masterSecretId)
 
-        assertFalse(IndyUser.verifyProof(DID_MY1, pool, proofReqAfterRevocation, proofAfterRevocation))
+        val usedDataAfterRevocation = IndyUser.getDataUsedInProof(DID_MY1, pool, proofReqAfterRevocation, proofAfterRevocation)
+
+        assertFalse(IndyUser.verifyProof(proofReqAfterRevocation, proofAfterRevocation, usedDataAfterRevocation))
     }
 
     @Test
@@ -163,12 +167,12 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val prover = IndyUser(pool, proverWallet, proverDidInfo.did)
 
         val gvtSchema = issuer.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
-        val credDef = issuer.createClaimDef(gvtSchema.id, false)
+        val credDef = issuer.createClaimDefinition(gvtSchema.id, false)
 
         prover.createMasterSecret(masterSecretId)
 
         val credOffer = issuer.createClaimOffer(credDef.id)
-        val credReq = prover.createClaimReq(prover.did, credOffer, masterSecretId)
+        val credReq = prover.createClaimRequest(prover.did, credOffer, masterSecretId)
         val claimInfo = issuer.issueClaim(credReq, gvtCredentialValues, credOffer, null)
         prover.receiveClaim(claimInfo, credReq, credOffer)
 
@@ -183,8 +187,10 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         val proof = prover.createProof(proofReq, masterSecretId)
 
+        val usedData = IndyUser.getDataUsedInProof(DID_MY1, pool, proofReq, proof)
+
         assertEquals("Alex", proof.proofData.requestedProof.revealedAttrs["name"]!!.raw)
-        assertTrue(IndyUser.verifyProof(DID_MY1, pool, proofReq, proof))
+        assertTrue(IndyUser.verifyProof(proofReq, proof, usedData))
     }
 
     @Test
@@ -205,21 +211,21 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val prover = IndyUser(pool, proverWallet, proverDidInfo.did)
 
         val schema1 = issuer1.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
-        val credDef1 = issuer1.createClaimDef(schema1.id, false)
+        val credDef1 = issuer1.createClaimDefinition(schema1.id, false)
 
         val schema2 = issuer2.createSchema(XYZ_SCHEMA_NAME, SCHEMA_VERSION, XYZ_SCHEMA_ATTRIBUTES)
-        val credDef2 = issuer2.createClaimDef(schema2.id, false)
+        val credDef2 = issuer2.createClaimDefinition(schema2.id, false)
 
         prover.createMasterSecret(masterSecretId)
 
         val gvtCredOffer = issuer1.createClaimOffer(credDef1.id)
         val xyzCredOffer = issuer2.createClaimOffer(credDef2.id)
 
-        val gvtCredReq = prover.createClaimReq(prover.did, gvtCredOffer, masterSecretId)
+        val gvtCredReq = prover.createClaimRequest(prover.did, gvtCredOffer, masterSecretId)
         val gvtCredential = issuer1.issueClaim(gvtCredReq, gvtCredentialValues, gvtCredOffer, null)
         prover.receiveClaim(gvtCredential, gvtCredReq, gvtCredOffer)
 
-        val xyzCredReq = prover.createClaimReq(prover.did, xyzCredOffer, masterSecretId)
+        val xyzCredReq = prover.createClaimRequest(prover.did, xyzCredOffer, masterSecretId)
         val xyzCredential = issuer2.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer, null)
         prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer)
 
@@ -243,7 +249,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val revealedAttr1 = proof.proofData.requestedProof.revealedAttrs["status"]!!
         assertEquals("partial", revealedAttr1.raw)
 
-        assertTrue(IndyUser.verifyProof(DID_MY1, pool, proofReq, proof))
+        val usedData = prover.getDataUsedInProof(proofReq, proof)
+
+        assertTrue(IndyUser.verifyProof(proofReq, proof, usedData))
     }
 
     @Test
@@ -260,22 +268,22 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val prover = IndyUser(pool, proverWallet, proverDidInfo.did)
 
         val gvtSchema = issuer.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
-        val gvtCredDef = issuer.createClaimDef(gvtSchema.id, false)
+        val gvtCredDef = issuer.createClaimDefinition(gvtSchema.id, false)
 
         val xyzSchema = issuer.createSchema(XYZ_SCHEMA_NAME, SCHEMA_VERSION, XYZ_SCHEMA_ATTRIBUTES)
-        val xyzCredDef = issuer.createClaimDef(xyzSchema.id, false)
+        val xyzCredDef = issuer.createClaimDefinition(xyzSchema.id, false)
 
         prover.createMasterSecret(masterSecretId)
 
         val gvtCredOffer = issuer.createClaimOffer(gvtCredDef.id)
         val xyzCredOffer = issuer.createClaimOffer(xyzCredDef.id)
 
-        val gvtCredReq = prover.createClaimReq(prover.did, gvtCredOffer, masterSecretId)
-        val gvtCredential = issuer.issueClaim(gvtCredReq, gvtCredentialValues, gvtCredOffer)
+        val gvtCredReq = prover.createClaimRequest(prover.did, gvtCredOffer, masterSecretId)
+        val gvtCredential = issuer.issueClaim(gvtCredReq, gvtCredentialValues, gvtCredOffer, null)
         prover.receiveClaim(gvtCredential, gvtCredReq, gvtCredOffer)
 
-        val xyzCredReq = prover.createClaimReq(prover.did, xyzCredOffer, masterSecretId)
-        val xyzCredential = issuer.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer)
+        val xyzCredReq = prover.createClaimRequest(prover.did, xyzCredOffer, masterSecretId)
+        val xyzCredential = issuer.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer, null)
         prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer)
 
         val field_name = CredFieldRef("name", gvtSchema.id, gvtCredDef.id)
@@ -298,6 +306,8 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val revealedAttr1 = proof.proofData.requestedProof.revealedAttrs["status"]!!
         assertEquals("partial", revealedAttr1.raw)
 
-        assertTrue(IndyUser.verifyProof(DID_MY1, pool, proofReq, proof))
+        val usedData = prover.getDataUsedInProof(proofReq, proof)
+
+        assertTrue(IndyUser.verifyProof(proofReq, proof, usedData))
     }
 }

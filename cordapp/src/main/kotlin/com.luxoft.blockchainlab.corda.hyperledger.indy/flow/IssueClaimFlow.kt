@@ -25,11 +25,12 @@ object IssueClaimFlow {
     open class Issuer(private val identifier: String,
                       private val schemaDetails: SchemaDetails,
                       private val credProposal: String,
+                      private val revRegId: String,
                       private val proverName: CordaX500Name,
-                      private val artifactoryName: CordaX500Name) : FlowLogic<Unit>() {
+                      private val artifactoryName: CordaX500Name) : FlowLogic<String>() {
 
         @Suspendable
-        override fun call() {
+        override fun call(): String {
             val prover: Party = whoIs(proverName)
             val flowSession: FlowSession = initiateFlow(prover)
 
@@ -41,7 +42,7 @@ object IssueClaimFlow {
 
                 val newClaimOut = flowSession.sendAndReceive<ClaimRequestInfo>(offer).unwrap { claimReq ->
                     verifyClaimAttributeValues(claimReq)
-                    val claim = indyUser().issueClaim(claimReq, credProposal, offer)
+                    val claim = indyUser().issueClaim(claimReq, credProposal, offer, revRegId)
                     val claimOut = IndyClaim(identifier, claimReq, claim, indyUser().did, listOf(ourIdentity, prover))
                     StateAndContract(claimOut, ClaimChecker::class.java.name)
                 }
@@ -64,6 +65,8 @@ object IssueClaimFlow {
                 // Notarise and record the transaction in both parties' vaults.
                 subFlow(FinalityFlow(signedTrx))
 
+                return (newClaimOut.state as IndyClaim).claimInfo.credRevocId!!
+
             } catch(ex: Exception) {
                 logger.error("", ex)
                 throw FlowException(ex.message)
@@ -83,7 +86,7 @@ object IssueClaimFlow {
 
                 val offer = flowSession.sendAndReceive<ClaimOffer>(sessionDid).unwrap { offer -> offer }
 
-                val claimRequestInfo = indyUser().createClaimReq(sessionDid, offer)
+                val claimRequestInfo = indyUser().createClaimRequest(sessionDid, offer)
                 flowSession.send(claimRequestInfo)
 
                 val flow = object : SignTransactionFlow(flowSession) {
@@ -93,7 +96,7 @@ object IssueClaimFlow {
                         when(state) {
                             is IndyClaim -> {
                                 require(state.claimRequestInfo == claimRequestInfo) { "Received incorrected ClaimReq"}
-                                indyUser().receiveClaim(state.claimInfo.claim, state.claimRequestInfo, offer)
+                                indyUser().receiveClaim(state.claimInfo, state.claimRequestInfo, offer)
                             }
                             else -> throw FlowException("invalid output state. IndyClaim is expected")
                         }

@@ -29,6 +29,7 @@ class ClaimChecker : Contract {
         when(command) {
             is Commands.Verify -> verification(tx, signers, command.expectedAttrs)
             is Commands.Issue -> creation(tx, signers)
+            is Commands.Revoke -> revocation(tx, signers)
             else -> throw IllegalArgumentException("Unrecognised command.")
         }
     }
@@ -42,7 +43,7 @@ class ClaimChecker : Contract {
                 ?: throw IllegalArgumentException("Invalid type of output")
 
         "All of the participants must be signers." using (signers.containsAll(indyProof.participants.map { it.owningKey }))
-        "IndyClaim should be verified." using (IndyUser.verifyProof(indyProof.proofReq, indyProof.proof))
+        "IndyClaim should be verified." using (IndyUser.verifyProof(indyProof.proofReq, indyProof.proof, indyProof.usedData))
 
         expectedAttrs.forEach {
             "Proof provided for invalid value." using indyProof.proof.isAttributeExists(it.value)
@@ -51,11 +52,16 @@ class ClaimChecker : Contract {
     }
 
     private fun creation(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {
-        // Probably can check something here too...
+        // TODO: Probably can check something here too...
+    }
+
+    private fun revocation(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {
+        // TODO: Probably can check something here too...
     }
 
     interface Commands : CommandData {
         data class Verify(val expectedAttrs: List<ExpectedAttr>) : Commands
         class Issue: Commands
+        class Revoke: Commands
     }
 }

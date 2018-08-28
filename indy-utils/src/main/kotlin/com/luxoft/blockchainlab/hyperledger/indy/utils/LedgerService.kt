@@ -1,7 +1,6 @@
 package com.luxoft.blockchainlab.hyperledger.indy.utils
 
 import com.luxoft.blockchainlab.hyperledger.indy.*
-import org.hyperledger.indy.sdk.IndyException
 import org.hyperledger.indy.sdk.ledger.Ledger
 import org.hyperledger.indy.sdk.pool.Pool
 import org.hyperledger.indy.sdk.wallet.Wallet
@@ -79,7 +78,7 @@ class LedgerService(
                 SerializationUtils.jSONToAny<Schema>(parsedRes.objectJson)
                         ?: throw RuntimeException("Unable to parse schema from json")
 
-            } catch (e: IndyException) {
+            } catch (e: Exception) {
                 logger.error("", e)
                 null
             }
@@ -93,7 +92,7 @@ class LedgerService(
 
                 SerializationUtils.jSONToAny(credDefIdInfo.objectJson)
                         ?: throw RuntimeException("Unable to parse credential definition from json")
-            } catch (e: IndyException) {
+            } catch (e: Exception) {
                 logger.error("", e)
                 null
             }
@@ -107,7 +106,7 @@ class LedgerService(
 
                 SerializationUtils.jSONToAny(revRegDefJson)
                         ?: throw RuntimeException("Unable to parse revocation registry definition from json from ledger")
-            } catch (e: IndyException) {
+            } catch (e: Exception) {
                 logger.error("", e)
                 null
             }
@@ -124,7 +123,7 @@ class LedgerService(
                         ?: throw RuntimeException("Unable to parse revocation registry entry from json from ledger")
 
                 Pair(tmsp, revRegEntry)
-            } catch (e: IndyException) {
+            } catch (e: Exception) {
                 logger.error("", e)
                 null
             }
@@ -147,7 +146,7 @@ class LedgerService(
                         ?: throw RuntimeException("Unable to parse revocation registry delta from json from ledger")
 
                 Pair(timestamp, revRegDelta)
-            } catch (e: IndyException) {
+            } catch (e: Exception) {
                 logger.error("", e)
                 null
             }

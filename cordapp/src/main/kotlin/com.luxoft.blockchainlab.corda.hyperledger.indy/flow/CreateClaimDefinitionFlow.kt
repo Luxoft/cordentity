@@ -10,6 +10,7 @@ import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
 import net.corda.core.identity.CordaX500Name
 
+data class CreateClaimDefFlowResult(val credDefId: String, val revRegId: String)
 
 /**
  * A flow to create a credential definition for schema [schemaDetails] and register it with an artifact registry [artifactoryName]
@@ -19,17 +20,18 @@ object CreateClaimDefFlow {
     @InitiatingFlow
     @StartableByRPC
     class Authority(private val schemaDetails: SchemaDetails,
-                    private val artifactoryName: CordaX500Name) : FlowLogic<String>() {
+                    private val maxCredNumber: Int = 100,
+                    private val artifactoryName: CordaX500Name) : FlowLogic<CreateClaimDefFlowResult>() {
 
         @Suspendable
-        override fun call(): String {
+        override fun call(): CreateClaimDefFlowResult {
             try {
                 // get schema Id from Artifactory
                 val schemaId = getSchemaId(schemaDetails, artifactoryName)
 
                 // TODO: check if claimDef already exist
 
-                val credDef = indyUser().createClaimDef(schemaId)
+                val credDef = indyUser().createClaimDefinition(schemaId, true)
                 val credDefJson = SerializationUtils.anyToJSON(credDef)
 
                 // put definition on Artifactory
@@ -38,7 +40,9 @@ object CreateClaimDefFlow {
                 )
                 subFlow(ArtifactsRegistryFlow.ArtifactCreator(definitionReq, artifactoryName))
 
-                return credDef.id
+                val revReg = indyUser().createRevocationRegistry(credDef, maxCredNumber)
+
+                return CreateClaimDefFlowResult(credDef.id, revReg.definition.id)
 
             } catch (t: Throwable) {
                 logger.error("", t)

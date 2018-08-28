@@ -49,6 +49,7 @@ object VerifyClaimFlow {
             private val identifier: String,
             private val attributes: List<ProofAttribute>,
             private val predicates: List<ProofPredicate>,
+            private val nonRevoked: Interval = Interval.recent(),
             private val proverName: CordaX500Name,
             private val artifactoryName: CordaX500Name
     ) : FlowLogic<Boolean>() {
@@ -62,12 +63,17 @@ object VerifyClaimFlow {
                 val fieldRefAttr = fieldRefFromAttributes(attributes)
                 val fieldRefPred = fieldRefFromPredicates(predicates)
 
-                val proofRequest = indyUser().createProofReq(fieldRefAttr, fieldRefPred)
+                val proofRequest = IndyUser.createProofRequest(
+                        attributes = fieldRefAttr,
+                        predicates = fieldRefPred,
+                        nonRevoked = nonRevoked
+                )
 
                 val verifyClaimOut = flowSession.sendAndReceive<ProofInfo>(proofRequest).unwrap { proof ->
-                    val claimProofOut = IndyClaimProof(identifier, proofRequest, proof, listOf(ourIdentity, prover))
+                    val usedData = indyUser().getDataUsedInProof(proofRequest, proof)
+                    val claimProofOut = IndyClaimProof(identifier, proofRequest, proof, usedData, listOf(ourIdentity, prover))
 
-                    if (!IndyUser.verifyProof(claimProofOut.proofReq, proof)) throw FlowException("Proof verification failed")
+                    if (!indyUser().verifyProof(claimProofOut.proofReq, proof, usedData)) throw FlowException("Proof verification failed")
 
                     StateAndContract(claimProofOut, DummyClaimChecker::class.java.name)
                 }

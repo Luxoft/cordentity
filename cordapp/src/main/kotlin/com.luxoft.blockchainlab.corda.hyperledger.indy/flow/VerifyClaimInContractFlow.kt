@@ -3,10 +3,7 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
-import com.luxoft.blockchainlab.hyperledger.indy.CredFieldRef
-import com.luxoft.blockchainlab.hyperledger.indy.CredPredicate
-import com.luxoft.blockchainlab.hyperledger.indy.ProofInfo
-import com.luxoft.blockchainlab.hyperledger.indy.ProofRequest
+import com.luxoft.blockchainlab.hyperledger.indy.*
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -24,6 +21,7 @@ object VerifyClaimInContractFlow {
             private val identifier: String,
             private val attributes: List<VerifyClaimFlow.ProofAttribute>,
             private val predicates: List<VerifyClaimFlow.ProofPredicate>,
+            private val nonRevoked: Interval = Interval.recent(),
             private val proverName: CordaX500Name,
             private val artifactoryName: CordaX500Name
     ) : FlowLogic<Boolean>() {
@@ -34,10 +32,15 @@ object VerifyClaimInContractFlow {
                 val prover: Party = whoIs(proverName)
                 val flowSession: FlowSession = initiateFlow(prover)
 
-                val proofRequest = indyUser().createProofReq(fieldRefFromAttributes(attributes), fieldRefFromPredicates(predicates))
+                val proofRequest = IndyUser.createProofRequest(
+                        attributes = fieldRefFromAttributes(attributes),
+                        predicates = fieldRefFromPredicates(predicates),
+                        nonRevoked = nonRevoked
+                )
 
                 val verifyClaimOut = flowSession.sendAndReceive<ProofInfo>(proofRequest).unwrap { proof ->
-                    val claimProofOut = IndyClaimProof(identifier, proofRequest, proof, listOf(ourIdentity, prover))
+                    val usedData = indyUser().getDataUsedInProof(proofRequest, proof)
+                    val claimProofOut = IndyClaimProof(identifier, proofRequest, proof, usedData, listOf(ourIdentity, prover))
                     StateAndContract(claimProofOut, ClaimChecker::class.java.name)
                 }
 

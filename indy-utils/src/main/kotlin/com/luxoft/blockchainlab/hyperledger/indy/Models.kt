@@ -390,6 +390,7 @@ data class Interval(val from: Int?, val to: Int) {
     companion object {
         fun recent() = Interval(Timestamp.now() - 1, Timestamp.now())
         fun allTime() = Interval(null, Timestamp.now())
+        fun now() = Interval(Timestamp.now(), Timestamp.now())
     }
 }
 
@@ -743,5 +744,6 @@ data class RevocationState(
 data class BlobStorageHandler(val reader: BlobStorageReader, val writer: BlobStorageWriter)
 
 data class ReferentClaim(val key: String, val claimUuid: String)
-data class RevocationIds(val credRevId: String?, val revRegId: String?)
-data class ProofData(val claims: List<ReferentClaim>, val schemaIds: List<String>, val credDefIds: List<String>, val revIds: List<RevocationIds>)
+
+@CordaSerializable
+data class DataUsedInProofJson(val schemas: String, val claimDefs: String, val revRegDefs: String, val revRegs: String)

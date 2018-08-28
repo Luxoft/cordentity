@@ -55,12 +55,14 @@ fun FlowLogic<Any>.getCredDefId(
     val schemaId = getSchemaId(schemaDetails, artifactoryName)
 
     // get schema from public Indy ledger
-    val schema = indyUser().getSchema(schemaId)
+    val schema = indyUser().retrieveSchema(schemaId)
+            ?: throw RuntimeException("Schema $schemaId doesn't exist in ledger")
 
     // get credential identifier
     val credDef = CredentialDefDetails(schema.seqNo.toString(), credDefOwner)
     val credDefReq = IndyArtifactsRegistry.QueryRequest(
             IndyArtifactsRegistry.ARTIFACT_TYPE.Definition, credDef.filter)
+
     return subFlow(ArtifactsRegistryFlow.ArtifactAccessor(credDefReq, artifactoryName))
 }
 
@@ -71,11 +73,13 @@ fun FlowLogic<Any>.getCredDefId(
         artifactoryName: CordaX500Name): String {
 
     // get schema from public Indy ledger
-    val schema = indyUser().getSchema(schemaId)
+    val schema = indyUser().retrieveSchema(schemaId)
+            ?: throw RuntimeException("Schema $schemaId doesn't exist in ledger")
 
     // get credential identifier
     val credDef = CredentialDefDetails(schema.seqNo.toString(), credDefOwner)
     val credDefReq = IndyArtifactsRegistry.QueryRequest(
             IndyArtifactsRegistry.ARTIFACT_TYPE.Definition, credDef.filter)
+
     return subFlow(ArtifactsRegistryFlow.ArtifactAccessor(credDefReq, artifactoryName))
 }

@@ -67,7 +67,8 @@ object AssignPermissionsFlow {
                             indyPermissions.did,
                             indyPermissions.verkey,
                             indyPermissions.role,
-                            indyPermissions.alias))
+                            indyPermissions.alias)
+                    )
                 }
 
             } catch(ex: Exception) {
