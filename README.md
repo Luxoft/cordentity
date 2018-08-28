@@ -23,24 +23,21 @@ Lets assume that those 4 nodes are connected as a part of a Corda network:
  - ministry - the Ministry of Home Affairs service
  - store    - a grocery store payment center
  - alice    - Alice's mobile device
- - artifactory - Global Artifactory Service
  
 
-    lateinit var ministry: StartedNode<*>
-    lateinit var alice: StartedNode<*>
-    lateinit var store: StartedNode<*>
-    lateinit var artifactory: StartedNode<*>
-    
+    val ministry: StartedNode<*>
+    val alice: StartedNode<*>
+    val store: StartedNode<*>
+
 Each Corda node has a X500 name:
-    
+
     val ministryX500 = ministry.info.singleIdentity().name
     val aliceX500 = alice.info.singleIdentity().name
-    val artifactoryX500 = artifactory.info.singleIdentity().name
 
 And each Indy node has a DID, a.k.a Decentralized ID:
 
     val ministryDID = store.services.startFlow(
-                    GetDidFlow.Initiator(ministryX500)).resultFuture.get()
+            GetDidFlow.Initiator(ministryX500)).resultFuture.get()
 
 To allow customers and shops to communicate, Ministry issues a shopping scheme:
 
@@ -48,15 +45,12 @@ To allow customers and shops to communicate, Ministry issues a shopping scheme:
             CreateSchemaFlow.Authority(
                     "shopping scheme",
                     "1.0",
-                    listOf("NAME", "BORN"),
-                    artifactoryX500)).resultFuture.get()
+                    listOf("NAME", "BORN"))).resultFuture.get()
 
 Ministry creates a claim definition for the shopping scheme:
 
-    val schemaDetails = IndyUser.SchemaDetails("shopping scheme", "1.0", ministryDID)
-
-    ministry.services.startFlow(
-            CreateClaimDefFlow.Authority(schemaDetails, artifactoryX500)).resultFuture.get()
+    val credDefId = ministry.services.startFlow(
+            CreateClaimDefFlow.Authority(schemaId)).resultFuture.get()
 
 Ministry verifies Alice's legal status and issues her a shopping credential:
 
@@ -70,28 +64,29 @@ Ministry verifies Alice's legal status and issues her a shopping credential:
     ministry.services.startFlow(
             IssueClaimFlow.Issuer(
                     UUID.randomUUID().toString(),
-                    schemaDetails,
+                    credDefId,
                     credentialProposal,
-                    aliceX500,
-                    artifactoryX500)).resultFuture.get()
+                    aliceX500)).resultFuture.get()
 
 When Alice comes to grocery store, the store asks Alice to verify that she is legally allowed to buy drinks:
 
     // Alice.BORN >= currentYear - 18
     val eighteenYearsAgo = LocalDateTime.now().minusYears(18).year
-    val legalAgePredicate = VerifyClaimFlow.ProofPredicate(schemaDetails, ministryDID, "BORN", eighteenYearsAgo)
+    val legalAgePredicate = VerifyClaimFlow.ProofPredicate(schemaId, credDefId, ministryDID, "BORN", eighteenYearsAgo)
 
     val verified = store.services.startFlow(
             VerifyClaimFlow.Verifier(
                     UUID.randomUUID().toString(),
                     emptyList(),
                     listOf(legalAgePredicate),
-                    aliceX500,
-                    artifactoryX500)).resultFuture.get()
+                    aliceX500)).resultFuture.get()
 
 If the verification succeeds, the store can be sure that Alice's age is above 18.
 
     println("You can buy drinks: $verified")
+    
+You can run the whole example as a test in
+[ReadmeExampleTest](cordapp/src/test/kotlin/com/luxoft/blockchainlab/corda/hyperledger/indy/ReadmeExampleTest.kt) file.
     
 
 ### Business Cases "Personalized Health Care Supply Chain"
