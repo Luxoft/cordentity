@@ -29,6 +29,11 @@ object IssueClaimFlow {
      *
      * @param credDefId         id of the credential definition to create new statement (credential)
      * @param credProposal      credential JSON containing attribute values for each of requested attribute names.
+     *                          Example:
+     *                          {
+     *                            "attr1" : {"raw": "value1", "encoded": "value1_as_int" },
+     *                            "attr2" : {"raw": "value1", "encoded": "value1_as_int" }
+     *                          }
      *                          See `credValuesJson` in [org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredential]
      *
      * @param proverName        the node that can prove this credential
