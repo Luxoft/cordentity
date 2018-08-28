@@ -13,11 +13,6 @@ data class CredFieldRef(val fieldName: String, val schemaId: String, val credDef
 data class CredPredicate(val fieldRef: CredFieldRef, val value: Int, val type: String = ">=")
 
 @CordaSerializable
-data class SchemaDetails(val name: String, val version: String, val owner: String) {
-    val filter = """{name:${name},version:${version},owner:${owner}}"""
-}
-
-@CordaSerializable
 data class CredentialDefDetails(val schemaSeqNo: String, val owner: String) {
     val filter = """{schemaSeqNo:${schemaSeqNo},owner:${owner}}"""
 }
