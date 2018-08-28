@@ -37,23 +37,30 @@ Example `indy.properties` file:
     indyuser.did=V4SGRU86Z58d6TV7PBUe6f
     indyuser.seed=000000000000000000000000Trustee1
 
-#### Terminology
+#### Indy Terminology
 
 - DID - a.k.a. Decentralized Identity - a mean for trustable interactions with the subject (e.i. Bob)
 - Attribute - a small piece of information (e.i. Bob's age)
-- Schema - a digital description of Attributes an entity can provide (e.i. Bob can provide his name and age) 
+
+- Schema - a digital description of Attributes an entity can provide (e.i. Bob can provide his name and age).
+For more please see [Indy documentation](https://github.com/hyperledger/indy-sdk/blob/master/doc/how-tos/save-schema-and-cred-def/java/README.md#step-3).
+
 - Credential - a statement about an Attribute that you can prove to 3rd party (e.i. Bob's age is more than 18)
-- Credential Definition - a signed template for a Credential (e.i. Bob is ready to issue Credentials about his age)
+
+- Credential Definition - a signed template for a Credential (e.i. Bob is ready to issue Credentials about his age). 
+For more please see [Indy documentation](https://github.com/hyperledger/indy-sdk/blob/master/doc/how-tos/save-schema-and-cred-def/java/README.md#step-4).
+
 - Wallet - local storage for private keys and saved Credentials
 
 
 ### In terms of Corda
 
-[Corda Platform](https://www.corda.net/index.html) provides a secure peer-to-peer network for transporting Indy entities such as Claims, Schemas, Credentials and verifying Attributes.
+[Corda Platform](https://www.corda.net/index.html) provides a secure peer-to-peer network for transporting Indy entities such as Schemas, Credentials and verifying Attributes.
 
-#### Terminology
+#### Corda Terminology
 
-- Node - a peer that hosts a Corda service or executes a CorDapps application.
+- Node - a peer that hosts a Corda service or executes a CORDAPP application.
+- X500 Name - a unique identifier by which any Corda node can be found
 - Flow - a sequence of steps involving multiple Nodes and updating the Corda ledger
 - State - data that can be transferred through the Corda network
 - Service - a.k.a. Node Service - a sub function of a Corda Node. Usually accessible through `ServiceHub`
