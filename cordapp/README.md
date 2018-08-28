@@ -83,8 +83,6 @@ For more please see [Indy documentation](https://github.com/hyperledger/indy-sdk
 
 ### Utility Flows
 
-- [ArtifactsRegistryFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/ArtifactsRegistryFlow.kt) - registers a new [IndyArtifactsRegistry](#services) service
-
 - [CreatePairwiseFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreatePairwiseFlow.kt) - initiates a bi-directional connection
 
 ### Services
