@@ -19,7 +19,7 @@ In many countries a person must be above the legal age to purchase alcohol drink
 Using services and flows provided by Indy-Codrapp it is possible to create a system 
 that proves that the age of a customer is above the legal limit without exposing their actual age or other personal details.
    
-Lets assume that those 4 [nodes](cordapp/README.md#corda-terminology) are connected as a part of a Corda network:
+Lets assume that those 3 [nodes](cordapp/README.md#corda-terminology) are connected as a part of a Corda network:
  - ministry - the Ministry of Home Affairs service
  - store    - a grocery store payment center
  - alice    - Alice's mobile device
@@ -34,12 +34,14 @@ Each Corda node has a [X500 name](cordapp/README.md#corda-terminology):
     val ministryX500 = ministry.info.singleIdentity().name
     val aliceX500 = alice.info.singleIdentity().name
 
-And each Indy node has a [DID](cordapp/README.md#indy-terminology), a.k.a Decentralized ID:
+And each Indy node has a [DID](cordapp/README.md#indy-terminology), a.k.a Decentralized ID,
+which can be obtained using [GetDidFlow](cordapp/README.md#flows):
 
     val ministryDID = store.services.startFlow(
             GetDidFlow.Initiator(ministryX500)).resultFuture.get()
 
-To allow customers and shops to communicate, Ministry issues a shopping [scheme](cordapp/README.md#indy-terminology):
+To allow customers and shops to communicate, Ministry issues a shopping [scheme](cordapp/README.md#indy-terminology)
+using [CreateSchemaFlow](cordapp/README.md#flows):
 
     val schemaId = ministry.services.startFlow(
             CreateSchemaFlow.Authority(
@@ -47,12 +49,14 @@ To allow customers and shops to communicate, Ministry issues a shopping [scheme]
                     "1.0",
                     listOf("NAME", "BORN"))).resultFuture.get()
 
-Ministry creates a [credential definition](cordapp/README.md#indy-terminology) for the shopping scheme:
+Ministry creates a [credential definition](cordapp/README.md#indy-terminology) for the shopping scheme
+using [CreateClaimDefFlow](cordapp/README.md#flows):
 
     val credDefId = ministry.services.startFlow(
             CreateClaimDefFlow.Authority(schemaId)).resultFuture.get()
 
-Ministry verifies Alice's legal status and issues her a shopping [credential](cordapp/README.md#indy-terminology):
+Ministry verifies Alice's legal status and issues her a shopping [credential](cordapp/README.md#indy-terminology)
+using [IssueClaimFlow](cordapp/README.md#flows):
 
     val credentialProposal = """
         {
@@ -68,7 +72,8 @@ Ministry verifies Alice's legal status and issues her a shopping [credential](co
                     credentialProposal,
                     aliceX500)).resultFuture.get()
 
-When Alice comes to grocery store, the store asks Alice to verify that she is legally allowed to buy drinks:
+When Alice comes to grocery store, the store asks Alice to verify that she is legally allowed to buy drinks
+using [VerifyClaimFlow](cordapp/README.md#flows):
 
     // Alice.BORN >= currentYear - 18
     val eighteenYearsAgo = LocalDateTime.now().minusYears(18).year
