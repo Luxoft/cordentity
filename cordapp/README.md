@@ -37,23 +37,30 @@ Example `indy.properties` file:
     indyuser.did=V4SGRU86Z58d6TV7PBUe6f
     indyuser.seed=000000000000000000000000Trustee1
 
-#### Terminology
+#### Indy Terminology
 
 - DID - a.k.a. Decentralized Identity - a mean for trustable interactions with the subject (e.i. Bob)
 - Attribute - a small piece of information (e.i. Bob's age)
-- Schema - a digital description of Attributes an entity can provide (e.i. Bob can provide his name and age) 
+
+- Schema - a digital description of Attributes an entity can provide (e.i. Bob can provide his name and age).
+For more please see [Indy documentation](https://github.com/hyperledger/indy-sdk/blob/master/doc/how-tos/save-schema-and-cred-def/java/README.md#step-3).
+
 - Credential - a statement about an Attribute that you can prove to 3rd party (e.i. Bob's age is more than 18)
-- Credential Definition - a signed template for a Credential (e.i. Bob is ready to issue Credentials about his age)
+
+- Credential Definition - a signed template for a Credential (e.i. Bob is ready to issue Credentials about his age). 
+For more please see [Indy documentation](https://github.com/hyperledger/indy-sdk/blob/master/doc/how-tos/save-schema-and-cred-def/java/README.md#step-4).
+
 - Wallet - local storage for private keys and saved Credentials
 
 
 ### In terms of Corda
 
-[Corda Platform](https://www.corda.net/index.html) provides a secure peer-to-peer network for transporting Indy entities such as Claims, Schemas, Credentials and verifying Attributes.
+[Corda Platform](https://www.corda.net/index.html) provides a secure peer-to-peer network for transporting Indy entities such as Schemas, Credentials and verifying Attributes.
 
-#### Terminology
+#### Corda Terminology
 
-- Node - a peer that hosts a Corda service or executes a CorDapps application.
+- Node - a peer that hosts a Corda service or executes a CORDAPP application.
+- X500 Name - a unique identifier by which any Corda node can be found
 - Flow - a sequence of steps involving multiple Nodes and updating the Corda ledger
 - State - data that can be transferred through the Corda network
 - Service - a.k.a. Node Service - a sub function of a Corda Node. Usually accessible through `ServiceHub`
@@ -62,14 +69,9 @@ Example `indy.properties` file:
 
 ### Flows
 
-
-- [ArtifactsRegistryFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/ArtifactsRegistryFlow.kt)
-
 - [AssignPermissionsFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/AssignPermissionsFlow.kt) - changes permissions of another Corda party
 
 - [CreateClaimDefFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateClaimDefFlow.kt) - creates a credential definition for schema and registers it
-
-- [CreatePairwiseFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreatePairwiseFlow.kt)
 
 - [CreateSchemaFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateSchemaFlow.kt) - creates an Indy scheme and registers it
 
@@ -79,22 +81,21 @@ Example `indy.properties` file:
 
 - [VerifyClaimFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyClaimFlow.kt) - verifies a set of predicates
 
-- [VerifyClaimInContractFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyClaimInContractFlow.kt)
+### Utility Flows
 
+- [CreatePairwiseFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreatePairwiseFlow.kt) - initiates a bi-directional connection
 
 ### Services
 
 - [IndyService](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/service/IndyService.kt) - 
 A Corda service for dealing with Indy Ledger infrastructure such as pools, credentials, wallets.
 
-- [IndyArtifactsRegistry](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/service/IndyArtifactsRegistry.kt) - 
-A global Schema and Credential Definition discovery facility, a.k.a. an artifact registry. 
-May be removed in the future if Hyperledger provides a similar service.
-See the official documentation on [LIST_SCHEMA](https://github.com/hyperledger/indy-node/blob/c37af6befccf31afa8a31c032c88d110b819495b/design/anoncreds.md#list_schema) for details about the filters.
-
-
 ## Build
 
-Before every run it is recommended to clean the default pool with 
+    gradle clean build
+    
+## Net Topology
 
-    gradle cleanDefaultPool
+The system assumes that the Corda network contains several [IndyService](#services) nodes that correspond to business entities. 
+
+At least one node must be a Trustee to be able to grant permissions to other nodes. In the current realisation a Trustee must have `indyuser.seed=000000000000000000000000Trustee1` in its configuration file. 

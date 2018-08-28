@@ -1,8 +1,8 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.data.state
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.ClaimProofSchemaV1
-import com.luxoft.blockchainlab.hyperledger.indy.model.Proof
-import com.luxoft.blockchainlab.hyperledger.indy.model.ProofReq
+import com.luxoft.blockchainlab.hyperledger.indy.ProofInfo
+import com.luxoft.blockchainlab.hyperledger.indy.ProofRequest
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.AbstractParty
@@ -14,8 +14,8 @@ import net.corda.core.schemas.QueryableState
  * A Corda record of an Indy proof [proof] issued on request [proofReq]
  * */
 open class IndyClaimProof(val id: String,
-                          val proofReq: ProofReq,
-                          val proof: Proof,
+                          val proofReq: ProofRequest,
+                          val proof: ProofInfo,
                           override val participants: List<AbstractParty>,
                           override val linearId: UniqueIdentifier = UniqueIdentifier()): QueryableState, LinearState {
 

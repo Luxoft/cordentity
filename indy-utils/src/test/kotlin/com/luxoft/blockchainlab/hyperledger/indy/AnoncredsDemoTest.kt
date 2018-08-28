@@ -1,16 +1,17 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser.*
 import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolUtils
 import org.hyperledger.indy.sdk.pool.Pool
 import org.hyperledger.indy.sdk.pool.PoolJSONParameters
 import org.hyperledger.indy.sdk.wallet.Wallet
-import org.json.JSONObject
 import org.junit.After
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Test
 
+@Ignore
 class AnoncredsDemoTest : IndyIntegrationTest() {
 
     private lateinit var pool: Pool
@@ -23,12 +24,7 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     private val issuerDid = "NcYxiDXkpYi6ov5FcYDi1e"
     private val proverDid = "CnEDk9HrMnmiHXEV1WFgbVCRteYnPqsJwrTdcZaNhFVW"
     private val gvtCredentialValues = GVT_CRED_VALUES
-    private val xyzCredentialValues = JSONObject("{\n" +
-            "        \"status\":{\"raw\":\"partial\", \"encoded\":\"51792877103171595686471452153480627530895\"},\n" +
-            "        \"period\":{\"raw\":\"8\", \"encoded\":\"8\"}\n" +
-            "    }").toString()
-
-    private val credentials = """{"key": "key"}"""
+    private val xyzCredentialValues = """{"status":{"raw":"partial","encoded":"51792877103171595686471452153480627530895"},"period":{"raw":"8","encoded":"8"}}"""
 
     @Before
     @Throws(Exception::class)
@@ -77,11 +73,11 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         val credOffer = issuer.createClaimOffer(credDef.id)
 
-        val credReq = prover.createClaimReq("???", prover.did, credOffer, masterSecretId)
+        val credReq = prover.createClaimReq(prover.did, credOffer, masterSecretId)
 
         val credential = issuer.issueClaim(credReq, gvtCredentialValues, credOffer)
 
-        prover.receiveClaim(credential, credReq, credOffer)
+        prover.receiveClaim(credential.claim, credReq, credOffer)
 
         val field_name = CredFieldRef("name", gvtSchema.id, credDef.id)
         val field_sex = CredFieldRef("sex", gvtSchema.id, credDef.id)
@@ -92,7 +88,7 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         val proof = prover.createProof(proofReq, masterSecretId)
 
-        assertEquals("Alex", proof.revealedAttrs["attr0_referent"]!!.getString("raw"))
+        assertEquals("Alex", proof.proofData.requestedProof.revealedAttrs["attr0_referent"]!!.raw)
 
 //        assertNotNull(proof.json.getJSONObject("requested_proof").getJSONObject("unrevealed_attrs").getJSONObject("attr1_referent").getInt("sub_proof_index"))
 
@@ -126,14 +122,14 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val gvtCredOffer = gvtIssuer.createClaimOffer(gvtCredDef.id)
         val xyzCredOffer = xyzIssuer.createClaimOffer(xyzCredDef.id)
 
-        val gvtCredReq = prover.createClaimReq("???", prover.did, gvtCredOffer, masterSecretId)
+        val gvtCredReq = prover.createClaimReq(prover.did, gvtCredOffer, masterSecretId)
         val gvtCredential = gvtIssuer.issueClaim(gvtCredReq, gvtCredentialValues, gvtCredOffer)
-        prover.receiveClaim(gvtCredential, gvtCredReq, gvtCredOffer)
+        prover.receiveClaim(gvtCredential.claim, gvtCredReq, gvtCredOffer)
 
 
-        val xyzCredReq = prover.createClaimReq("???", prover.did, xyzCredOffer, masterSecretId)
+        val xyzCredReq = prover.createClaimReq(prover.did, xyzCredOffer, masterSecretId)
         val xyzCredential = xyzIssuer.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer)
-        prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer)
+        prover.receiveClaim(xyzCredential.claim, xyzCredReq, xyzCredOffer)
 
 
         val field_name = CredFieldRef("name", gvtSchema.id, gvtCredDef.id)
@@ -147,11 +143,11 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
 
         // Verifier verify Proof
-        val revealedAttr0 = proof.json.getJSONObject("requested_proof").getJSONObject("revealed_attrs").getJSONObject("attr0_referent")
-        assertEquals("Alex", revealedAttr0.getString("raw"))
+        val revealedAttr0 = proof.proofData.requestedProof.revealedAttrs["attr0_referent"]!!
+        assertEquals("Alex", revealedAttr0.raw)
 
-        val revealedAttr1 = proof.json.getJSONObject("requested_proof").getJSONObject("revealed_attrs").getJSONObject("attr1_referent")
-        assertEquals("partial", revealedAttr1.getString("raw"))
+        val revealedAttr1 = proof.proofData.requestedProof.revealedAttrs["attr1_referent"]!!
+        assertEquals("partial", revealedAttr1.raw)
 
 
         assertTrue(IndyUser.verifyProof(proofReq, proof))
@@ -178,14 +174,14 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val gvtCredOffer = issuer.createClaimOffer(gvtCredDef.id)
         val xyzCredOffer = issuer.createClaimOffer(xyzCredDef.id)
 
-        val gvtCredReq = prover.createClaimReq("???", prover.did, gvtCredOffer, masterSecretId)
+        val gvtCredReq = prover.createClaimReq(prover.did, gvtCredOffer, masterSecretId)
         val gvtCredential = issuer.issueClaim(gvtCredReq, gvtCredentialValues, gvtCredOffer)
-        prover.receiveClaim(gvtCredential, gvtCredReq, gvtCredOffer)
+        prover.receiveClaim(gvtCredential.claim, gvtCredReq, gvtCredOffer)
 
 
-        val xyzCredReq = prover.createClaimReq("???", prover.did, xyzCredOffer, masterSecretId)
+        val xyzCredReq = prover.createClaimReq(prover.did, xyzCredOffer, masterSecretId)
         val xyzCredential = issuer.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer)
-        prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer)
+        prover.receiveClaim(xyzCredential.claim, xyzCredReq, xyzCredOffer)
 
         val field_name = CredFieldRef("name", gvtSchema.id, gvtCredDef.id)
         val field_age = CredFieldRef("age", gvtSchema.id, gvtCredDef.id)
@@ -198,11 +194,11 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
 
         // Verifier verify Proof
-        val revealedAttr1 = proof.json.getJSONObject("requested_proof").getJSONObject("revealed_attrs").getJSONObject("attr0_referent")
-        assertEquals("Alex", revealedAttr1.getString("raw"))
+        val revealedAttr0 = proof.proofData.requestedProof.revealedAttrs["attr0_referent"]!!
+        assertEquals("Alex", revealedAttr0.raw)
 
-        val revealedAttr2 = proof.json.getJSONObject("requested_proof").getJSONObject("revealed_attrs").getJSONObject("attr1_referent")
-        assertEquals("partial", revealedAttr2.getString("raw"))
+        val revealedAttr1 = proof.proofData.requestedProof.revealedAttrs["attr1_referent"]!!
+        assertEquals("partial", revealedAttr1.raw)
 
 
         assertTrue(IndyUser.verifyProof(proofReq, proof))
@@ -325,11 +321,11 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         val credOffer = issuer.createClaimOffer(credDef.id)
 
-        val credReq = prover.createClaimReq("???", prover.did, credOffer, masterSecretId)
+        val credReq = prover.createClaimReq(prover.did, credOffer, masterSecretId)
 
         val credential = issuer.issueClaim(credReq, gvtCredentialValues, credOffer)
 
-        prover.receiveClaim(credential, credReq, credOffer)
+        prover.receiveClaim(credential.claim, credReq, credOffer)
 
         val field_name = CredFieldRef("name", gvtSchema.id, credDef.id)
         val field_sex = CredFieldRef("sex", gvtSchema.id, credDef.id)
@@ -361,8 +357,8 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
 
         // Verifier verify Proof
-        val revealedAttr1 = proof.json.getJSONObject("requested_proof").getJSONObject("revealed_attrs").getJSONObject("attr0_referent")
-        assertEquals("Alex", revealedAttr1.getString("raw"))
+        val revealedAttr0 = proof.proofData.requestedProof.revealedAttrs["attr0_referent"]!!
+        assertEquals("Alex", revealedAttr0.raw)
 
 //        assertEquals("8-800-300", proof.json.getJSONObject("requested_proof").getJSONObject("self_attested_attrs").getString("attr2_referent"))
 

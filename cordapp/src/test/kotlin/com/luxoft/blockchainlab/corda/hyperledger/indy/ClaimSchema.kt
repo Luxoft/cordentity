@@ -27,8 +27,3 @@ abstract class TwoAttrSchema(
 class SchemaPerson : TwoAttrSchema("schema_name", "1.0", "attr1", "attr2")
 
 class SchemaEducation : TwoAttrSchema("schema_education", "1.0", "attrX", "attrY")
-
-class SchemaHappiness : TwoAttrSchema("schema_happiness", "1.0", "isMySweetheart", "age") {
-    val schemaAttrForKiss = schemaAttr1
-    val schemaAttrForDrink = schemaAttr2
-}
