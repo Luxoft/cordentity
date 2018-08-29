@@ -50,7 +50,6 @@ object CreatePairwiseFlow {
 
         @Suspendable
         override fun call() {
-
             try {
                 val myIdentityRecord = indyUser().getIdentity().getIdentityRecord()
 

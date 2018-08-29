@@ -31,6 +31,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     private lateinit var issuerWallet: Wallet
     private lateinit var issuer2Wallet: Wallet
     private lateinit var proverWallet: Wallet
+    private lateinit var issuerDidInfo: DidResults.CreateAndStoreMyDidResult
+    private lateinit var issuer2DidInfo: DidResults.CreateAndStoreMyDidResult
+    private lateinit var proverDidInfo: DidResults.CreateAndStoreMyDidResult
 
     @Before
     @Throws(Exception::class)
@@ -58,6 +61,16 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         // Prover Create and Open Wallet
         Wallet.createWallet(poolName, proverWalletName, TYPE, null, CREDENTIALS).get()
         proverWallet = Wallet.openWallet(proverWalletName, null, CREDENTIALS).get()
+
+        val trusteeDidInfo = createTrusteeDid(issuerWallet)
+        issuerDidInfo = createDid(issuerWallet)
+        linkIssuerToTrustee(trusteeDidInfo.did, issuerWallet, issuerDidInfo)
+
+        issuer2DidInfo = createDid(issuer2Wallet)
+        linkIssuerToTrustee(trusteeDidInfo.did, issuerWallet, issuer2DidInfo)
+
+        proverDidInfo = createDid(proverWallet)
+        linkProverToIssuer(issuerDidInfo.did, issuerWallet, proverDidInfo)
     }
 
     @After
@@ -78,7 +91,7 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         pool.closePoolLedger().get()
         Pool.deletePoolLedgerConfig(poolName)
 
-        // Cleanup
+        // Clean indy stuff
         StorageUtils.cleanupStorage()
     }
 
@@ -100,19 +113,12 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     @Test
     @Throws(Exception::class)
     fun `revocation works fine`() {
-        val trusteeDidInfo = createTrusteeDid(issuerWallet)
-        val issuerDidInfo = createDid(issuerWallet)
-        linkIssuerToTrustee(trusteeDidInfo.did, issuerWallet, issuerDidInfo)
-
-        val proverDidInfo = createDid(proverWallet)
-        linkProverToIssuer(issuerDidInfo.did, issuerWallet, proverDidInfo)
-
         val issuer = IndyUser(pool, issuerWallet, issuerDidInfo.did)
         val prover = IndyUser(pool, proverWallet, proverDidInfo.did)
 
         val gvtSchema = issuer.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
         val credDef = issuer.createClaimDefinition(gvtSchema.id, true)
-        val revRegInfo = issuer.createRevocationRegistry(credDef)
+        val revRegInfo = issuer.createRevocationRegistry(credDef.id)
 
         prover.createMasterSecret(masterSecretId)
 
@@ -156,13 +162,6 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     @Test
     @Throws(Exception::class)
     fun `1 issuer 1 prover 1 claim setup works fine`() {
-        val trusteeDidInfo = createTrusteeDid(issuerWallet)
-        val issuerDidInfo = createDid(issuerWallet)
-        linkIssuerToTrustee(trusteeDidInfo.did, issuerWallet, issuerDidInfo)
-
-        val proverDidInfo = createDid(proverWallet)
-        linkProverToIssuer(issuerDidInfo.did, issuerWallet, proverDidInfo)
-
         val issuer = IndyUser(pool, issuerWallet, issuerDidInfo.did)
         val prover = IndyUser(pool, proverWallet, proverDidInfo.did)
 
@@ -196,16 +195,6 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     @Test
     @Throws(Exception::class)
     fun `2 issuers 1 prover 2 claims setup works fine`() {
-        val trusteeDidInfo = createTrusteeDid(issuerWallet)
-        val issuerDidInfo = createDid(issuerWallet)
-        linkIssuerToTrustee(trusteeDidInfo.did, issuerWallet, issuerDidInfo)
-
-        val issuer2DidInfo = createDid(issuer2Wallet)
-        linkIssuerToTrustee(trusteeDidInfo.did, issuerWallet, issuer2DidInfo)
-
-        val proverDidInfo = createDid(proverWallet)
-        linkProverToIssuer(issuerDidInfo.did, issuerWallet, proverDidInfo)
-
         val issuer1 = IndyUser(pool, issuerWallet, issuerDidInfo.did)
         val issuer2 = IndyUser(pool, issuer2Wallet, issuer2DidInfo.did)
         val prover = IndyUser(pool, proverWallet, proverDidInfo.did)
@@ -257,13 +246,6 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     @Test
     @Throws(Exception::class)
     fun `1 issuer 1 prover 2 claims setup works fine`() {
-        val trusteeDidInfo = createTrusteeDid(issuerWallet)
-        val issuerDidInfo = createDid(issuerWallet)
-        linkIssuerToTrustee(trusteeDidInfo.did, issuerWallet, issuerDidInfo)
-
-        val proverDidInfo = createDid(proverWallet)
-        linkProverToIssuer(issuerDidInfo.did, issuerWallet, proverDidInfo)
-
         val issuer = IndyUser(pool, issuerWallet, issuerDidInfo.did)
         val prover = IndyUser(pool, proverWallet, proverDidInfo.did)
 

@@ -1,7 +1,10 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import net.corda.core.flows.*
+import net.corda.core.flows.FlowException
+import net.corda.core.flows.FlowLogic
+import net.corda.core.flows.InitiatingFlow
+import net.corda.core.flows.StartableByRPC
 
 /**
  * Flows to create an Indy scheme
@@ -9,7 +12,7 @@ import net.corda.core.flows.*
 object CreateSchemaFlow {
 
     /**
-     * A flow to create an Indy scheme and register it with an artifact registry [artifactoryName]
+     * A flow to create an Indy scheme
      *
      * @param schemaName        name of the new schema
      * @param schemaVersion     version of the schema

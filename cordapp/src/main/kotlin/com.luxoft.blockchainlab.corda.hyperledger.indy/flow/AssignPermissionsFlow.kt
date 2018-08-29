@@ -18,15 +18,15 @@ object AssignPermissionsFlow {
      * @param verkey       Target identity verification key as base58-encoded string.
      * @param alias        NYM's alias.
      * @param role         Role of a user NYM record: { null (common USER), TRUSTEE, STEWARD, TRUST_ANCHOR, empty string (reset role) }
-     *
-     *  TODO: investigate what does `NYM` mean in Indy
      * */
     @CordaSerializable
     // TODO: make private
-    data class IndyPermissionsRequest(val did: String = "",
-                                      val verkey: String = "",
-                                      val alias: String?,
-                                      val role: String?)
+    data class IndyPermissionsRequest(
+            val did: String = "",
+            val verkey: String = "",
+            val alias: String?,
+            val role: String?
+    )
 
     /**
      * A flow to change permissions of another Corda party [authority]
@@ -60,22 +60,24 @@ object AssignPermissionsFlow {
     }
 
     @InitiatedBy(Issuer::class)
-    open class Authority (private val flowSession: FlowSession) : FlowLogic<Unit>() {
+    open class Authority(private val flowSession: FlowSession) : FlowLogic<Unit>() {
 
         @Suspendable
         override fun call() {
             try {
                 flowSession.receive(IndyPermissionsRequest::class.java).unwrap { indyPermissions ->
                     // FIXME: parameters `role` and `alias` are mixed up
-                    indyUser().setPermissionsFor(IndyUser.IdentityDetails(
-                            indyPermissions.did,
-                            indyPermissions.verkey,
-                            indyPermissions.role,
-                            indyPermissions.alias)
+                    indyUser().setPermissionsFor(
+                            IndyUser.IdentityDetails(
+                                    indyPermissions.did,
+                                    indyPermissions.verkey,
+                                    indyPermissions.role,
+                                    indyPermissions.alias
+                            )
                     )
                 }
 
-            } catch(ex: Exception) {
+            } catch (ex: Exception) {
                 logger.error("", ex)
                 throw FlowException(ex.message)
             }

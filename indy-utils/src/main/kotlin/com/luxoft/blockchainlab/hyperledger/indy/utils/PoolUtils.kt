@@ -2,10 +2,8 @@ package com.luxoft.blockchainlab.hyperledger.indy.utils
 
 import org.apache.commons.io.FileUtils
 import org.hyperledger.indy.sdk.IndyException
-import org.hyperledger.indy.sdk.ledger.Ledger
 import org.hyperledger.indy.sdk.pool.Pool
 import org.hyperledger.indy.sdk.pool.PoolJSONParameters
-import org.json.JSONException
 import java.io.File
 import java.io.FileWriter
 import java.io.IOException
@@ -13,17 +11,7 @@ import java.util.concurrent.ExecutionException
 
 
 object PoolUtils {
-
     val DEFAULT_POOL_NAME = "default_pool"
-    val TEST_TIMEOUT_FOR_REQUEST_ENSURE = 20000
-    internal val RESUBMIT_REQUEST_TIMEOUT = 5000
-    internal val RESUBMIT_REQUEST_CNT = 3
-
-
-    @Throws(IOException::class)
-    fun createGenesisTxnFile(filename: String): File {
-        return createGenesisTxnFile(filename, 4)
-    }
 
     @Throws(IOException::class)
     private fun createGenesisTxnFile(filename: String, nodesCnt: Int): File {
@@ -76,43 +64,5 @@ object PoolUtils {
     fun createAndOpenPoolLedger(poolName: String = PoolUtils.createPoolLedgerConfig()): Pool {
         val config = PoolJSONParameters.OpenPoolLedgerJSONParameter(true, null, null)
         return Pool.openPoolLedger(poolName, config.toJson()).get()
-    }
-
-    interface PoolResponseChecker {
-        fun check(response: String): Boolean
-    }
-
-    interface ActionChecker {
-        @Throws(IndyException::class, ExecutionException::class, InterruptedException::class)
-        fun action(): String
-    }
-
-    @Throws(IndyException::class, ExecutionException::class, InterruptedException::class)
-    fun ensurePreviousRequestApplied(pool: Pool, checkerRequest: String, checker: PoolResponseChecker): String {
-        for (i in 0 until RESUBMIT_REQUEST_CNT) {
-            val response = Ledger.submitRequest(pool, checkerRequest).get()
-            try {
-                if (checker.check(response)) {
-                    return response
-                }
-            } catch (e: JSONException) {
-                e.printStackTrace()
-                System.err.println(e.toString())
-                System.err.println(response)
-            }
-
-            Thread.sleep(RESUBMIT_REQUEST_TIMEOUT.toLong())
-        }
-        throw IllegalStateException()
-    }
-
-    @Throws(InterruptedException::class, ExecutionException::class, IndyException::class)
-    fun retryCheck(action: ActionChecker, checker: PoolResponseChecker): Boolean {
-        for (i in 0 until RESUBMIT_REQUEST_CNT) {
-            if (checker.check(action.action())) {
-                return true
-            }
-        }
-        return false
     }
 }

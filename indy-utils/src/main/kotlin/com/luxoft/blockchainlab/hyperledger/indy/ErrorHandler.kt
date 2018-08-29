@@ -8,8 +8,8 @@ import java.util.concurrent.CompletableFuture
 
 open class IndyWrapperException(msg: String) : IllegalArgumentException(msg)
 
-class ArtifactDoesntExist(msg: String = "") : IndyWrapperException("Artifact " + msg + " doesn't exist on the public ledger")
-class ArtifactRequestFailed(msg: String) : IndyWrapperException("Request to public Indy ledger has failed: " + msg)
+class ArtifactDoesntExist(msg: String = "") : IndyWrapperException("Artifact $msg doesn't exist on the public ledger")
+class ArtifactRequestFailed(msg: String) : IndyWrapperException("Request to public Indy ledger has failed: $msg")
 
 enum class Status { REJECT, REPLY }
 data class IndyOpCode(val op: Status, val result: Any?)
@@ -24,8 +24,9 @@ fun handleIndyError(execResult: String) {
     }
 }
 
-inline fun <reified T: Any>extractIndyResult(execResult: String,
-                                             indyParser: ((msg: String) -> CompletableFuture<LedgerResults.ParseResponseResult>)): T {
+typealias IndyParser = (msg: String) -> CompletableFuture<LedgerResults.ParseResponseResult>
+
+inline fun <reified T: Any> extractIndyResult(execResult: String, indyParser: IndyParser): T {
         try {
             handleIndyError(execResult)
 
@@ -37,7 +38,7 @@ inline fun <reified T: Any>extractIndyResult(execResult: String,
 
         } catch (e: Exception) {
             logger.info("Indy parsing has failed", e)
-            if(e.cause is LedgerInvalidTransactionException) throw ArtifactDoesntExist()
+            if (e.cause is LedgerInvalidTransactionException) throw ArtifactDoesntExist()
             throw ArtifactRequestFailed("Can not parse the response: " + e.message)
         }
 }

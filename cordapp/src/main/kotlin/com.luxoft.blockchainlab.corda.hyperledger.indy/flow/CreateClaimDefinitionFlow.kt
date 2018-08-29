@@ -1,44 +1,41 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-
 import net.corda.core.flows.FlowException
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
 
-data class CreateClaimDefFlowResult(val credDefId: String, val revRegId: String)
+/**
+ * An abstraction over flow result
+ *
+ * @param credDefId         Credential definition id
+ * @param revRegId          Revocation registry id
+ */
+data class CreateClaimDefinitionFlowResult(val credDefId: String, val revRegId: String)
 
 /**
- * Flows to create a credential definition for a schema
+ * Flow to create a credential definition and revocation registry for a schema
  * */
-object CreateClaimDefFlow {
-
+object CreateClaimDefinitionFlow {
 
     /**
-     * A flow to create a credential definition for schema [schemaDetails]
-     * and register it with an artifact registry [artifactoryName]
+     * @param schemaId          Id of target schema
+     * @param maxCredNumber     Maximum number of issued claims per schema
      *
-     * @returns credential definition ID
+     * @returns credential definition ID and revocation registry ID
      * */
     @InitiatingFlow
     @StartableByRPC
-    class Authority(private val schemaId: String,
-                    private val maxCredNumber: Int = 100
-    ) : FlowLogic<CreateClaimDefFlowResult>() {
+    class Authority(private val schemaId: String, private val maxCredNumber: Int = 100) : FlowLogic<CreateClaimDefinitionFlowResult>() {
 
         @Suspendable
-        override fun call(): CreateClaimDefFlowResult {
+        override fun call(): CreateClaimDefinitionFlowResult {
             try {
-                // get schema Id from Artifactory
-                val schemaId = getSchemaId(schemaDetails, artifactoryName)
-
                 val credDef = indyUser().createClaimDefinition(schemaId, true)
-                val credDefJson = SerializationUtils.anyToJSON(credDef)
+                val revReg = indyUser().createRevocationRegistry(credDef.id, maxCredNumber)
 
-                val revReg = indyUser().createRevocationRegistry(credDef, maxCredNumber)
-
-                return CreateClaimDefFlowResult(credDef.id, revReg.definition.id)
+                return CreateClaimDefinitionFlowResult(credDef.id, revReg.definition.id)
 
             } catch (t: Throwable) {
                 logger.error("", t)

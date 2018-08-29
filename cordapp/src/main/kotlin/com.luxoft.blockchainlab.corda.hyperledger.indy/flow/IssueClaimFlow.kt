@@ -36,6 +36,7 @@ object IssueClaimFlow {
      *                          }
      *                          See `credValuesJson` in [org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredential]
      *
+     * @param revRegId          Claim's revocation registry definition id
      * @param proverName        the node that can prove this credential
      *
      * @note Flows starts by Issuer.
@@ -44,11 +45,12 @@ object IssueClaimFlow {
      * */
     @InitiatingFlow
     @StartableByRPC
-    open class Issuer(private val identifier: String,
-                      private val credDefId: String,
-                      private val credProposal: String,
-                      private val revRegId: String,
-                      private val proverName: CordaX500Name
+    open class Issuer(
+            private val identifier: String,
+            private val credDefId: String,
+            private val credProposal: String,
+            private val revRegId: String,
+            private val proverName: CordaX500Name
     ) : FlowLogic<String>() {
 
         @Suspendable
@@ -86,7 +88,7 @@ object IssueClaimFlow {
 
                 return (newClaimOut.state as IndyClaim).claimInfo.credRevocId!!
 
-            } catch(ex: Exception) {
+            } catch (ex: Exception) {
                 logger.error("", ex)
                 throw FlowException(ex.message)
             }
@@ -94,7 +96,7 @@ object IssueClaimFlow {
     }
 
     @InitiatedBy(Issuer::class)
-    open class Prover (private val flowSession: FlowSession) : FlowLogic<Unit>() {
+    open class Prover(private val flowSession: FlowSession) : FlowLogic<Unit>() {
 
         @Suspendable
         override fun call() {
@@ -111,9 +113,9 @@ object IssueClaimFlow {
                     override fun checkTransaction(stx: SignedTransaction) {
                         val output = stx.tx.toLedgerTransaction(serviceHub).outputs.singleOrNull()
                         val state = output!!.data
-                        when(state) {
+                        when (state) {
                             is IndyClaim -> {
-                                require(state.claimRequestInfo == claimRequestInfo) { "Received incorrected ClaimReq"}
+                                require(state.claimRequestInfo == claimRequestInfo) { "Received incorrected ClaimReq" }
                                 indyUser().receiveClaim(state.claimInfo, state.claimRequestInfo, offer)
                             }
                             else -> throw FlowException("invalid output state. IndyClaim is expected")

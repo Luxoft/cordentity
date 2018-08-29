@@ -21,26 +21,26 @@ object VerifyClaimFlow {
 
     /**
      * A proof of a string Attribute with an optional check against [value]
-     * The Attribute is contained in a field [field] in a schema by [schemaDetails] in a credential definition by [credDefOwner]
+     * The Attribute is contained in a field [field] in a schema by [schemaId] in a credential definition by [credDefOwner]
      *
      * @param value             an optional value the Attribute is checked against
      * @param field             the name of the field that provides this Attribute
      * @param schemaId          id of the Schema that contains field [field]
      * @param credDefId         id of the Credential Definition that produced by issuer
-     * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaDetails]
+     * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaId]
      * */
     @CordaSerializable
     data class ProofAttribute(val schemaId: String, val credDefId: String, val credDefOwner: String, val field: String, val value: String = "")
 
     /**
      * A proof of a logical Predicate on an integer Attribute in the form `Attribute >= [value]`
-     * The Attribute is contained in a field [field] in a schema by [schemaDetails] in a credential definition by [credDefOwner]
+     * The Attribute is contained in a field [field] in a schema by [schemaId] in a credential definition by [credDefOwner]
      *
      * @param value             value in the predicate to compare the Attribute against
      * @param field             the name of the field that provides the Attribute
      * @param schemaId          id of the Schema that contains field [field]
      * @param credDefId         id of the Credential Definition that produced by issuer
-     * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaDetails]
+     * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaId]
      * */
     @CordaSerializable
     data class ProofPredicate(val schemaId: String, val credDefId: String, val credDefOwner: String, val field: String, val value: Int)
@@ -53,6 +53,9 @@ object VerifyClaimFlow {
      * @param predicates        unordered list of predicates that will be checked
      * @param proverName        node that will prove the credentials
      *
+     * @param nonRevoked        <optional> time interval to verify non-revocation
+     *                          if not specified then revocation is not verified
+     *
      * @returns TRUE if verification succeeds
      * */
     @InitiatingFlow
@@ -61,8 +64,8 @@ object VerifyClaimFlow {
             private val identifier: String,
             private val attributes: List<ProofAttribute>,
             private val predicates: List<ProofPredicate>,
-            private val nonRevoked: Interval = Interval.recent(),
-            private val proverName: CordaX500Name
+            private val proverName: CordaX500Name,
+            private val nonRevoked: Interval? = null
     ) : FlowLogic<Boolean>() {
 
         @Suspendable

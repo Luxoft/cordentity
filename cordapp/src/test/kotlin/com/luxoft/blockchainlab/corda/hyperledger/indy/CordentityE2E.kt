@@ -4,7 +4,6 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
 import com.luxoft.blockchainlab.hyperledger.indy.Interval
-import com.luxoft.blockchainlab.hyperledger.indy.SchemaDetails
 import com.natpryce.konfig.Configuration
 import com.natpryce.konfig.ConfigurationMap
 import com.natpryce.konfig.TestConfigurationsProvider
@@ -16,9 +15,11 @@ import net.corda.testing.core.singleIdentity
 import net.corda.testing.node.internal.InternalMockNetwork
 import net.corda.testing.node.internal.InternalMockNetwork.MockNode
 import net.corda.testing.node.internal.startFlow
-import org.junit.*
+import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
 import java.time.Duration
 import java.util.*
 import kotlin.math.absoluteValue
@@ -44,7 +45,8 @@ class CordentityE2E {
 
         net = InternalMockNetwork(
                 cordappPackages = listOf("com.luxoft.blockchainlab.corda.hyperledger.indy"),
-                networkParameters = testNetworkParameters(maxTransactionSize = 10485760 * 5))
+                networkParameters = testNetworkParameters(maxTransactionSize = 10485760 * 5)
+        )
 
         notary = net.defaultNotaryNode
 
@@ -100,45 +102,40 @@ class CordentityE2E {
         }
     }
 
-
-    private fun setPermissions(issuer: StartedNode<MockNode>,
-                               authority: StartedNode<MockNode>) {
-        val permissionsFuture = issuer.services.startFlow(AssignPermissionsFlow.Issuer(
-                authority = authority.info.singleIdentity().name, role = "TRUSTEE")).resultFuture
+    private fun setPermissions(issuer: StartedNode<MockNode>, authority: StartedNode<MockNode>) {
+        val permissionsFuture = issuer.services.startFlow(
+                AssignPermissionsFlow.Issuer(authority = authority.info.singleIdentity().name, role = "TRUSTEE")
+        ).resultFuture
 
         net.runNetwork()
         permissionsFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
-    private fun issueSchemaAndClaimDef(schemaOwner: StartedNode<MockNode>,
-                                       claimDefOwner: StartedNode<MockNode>,
-                                       schema: Schema): CreateClaimDefFlowResult {
-
-        // create schema
+    private fun issueSchema(schemaOwner: StartedNode<MockNode>, schema: Schema): String {
         val schemaFuture = schemaOwner.services.startFlow(
-                CreateSchemaFlow.Authority(
-                        schema.schemaName,
-                        schema.schemaVersion,
-                        schema.schemaAttrs)
+                CreateSchemaFlow.Authority(schema.schemaName, schema.schemaVersion, schema.schemaAttrs)
         ).resultFuture
 
         net.runNetwork()
-        val schemaId = schemaFuture.getOrThrow(Duration.ofSeconds(30))
+        return schemaFuture.getOrThrow(Duration.ofSeconds(30))
+    }
 
-        // create credential definition
+    private fun issueClaimDefinition(claimDefOwner: StartedNode<MockNode>, schemaId: String): CreateClaimDefinitionFlowResult {
         val claimDefFuture = claimDefOwner.services.startFlow(
-                CreateClaimDefFlow.Authority(schemaId)
+                CreateClaimDefinitionFlow.Authority(schemaId)
         ).resultFuture
 
         net.runNetwork()
         return claimDefFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
-    private fun issueClaim(claimProver: StartedNode<MockNode>,
-                           claimIssuer: StartedNode<MockNode>,
-                           claimProposal: String,
-                           claimDefId: String,
-                           revRegId: String): String {
+    private fun issueClaim(
+            claimProver: StartedNode<MockNode>,
+            claimIssuer: StartedNode<MockNode>,
+            claimProposal: String,
+            claimDefId: String,
+            revRegId: String
+    ): String {
 
         val identifier = UUID.randomUUID().toString()
 
@@ -170,11 +167,13 @@ class CordentityE2E {
         flowResult.getOrThrow(Duration.ofSeconds(30))
     }
 
-    private fun verifyClaim(verifier: StartedNode<MockNode>,
-                            prover: StartedNode<MockNode>,
-                            nonRevoked: Interval,
-                            attributes: List<VerifyClaimFlow.ProofAttribute>,
-                            predicates: List<VerifyClaimFlow.ProofPredicate>): Boolean {
+    private fun verifyClaim(
+            verifier: StartedNode<MockNode>,
+            prover: StartedNode<MockNode>,
+            attributes: List<VerifyClaimFlow.ProofAttribute>,
+            predicates: List<VerifyClaimFlow.ProofPredicate>,
+            nonRevoked: Interval? = null
+    ): Boolean {
         val identifier = UUID.randomUUID().toString()
 
         val proofCheckResultFuture = verifier.services.startFlow(
@@ -182,8 +181,8 @@ class CordentityE2E {
                         identifier,
                         attributes,
                         predicates,
-                        nonRevoked,
-                        prover.getName()
+                        prover.getName(),
+                        nonRevoked
                 )
         ).resultFuture
 
@@ -200,31 +199,34 @@ class CordentityE2E {
         val schemaPerson = SchemaPerson()
         val schemaEducation = SchemaEducation()
 
-        val claimDefResult1 = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
-        val claimDefResult2 = issueSchemaAndClaimDef(issuer, bob, schemaEducation)
+        val personSchemaId = issueSchema(issuer, schemaPerson)
+        val educationSchemaId = issueSchema(issuer, schemaEducation)
+
+        val (personClaimDefId, personRevRegId) = issueClaimDefinition(issuer, personSchemaId)
+        val (educationClaimDefId, educationRevRegId) = issueClaimDefinition(bob, educationSchemaId)
 
         // Issue claim #1
         var claimProposal = schemaPerson.formatProposal(attr1.key, "119191919", pred1.key, pred1.key)
 
-        issueClaim(alice, issuer, issuer, claimProposal, claimDefResult1.revRegId)
+        issueClaim(alice, issuer, claimProposal, personClaimDefId, personRevRegId)
 
         // Issue claim #2
         claimProposal = schemaEducation.formatProposal(attr2.key, "119191918", pred2.key, pred2.key)
 
-        issueClaim(alice, bob, issuer, claimProposal, schemaEducation, claimDefResult2.revRegId)
+        issueClaim(alice, bob, claimProposal, educationClaimDefId, educationRevRegId)
 
         // Verify claims
         val attributes = listOf(
-                VerifyClaimFlow.ProofAttribute(personSchemaId, personCredDefId, issuer.getPartyDid(), schemaPerson.schemaAttr1, attr1.value),
-                VerifyClaimFlow.ProofAttribute(educationSchemaId, educationCredDefId, bob.getPartyDid(), schemaEducation.schemaAttr1, attr2.value)
+                VerifyClaimFlow.ProofAttribute(personSchemaId, personClaimDefId, issuer.getPartyDid(), schemaPerson.schemaAttr1, attr1.value),
+                VerifyClaimFlow.ProofAttribute(educationSchemaId, educationClaimDefId, bob.getPartyDid(), schemaEducation.schemaAttr1, attr2.value)
         )
 
         val predicates = listOf(
-                VerifyClaimFlow.ProofPredicate(personSchemaId, personCredDefId, issuer.getPartyDid(), schemaPerson.schemaAttr2, pred1.value.toInt()),
-                VerifyClaimFlow.ProofPredicate(educationSchemaId, educationCredDefId, bob.getPartyDid(), schemaEducation.schemaAttr2, pred2.value.toInt())
+                VerifyClaimFlow.ProofPredicate(personSchemaId, personClaimDefId, issuer.getPartyDid(), schemaPerson.schemaAttr2, pred1.value.toInt()),
+                VerifyClaimFlow.ProofPredicate(educationSchemaId, educationClaimDefId, bob.getPartyDid(), schemaEducation.schemaAttr2, pred2.value.toInt())
         )
 
-        return verifyClaim(bob, alice, Interval.allTime(), attributes, predicates)
+        return verifyClaim(bob, alice, attributes, predicates, Interval.allTime())
     }
 
     @Test
@@ -271,24 +273,29 @@ class CordentityE2E {
 
         val schemaPerson = SchemaPerson()
 
-        // Verify ClaimSchema & Defs
-        val claimDefResult = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+        // issue schema
+        val schemaId = issueSchema(issuer, schemaPerson)
+
+        // issuer claim definition
+        val (claimDefId, revRegId) = issueClaimDefinition(issuer, schemaId)
 
         // Issue claim
         val schemaAttrInt = "1988"
         val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, claimDefResult.revRegId)
+        issueClaim(alice, issuer, claimProposal, claimDefId, revRegId)
 
         // Verify claim
         val attributes = listOf(
-                VerifyClaimFlow.ProofAttribute(personSchemaId, personCredDefId, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith"))
+                VerifyClaimFlow.ProofAttribute(schemaId, claimDefId, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith")
+        )
 
         val predicates = listOf(
                 // -10 to check >=
-                VerifyClaimFlow.ProofPredicate(personSchemaId, personCredDefId, issuer.getPartyDid(), schemaPerson.schemaAttr2, schemaAttrInt.toInt() - 10))
+                VerifyClaimFlow.ProofPredicate(schemaId, claimDefId, issuer.getPartyDid(), schemaPerson.schemaAttr2, schemaAttrInt.toInt() - 10)
+        )
 
-        val claimVerified = verifyClaim(bob, alice, Interval.allTime(), attributes, predicates)
+        val claimVerified = verifyClaim(bob, alice, attributes, predicates, Interval.allTime())
         assertTrue(claimVerified)
     }
 
@@ -297,36 +304,36 @@ class CordentityE2E {
 
         val schemaPerson = SchemaPerson()
 
-        // Verify ClaimSchema & Defs
-        val claimDefResult = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+        // issue schema
+        val schemaId = issueSchema(issuer, schemaPerson)
+
+        // issuer claim definition
+        val (claimDefId, revRegId) = issueClaimDefinition(issuer, schemaId)
 
         // Issue claim
         val schemaAttrInt = "1988"
         val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        val credRevId = issueClaim(alice, issuer, issuer, claimProposal, schemaPerson, claimDefResult.revRegId)
+        val credRevId = issueClaim(alice, issuer, claimProposal, claimDefId, revRegId)
 
         // Verify claim
-        val schemaOwner = issuer.getPartyDid()
-        val schemaDetails = SchemaDetails(schemaPerson.schemaName, schemaPerson.schemaVersion, schemaOwner)
-
         val attributes = listOf(
-                VerifyClaimFlow.ProofAttribute(schemaDetails, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith")
+                VerifyClaimFlow.ProofAttribute(schemaId, claimDefId, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith")
         )
 
         val predicates = listOf(
                 // -10 to check >=
-                VerifyClaimFlow.ProofPredicate(schemaDetails, issuer.getPartyDid(), schemaPerson.schemaAttr2, schemaAttrInt.toInt() - 10)
+                VerifyClaimFlow.ProofPredicate(schemaId, claimDefId, issuer.getPartyDid(), schemaPerson.schemaAttr2, schemaAttrInt.toInt() - 10)
         )
 
-        val claimVerified = verifyClaim(bob, alice, Interval.allTime(), attributes, predicates)
+        val claimVerified = verifyClaim(bob, alice, attributes, predicates, Interval.allTime())
         assertTrue(claimVerified)
 
-        revokeClaim(issuer, claimDefResult.revRegId, credRevId)
+        revokeClaim(issuer, revRegId, credRevId)
 
         Thread.sleep(3000)
 
-        val claimAfterRevocationVerified = verifyClaim(bob, alice, Interval.recent(), attributes, predicates)
+        val claimAfterRevocationVerified = verifyClaim(bob, alice, attributes, predicates, Interval.recent())
         assertFalse(claimAfterRevocationVerified)
     }
 
@@ -336,33 +343,36 @@ class CordentityE2E {
         val schemaPerson = SchemaPerson()
         val schemaEducation = SchemaEducation()
 
-        val claimDefResult1 = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
-        val claimDefResult2 = issueSchemaAndClaimDef(issuer, issuer, schemaEducation)
+        val personSchemaId = issueSchema(issuer, schemaPerson)
+        val educationSchemaId = issueSchema(issuer, schemaEducation)
+
+        val (personClaimDefId, personRevRegId) = issueClaimDefinition(issuer, personSchemaId)
+        val (educationClaimDefId, educationRevRegId) = issueClaimDefinition(issuer, educationSchemaId)
 
         // Issue claim #1
         val schemaPersonAttrInt = "1988"
         var claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaPersonAttrInt, schemaPersonAttrInt)
 
-        issueClaim(alice, issuer, claimProposal, personCredDefId)
+        issueClaim(alice, issuer, claimProposal, personClaimDefId, personRevRegId)
 
         // Issue claim #2
         val schemaEducationAttrInt = "2016"
         claimProposal = schemaEducation.formatProposal("University", "119191918", schemaEducationAttrInt, schemaEducationAttrInt)
 
-        issueClaim(alice, issuer, claimProposal, educationCredDefId)
+        issueClaim(alice, issuer, claimProposal, educationClaimDefId, educationRevRegId)
 
         // Verify claims
         val attributes = listOf(
-                VerifyClaimFlow.ProofAttribute(personSchemaId, personCredDefId, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith"),
-                VerifyClaimFlow.ProofAttribute(educationSchemaId, educationCredDefId, issuer.getPartyDid(), schemaEducation.schemaAttr1, "University")
+                VerifyClaimFlow.ProofAttribute(personSchemaId, personClaimDefId, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith"),
+                VerifyClaimFlow.ProofAttribute(educationSchemaId, educationClaimDefId, issuer.getPartyDid(), schemaEducation.schemaAttr1, "University")
         )
 
         val predicates = listOf(
                 // -10 to check >=
-                VerifyClaimFlow.ProofPredicate(personSchemaId, personCredDefId, issuer.getPartyDid(), schemaPerson.schemaAttr2, schemaPersonAttrInt.toInt() - 10),
-                VerifyClaimFlow.ProofPredicate(educationSchemaId, educationCredDefId, issuer.getPartyDid(), schemaEducation.schemaAttr2, schemaEducationAttrInt.toInt() - 10))
+                VerifyClaimFlow.ProofPredicate(personSchemaId, personClaimDefId, issuer.getPartyDid(), schemaPerson.schemaAttr2, schemaPersonAttrInt.toInt() - 10),
+                VerifyClaimFlow.ProofPredicate(educationSchemaId, educationClaimDefId, issuer.getPartyDid(), schemaEducation.schemaAttr2, schemaEducationAttrInt.toInt() - 10))
 
-        val claimVerified = verifyClaim(bob, alice, Interval.allTime(), attributes, predicates)
+        val claimVerified = verifyClaim(bob, alice, attributes, predicates, Interval.allTime())
         assertTrue(claimVerified)
     }
 
@@ -371,21 +381,21 @@ class CordentityE2E {
 
         val schemaPerson = SchemaPerson()
 
-        // Verify ClaimSchema & Defs
-        val claimDefResult1 = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+        val schemaId = issueSchema(issuer, schemaPerson)
+        val (claimDefId, revRegId) = issueClaimDefinition(issuer, schemaId)
 
         // Issue claim
         val schemaAttrInt = "1988"
         val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        issueClaim(alice, issuer, claimProposal, personCredDefId)
+        issueClaim(alice, issuer, claimProposal, claimDefId, revRegId)
 
         // Verify claim
         val attributes = listOf(
-                VerifyClaimFlow.ProofAttribute(personSchemaId, personCredDefId, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith")
+                VerifyClaimFlow.ProofAttribute(schemaId, claimDefId, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith")
         )
 
-        val claimVerified = verifyClaim(bob, alice, Interval.allTime(), attributes, emptyList())
+        val claimVerified = verifyClaim(bob, alice, attributes, emptyList(), Interval.allTime())
         assertTrue(claimVerified)
     }
 
@@ -394,22 +404,22 @@ class CordentityE2E {
 
         val schemaPerson = SchemaPerson()
 
-        // Verify ClaimSchema & Defs
-        val claimDefResult = issueSchemaAndClaimDef(issuer, issuer, schemaPerson)
+        val schemaId = issueSchema(issuer, schemaPerson)
+        val (claimDefId, revRegId) = issueClaimDefinition(issuer, schemaId)
 
         // Issue claim
         val schemaAttrInt = "1988"
         val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        issueClaim(alice, issuer, claimProposal, personCredDefId)
+        issueClaim(alice, issuer, claimProposal, claimDefId, revRegId)
 
         // Verify claim
         val attributes = listOf(
-                VerifyClaimFlow.ProofAttribute(personSchemaId, personCredDefId, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith"),
-                VerifyClaimFlow.ProofAttribute(personSchemaId, personCredDefId, issuer.getPartyDid(), schemaPerson.schemaAttr2, "")
+                VerifyClaimFlow.ProofAttribute(schemaId, claimDefId, issuer.getPartyDid(), schemaPerson.schemaAttr1, "John Smith"),
+                VerifyClaimFlow.ProofAttribute(schemaId, claimDefId, issuer.getPartyDid(), schemaPerson.schemaAttr2, "")
         )
 
-        val claimVerified = verifyClaim(bob, alice, Interval.allTime(), attributes, emptyList())
+        val claimVerified = verifyClaim(bob, alice, attributes, emptyList(), Interval.allTime())
         assertTrue(claimVerified)
     }
 }
