@@ -10,10 +10,15 @@ import net.corda.core.utilities.unwrap
 
 
 /**
- * A flow to request the DID (Decentralized ID) of another Corda party [authority]
+ * Flows to request the DID (Decentralized ID) of a Corda party
  **/
 object GetDidFlow {
 
+    /**
+     * A flow to request the DID (Decentralized ID) of another Corda party [authority]
+     *
+     * @returns DID of the [authority] node
+     **/
     @InitiatingFlow
     @StartableByRPC
     open class Initiator(private val authority: CordaX500Name) : FlowLogic<String>() {
@@ -26,7 +31,6 @@ object GetDidFlow {
 
                 return flowSession.receive<String>().unwrap {
                     val identityDetails = SerializationUtils.jSONToAny<IndyUser.IdentityDetails>(it)
-                            ?: throw RuntimeException("Unable to parse identity details from json")
 
                     identityDetails.did
                 }

@@ -14,10 +14,6 @@ data class CredFieldRef(val fieldName: String, val schemaId: String, val credDef
 @CordaSerializable
 data class CredPredicate(val fieldRef: CredFieldRef, val value: Int, val type: String = ">=")
 
-@CordaSerializable
-data class SchemaDetails(val name: String, val version: String, val owner: String) {
-    val filter = """{name:$name,version:$version,owner:$owner}"""
-}
 
 @CordaSerializable
 data class CredentialDefDetails(val schemaSeqNo: String, val owner: String) {
@@ -54,15 +50,15 @@ data class CredentialDefDetails(val schemaSeqNo: String, val owner: String) {
  * }
  **/
 @CordaSerializable
-data class KeyCorrectnessProof(val c: String, val xzCap: String, val xrCap: List<List<String>>)
-
-@CordaSerializable
 data class ClaimOffer(
         val schemaId: String,
         val credDefId: String,
         val keyCorrectnessProof: KeyCorrectnessProof,
         val nonce: String
 )
+
+@CordaSerializable
+data class KeyCorrectnessProof(val c: String, val xzCap: String, val xrCap: List<List<String>>)
 
 /**
  * Example of credential json
@@ -106,12 +102,6 @@ data class ClaimOffer(
  *   "witness":null
  *  }
  */
-
-typealias RawJsonMap = Map<String, Any?>
-
-@CordaSerializable
-data class ClaimValue(val raw: String, val encoded: String)
-
 @CordaSerializable
 data class Claim(
         val schemaId: String,
@@ -123,6 +113,11 @@ data class Claim(
         val signature: Map<String, RawJsonMap?>,
         val signatureCorrectnessProof: RawJsonMap
 )
+
+typealias RawJsonMap = Map<String, String?>
+
+@CordaSerializable
+data class ClaimValue(val raw: String, val encoded: String)
 
 @CordaSerializable
 data class ClaimInfo(
@@ -160,6 +155,11 @@ data class ClaimInfo(
  *  "master_secret_name":"masterSecretId"
  * }
  **/
+@CordaSerializable
+data class ClaimRequestInfo(
+        val request: ClaimRequest,
+        val metadata: ClaimRequestMetadata
+)
 
 @CordaSerializable
 data class ClaimRequest(
@@ -175,12 +175,6 @@ data class ClaimRequestMetadata(
         val masterSecretBlindingData: RawJsonMap,
         val masterSecretName: String,
         val nonce: String
-)
-
-@CordaSerializable
-data class ClaimRequestInfo(
-        val request: ClaimRequest,
-        val metadata: ClaimRequestMetadata
 )
 
 /**
@@ -260,6 +254,12 @@ data class ClaimRequestInfo(
  * }
  */
 @CordaSerializable
+data class ProofRequestCredentials(
+        val attrs: Map<String, List<ClaimReferenceInfo>>,
+        val predicates: Map<String, List<ClaimReferenceInfo>>
+)
+
+@CordaSerializable
 data class ClaimReferenceInfo(val credInfo: ClaimReference, val interval: Interval? = null)
 
 @CordaSerializable
@@ -270,12 +270,6 @@ data class ClaimReference(
         val attrs: RawJsonMap,
         val credRevId: String?,
         val revRegId: String?
-)
-
-@CordaSerializable
-data class ProofRequestCredentials(
-        val attrs: Map<String, List<ClaimReferenceInfo>>,
-        val predicates: Map<String, List<ClaimReferenceInfo>>
 )
 
 @CordaSerializable
@@ -358,23 +352,6 @@ data class RequestedPredicateInfo(
  *         "cred_def_id": string, (Optional)
  *     }
  * */
-abstract class AbstractClaimReference(
-        open val name: String,
-        open val schemaId: String
-)
-
-@CordaSerializable
-data class ClaimFieldReference(
-        override val name: String,
-        @JsonIgnore override val schemaId: String
-) : AbstractClaimReference(name, schemaId)
-@CordaSerializable
-data class ClaimPredicateReference(
-        override val name: String,
-        val p_type: String,
-        val p_value: Int,
-        @JsonIgnore override val schemaId: String
-) : AbstractClaimReference(name, schemaId)
 @CordaSerializable
 data class ProofRequest(
         val version: String,
@@ -383,6 +360,25 @@ data class ProofRequest(
         val requestedAttributes: Map<String, ClaimFieldReference>,
         val requestedPredicates: Map<String, ClaimPredicateReference>,
         val nonRevoked: Interval? // ignoring 'from' for now
+)
+
+@CordaSerializable
+data class ClaimFieldReference(
+        override val name: String,
+        @JsonIgnore override val schemaId: String
+) : AbstractClaimReference(name, schemaId)
+
+@CordaSerializable
+data class ClaimPredicateReference(
+        override val name: String,
+        val p_type: String,
+        val p_value: Int,
+        @JsonIgnore override val schemaId: String
+) : AbstractClaimReference(name, schemaId)
+
+abstract class AbstractClaimReference(
+        open val name: String,
+        open val schemaId: String
 )
 
 @CordaSerializable
@@ -556,6 +552,12 @@ object Timestamp {
  *  ]
  * }
  **/
+@CordaSerializable
+data class ParsedProof(
+        val proof: Proof,
+        val requestedProof: RequestedProof,
+        val identifiers: List<ProofIdentifier>
+)
 
 @CordaSerializable
 data class ProofInfo(
@@ -563,13 +565,6 @@ data class ProofInfo(
 ) {
     @JsonIgnore fun isAttributeExists(value: String) = proofData.requestedProof.revealedAttrs.values.any { it.raw == value }
 }
-
-@CordaSerializable
-data class ParsedProof(
-        val proof: Proof,
-        val requestedProof: RequestedProof,
-        val identifiers: List<ProofIdentifier>
-)
 
 @CordaSerializable
 data class ProofIdentifier(val schemaId: String, val credDefId: String, val revRegId: String?, val timestamp: Int?)

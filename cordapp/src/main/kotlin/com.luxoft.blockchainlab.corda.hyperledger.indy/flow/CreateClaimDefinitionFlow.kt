@@ -1,27 +1,31 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyArtifactsRegistry
-import com.luxoft.blockchainlab.hyperledger.indy.SchemaDetails
-import com.luxoft.blockchainlab.hyperledger.indy.utils.SerializationUtils
+
 import net.corda.core.flows.FlowException
 import net.corda.core.flows.FlowLogic
 import net.corda.core.flows.InitiatingFlow
 import net.corda.core.flows.StartableByRPC
-import net.corda.core.identity.CordaX500Name
 
 data class CreateClaimDefFlowResult(val credDefId: String, val revRegId: String)
 
 /**
- * A flow to create a credential definition for schema [schemaDetails] and register it with an artifact registry [artifactoryName]
+ * Flows to create a credential definition for a schema
  * */
 object CreateClaimDefFlow {
 
+
+    /**
+     * A flow to create a credential definition for schema [schemaDetails]
+     * and register it with an artifact registry [artifactoryName]
+     *
+     * @returns credential definition ID
+     * */
     @InitiatingFlow
     @StartableByRPC
-    class Authority(private val schemaDetails: SchemaDetails,
-                    private val maxCredNumber: Int = 100,
-                    private val artifactoryName: CordaX500Name) : FlowLogic<CreateClaimDefFlowResult>() {
+    class Authority(private val schemaId: String,
+                    private val maxCredNumber: Int = 100
+    ) : FlowLogic<CreateClaimDefFlowResult>() {
 
         @Suspendable
         override fun call(): CreateClaimDefFlowResult {
@@ -31,12 +35,6 @@ object CreateClaimDefFlow {
 
                 val credDef = indyUser().createClaimDefinition(schemaId, true)
                 val credDefJson = SerializationUtils.anyToJSON(credDef)
-
-                // put definition on Artifactory
-                val definitionReq = IndyArtifactsRegistry.PutRequest(
-                        IndyArtifactsRegistry.ARTIFACT_TYPE.Definition, credDefJson
-                )
-                subFlow(ArtifactsRegistryFlow.ArtifactCreator(definitionReq, artifactoryName))
 
                 val revReg = indyUser().createRevocationRegistry(credDef, maxCredNumber)
 

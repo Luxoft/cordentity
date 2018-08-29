@@ -15,7 +15,7 @@ import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.unwrap
 
 /**
- * A flow to verify a set of predicates [predicates] on a set of attributes [attributes]
+ * Flows to verify predicates on attributes
  * */
 object VerifyClaimFlow {
 
@@ -25,11 +25,12 @@ object VerifyClaimFlow {
      *
      * @param value             an optional value the Attribute is checked against
      * @param field             the name of the field that provides this Attribute
-     * @param schemaDetails     details of the Schema that contains field [field]
+     * @param schemaId          id of the Schema that contains field [field]
+     * @param credDefId         id of the Credential Definition that produced by issuer
      * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaDetails]
      * */
     @CordaSerializable
-    data class ProofAttribute(val schemaDetails: SchemaDetails, val credDefOwner: String, val field: String, val value: String = "")
+    data class ProofAttribute(val schemaId: String, val credDefId: String, val credDefOwner: String, val field: String, val value: String = "")
 
     /**
      * A proof of a logical Predicate on an integer Attribute in the form `Attribute >= [value]`
@@ -37,12 +38,23 @@ object VerifyClaimFlow {
      *
      * @param value             value in the predicate to compare the Attribute against
      * @param field             the name of the field that provides the Attribute
-     * @param schemaDetails     details of the Schema that contains field [field]
+     * @param schemaId          id of the Schema that contains field [field]
+     * @param credDefId         id of the Credential Definition that produced by issuer
      * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaDetails]
      * */
     @CordaSerializable
-    data class ProofPredicate(val schemaDetails: SchemaDetails, val credDefOwner: String, val field: String, val value: Int)
+    data class ProofPredicate(val schemaId: String, val credDefId: String, val credDefOwner: String, val field: String, val value: Int)
 
+    /**
+     * A flow to verify a set of predicates [predicates] on a set of attributes [attributes]
+     *
+     * @param identifier        new unique ID for the new proof to allow searching Proofs by [identifier]
+     * @param attributes        unordered list of attributes that are needed for verification
+     * @param predicates        unordered list of predicates that will be checked
+     * @param proverName        node that will prove the credentials
+     *
+     * @returns TRUE if verification succeeds
+     * */
     @InitiatingFlow
     @StartableByRPC
     open class Verifier(
@@ -50,8 +62,7 @@ object VerifyClaimFlow {
             private val attributes: List<ProofAttribute>,
             private val predicates: List<ProofPredicate>,
             private val nonRevoked: Interval = Interval.recent(),
-            private val proverName: CordaX500Name,
-            private val artifactoryName: CordaX500Name
+            private val proverName: CordaX500Name
     ) : FlowLogic<Boolean>() {
 
         @Suspendable
@@ -60,8 +71,14 @@ object VerifyClaimFlow {
                 val prover: Party = whoIs(proverName)
                 val flowSession: FlowSession = initiateFlow(prover)
 
-                val fieldRefAttr = fieldRefFromAttributes(attributes)
-                val fieldRefPred = fieldRefFromPredicates(predicates)
+                val fieldRefAttr = attributes.map {
+                    CredFieldRef(it.field, it.schemaId, it.credDefId)
+                }
+
+                val fieldRefPred =  predicates.map {
+                    val fieldRef = CredFieldRef(it.field, it.schemaId, it.credDefId)
+                    CredPredicate(fieldRef, it.value)
+                }
 
                 val proofRequest = IndyUser.createProofRequest(
                         attributes = fieldRefAttr,
@@ -104,27 +121,9 @@ object VerifyClaimFlow {
                 return true
 
             } catch (e: Exception) {
-                e.printStackTrace()
+                logger.error("", e)
                 return false
             }
-        }
-
-        @Suspendable
-        private fun fieldRefFromAttributes(attributes: List<ProofAttribute>) = attributes.map {
-            val schemaId = getSchemaId(it.schemaDetails, artifactoryName)
-            val credDefId = getCredDefId(schemaId, it.credDefOwner, artifactoryName)
-
-            CredFieldRef(it.field, schemaId, credDefId)
-        }
-
-        @Suspendable
-        private fun fieldRefFromPredicates(predicates: List<VerifyClaimFlow.ProofPredicate>) = predicates.map {
-            val schemaId = getSchemaId(it.schemaDetails, artifactoryName)
-            val credDefId = getCredDefId(schemaId, it.credDefOwner, artifactoryName)
-
-            val fieldRef = CredFieldRef(it.field, schemaId, credDefId)
-
-            CredPredicate(fieldRef, it.value)
         }
     }
 
