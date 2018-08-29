@@ -29,7 +29,6 @@ class ClaimChecker : Contract {
         when(command) {
             is Commands.Verify -> verification(tx, signers, command.expectedAttrs)
             is Commands.Issue -> creation(tx, signers)
-            is Commands.Revoke -> revocation(tx, signers)
             else -> throw IllegalArgumentException("Unrecognised command.")
         }
     }
@@ -55,13 +54,8 @@ class ClaimChecker : Contract {
         // TODO: Probably can check something here too...
     }
 
-    private fun revocation(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {
-        // TODO: Probably can check something here too...
-    }
-
     interface Commands : CommandData {
         data class Verify(val expectedAttrs: List<ExpectedAttr>) : Commands
         class Issue: Commands
-        class Revoke: Commands
     }
 }

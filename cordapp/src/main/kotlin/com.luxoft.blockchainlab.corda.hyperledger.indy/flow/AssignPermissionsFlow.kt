@@ -21,7 +21,6 @@ import net.corda.core.utilities.unwrap
  *                     TRUST_ANCHOR
  *                     empty string to reset role
  *
- *  TODO: investigate what does `NYM` mean in Indy
  * */
 object AssignPermissionsFlow {
 

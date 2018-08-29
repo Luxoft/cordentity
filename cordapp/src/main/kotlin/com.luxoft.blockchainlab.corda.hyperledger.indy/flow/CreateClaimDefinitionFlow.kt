@@ -29,8 +29,6 @@ object CreateClaimDefFlow {
                 // get schema Id from Artifactory
                 val schemaId = getSchemaId(schemaDetails, artifactoryName)
 
-                // TODO: check if claimDef already exist
-
                 val credDef = indyUser().createClaimDefinition(schemaId, true)
                 val credDefJson = SerializationUtils.anyToJSON(credDef)
 

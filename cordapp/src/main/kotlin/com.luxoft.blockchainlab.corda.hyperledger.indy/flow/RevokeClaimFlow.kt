@@ -1,9 +1,7 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
-import net.corda.core.contracts.Command
+import co.paralleluniverse.fibers.Suspendable
 import net.corda.core.flows.*
-import net.corda.core.transactions.TransactionBuilder
 
 
 object RevokeClaimFlow {
@@ -13,26 +11,11 @@ object RevokeClaimFlow {
             private val revRegId: String,
             private val credRevId: String
     ) : FlowLogic<Unit>() {
+        @Suspendable
         override fun call() {
             try {
+
                 indyUser().revokeClaim(revRegId, credRevId)
-
-                val newClaimData = ClaimChecker.Commands.Revoke()
-                val newClaimSigners = listOf(ourIdentity.owningKey)
-
-                val newClaimCmd = Command(newClaimData, newClaimSigners)
-
-                val trxBuilder = TransactionBuilder(whoIsNotary())
-                        .withItems(newClaimCmd)
-
-                trxBuilder.toWireTransaction(serviceHub)
-                        .toLedgerTransaction(serviceHub)
-                        .verify()
-
-                val selfSignedTx = serviceHub.signInitialTransaction(trxBuilder, ourIdentity.owningKey)
-
-                // Notarise and record the transaction by itself.
-                subFlow(FinalityFlow(selfSignedTx))
 
             } catch(ex: Exception) {
                 logger.error("", ex)

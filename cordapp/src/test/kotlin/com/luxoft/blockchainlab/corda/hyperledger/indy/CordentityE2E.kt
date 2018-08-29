@@ -27,6 +27,7 @@ import java.util.*
 class CordentityE2E {
 
     private lateinit var net: InternalMockNetwork
+    private lateinit var trustee: StartedNode<MockNode>
     private lateinit var notary: StartedNode<MockNode>
     private lateinit var issuer: StartedNode<MockNode>
     private lateinit var alice: StartedNode<MockNode>
@@ -62,6 +63,7 @@ class CordentityE2E {
 
         notary = net.defaultNotaryNode
 
+        trustee = net.createPartyNode(CordaX500Name("Trustee", "London", "GB"))
         issuer = net.createPartyNode(CordaX500Name("Issuer", "London", "GB"))
         alice = net.createPartyNode(CordaX500Name("Alice", "London", "GB"))
         bob = net.createPartyNode(CordaX500Name("Bob", "London", "GB"))
@@ -80,6 +82,10 @@ class CordentityE2E {
         artifactory.registerInitiatedFlow(IndyArtifactsRegistry.QueryHandler::class.java)
         artifactory.registerInitiatedFlow(IndyArtifactsRegistry.CheckHandler::class.java)
         artifactory.registerInitiatedFlow(IndyArtifactsRegistry.PutHandler::class.java)
+
+        // Request permissions from trustee to write on ledger
+        setPermissions(issuer, trustee)
+        setPermissions(bob, trustee)
     }
 
     private fun setupIndyConfigs() {
@@ -88,7 +94,7 @@ class CordentityE2E {
             override fun getConfig(name: String): Configuration? {
                 // Watch carefully for these hard-coded values
                 // Now we assume that issuer(indy trustee) is the first created node from SomeNodes
-                return if (name == "Issuer") {
+                return if (name == "Trustee") {
                     ConfigurationMap(mapOf(
                             "indyuser.walletName" to name,
                             "indyuser.role" to "trustee",
@@ -105,6 +111,7 @@ class CordentityE2E {
     @After
     fun tearDown() {
         try {
+            trustee.services.cordaService(IndyService::class.java).indyUser.close()
             issuer.services.cordaService(IndyService::class.java).indyUser.close()
             alice.services.cordaService(IndyService::class.java).indyUser.close()
             bob.services.cordaService(IndyService::class.java).indyUser.close()
@@ -228,9 +235,6 @@ class CordentityE2E {
 
         val (attr1, attr2) = attrs.entries.toList()
         val (pred1, pred2) = preds.entries.toList()
-
-        // Request permissions from trustee to write on ledger
-        setPermissions(bob, issuer)
 
         // Issue schemas and claimDefs
         val schemaPerson = SchemaPerson()
@@ -362,10 +366,12 @@ class CordentityE2E {
                 VerifyClaimFlow.ProofPredicate(schemaDetails, issuer.getPartyDid(), schemaPerson.schemaAttr2, schemaAttrInt.toInt() - 10)
         )
 
-        val claimVerified = verifyClaim(bob, alice, Interval.recent(), attributes, predicates)
+        val claimVerified = verifyClaim(bob, alice, Interval.allTime(), attributes, predicates)
         assertTrue(claimVerified)
 
         revokeClaim(issuer, claimDefResult.revRegId, credRevId)
+
+        Thread.sleep(3000)
 
         val claimAfterRevocationVerified = verifyClaim(bob, alice, Interval.recent(), attributes, predicates)
         assertFalse(claimAfterRevocationVerified)
