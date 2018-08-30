@@ -150,16 +150,17 @@ class CordentityE2E {
         ).resultFuture
 
         net.runNetwork()
-        return claimFuture.getOrThrow(Duration.ofSeconds(30))
+        claimFuture.getOrThrow(Duration.ofSeconds(30))
+
+        return identifier
     }
 
     private fun revokeClaim(
             issuer: StartedNode<MockNode>,
-            revRegId: String,
-            credRevId: String
+            claimId: String
     ) {
         val flowResult = issuer.services.startFlow(
-                RevokeClaimFlow.Issuer(revRegId, credRevId)
+                RevokeClaimFlow.Issuer(claimId)
         ).resultFuture
 
         net.runNetwork()
@@ -314,7 +315,7 @@ class CordentityE2E {
         val schemaAttrInt = "1988"
         val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        val credRevId = issueClaim(alice, issuer, claimProposal, claimDefId, revRegId)
+        val claimId = issueClaim(alice, issuer, claimProposal, claimDefId, revRegId)
 
         // Verify claim
         val attributes = listOf(
@@ -329,7 +330,7 @@ class CordentityE2E {
         val claimVerified = verifyClaim(bob, alice, attributes, predicates, Interval.allTime())
         assertTrue(claimVerified)
 
-        revokeClaim(issuer, revRegId, credRevId)
+        revokeClaim(issuer, claimId)
 
         Thread.sleep(3000)
 

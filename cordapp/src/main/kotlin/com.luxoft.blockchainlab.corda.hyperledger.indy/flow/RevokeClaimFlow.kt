@@ -1,7 +1,13 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.ClaimSchemaV1
+import net.corda.core.node.services.vault.Builder.equal
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
 import net.corda.core.flows.*
+import net.corda.core.node.services.Vault
+import net.corda.core.node.services.queryBy
+import net.corda.core.node.services.vault.QueryCriteria
 
 /**
  * Flow to revoke previously issued claim
@@ -15,17 +21,30 @@ object RevokeClaimFlow {
     @InitiatingFlow
     @StartableByRPC
     open class Issuer(
-            private val revRegId: String,
-            private val credRevId: String
+            private val claimId: String
     ) : FlowLogic<Unit>() {
 
         @Suspendable
         override fun call() {
             try {
 
+                // query vault for claim with id = claimid
+                val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.ALL)
+                val id = QueryCriteria.VaultCustomQueryCriteria(ClaimSchemaV1.PersistentClaim::id.equal(claimId))
+
+                val criteria = generalCriteria.and(id)
+                val result = serviceHub.vaultService.queryBy<IndyClaim>(criteria)
+
+                val claim = result.states.firstOrNull()?.state?.data
+                        ?: throw RuntimeException("No such claim in vault")
+
+                val revRegId = claim.claimInfo.claim.revRegId!!
+                val credRevId = claim.claimInfo.credRevocId!!
+
+                // revoke that claim
                 indyUser().revokeClaim(revRegId, credRevId)
 
-            } catch(ex: Exception) {
+            } catch (ex: Exception) {
                 logger.error("", ex)
                 throw FlowException(ex.message)
             }

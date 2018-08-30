@@ -51,10 +51,10 @@ object IssueClaimFlow {
             private val credProposal: String,
             private val revRegId: String,
             private val proverName: CordaX500Name
-    ) : FlowLogic<String>() {
+    ) : FlowLogic<Unit>() {
 
         @Suspendable
-        override fun call(): String {
+        override fun call() {
             val prover: Party = whoIs(proverName)
             val flowSession: FlowSession = initiateFlow(prover)
 
@@ -85,8 +85,6 @@ object IssueClaimFlow {
 
                 // Notarise and record the transaction in both parties' vaults.
                 subFlow(FinalityFlow(signedTrx))
-
-                return (newClaimOut.state as IndyClaim).claimInfo.credRevocId!!
 
             } catch (ex: Exception) {
                 logger.error("", ex)
