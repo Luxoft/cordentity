@@ -27,15 +27,8 @@ object RevokeClaimFlow {
         @Suspendable
         override fun call() {
             try {
-
                 // query vault for claim with id = claimid
-                val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.ALL)
-                val id = QueryCriteria.VaultCustomQueryCriteria(ClaimSchemaV1.PersistentClaim::id.equal(claimId))
-
-                val criteria = generalCriteria.and(id)
-                val result = serviceHub.vaultService.queryBy<IndyClaim>(criteria)
-
-                val claim = result.states.firstOrNull()?.state?.data
+                val claim = getIndyClaimState(claimId)?.state?.data
                         ?: throw RuntimeException("No such claim in vault")
 
                 val revRegId = claim.claimInfo.claim.revRegId!!
