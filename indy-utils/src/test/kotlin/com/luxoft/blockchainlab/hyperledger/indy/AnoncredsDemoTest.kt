@@ -1,6 +1,5 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
-import com.luxoft.blockchainlab.hyperledger.indy.utils.InitHelper
 import com.luxoft.blockchainlab.hyperledger.indy.utils.LedgerService
 import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolUtils
 import com.luxoft.blockchainlab.hyperledger.indy.utils.StorageUtils
@@ -38,9 +37,6 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     @Before
     @Throws(Exception::class)
     fun setUp() {
-        // Init libindy
-        InitHelper.init()
-
         // Clean indy stuff
         StorageUtils.cleanupStorage()
 
@@ -99,15 +95,13 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     private fun createDid(wallet: Wallet) = Did.createAndStoreMyDid(wallet, "{}").get()
 
     private fun linkIssuerToTrustee(trusteeDid: String, issuerWallet: Wallet, issuerDidInfo: DidResults.CreateAndStoreMyDidResult) {
-        LedgerService.addNym(trusteeDid, pool, issuerWallet) {
-            IndyUser.IdentityDetails(issuerDidInfo.did, issuerDidInfo.verkey, null, "TRUSTEE")
-        }
+        val target = IndyUser.IdentityDetails(issuerDidInfo.did, issuerDidInfo.verkey, null, "TRUSTEE")
+        LedgerService.addNym(trusteeDid, pool, issuerWallet, target)
     }
 
     private fun linkProverToIssuer(issuerDid: String, issuerWallet: Wallet, proverDidInfo: DidResults.CreateAndStoreMyDidResult) {
-        LedgerService.addNym(issuerDid, pool, issuerWallet) {
-            IndyUser.IdentityDetails(proverDidInfo.did, proverDidInfo.verkey, null, null)
-        }
+        val target = IndyUser.IdentityDetails(proverDidInfo.did, proverDidInfo.verkey, null, null)
+        LedgerService.addNym(issuerDid, pool, issuerWallet, target)
     }
 
     @Test
