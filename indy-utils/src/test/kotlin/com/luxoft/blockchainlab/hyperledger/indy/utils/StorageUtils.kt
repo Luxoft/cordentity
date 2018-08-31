@@ -19,8 +19,8 @@ object StorageUtils {
         val tmpDir = File(EnvironmentUtils.getTmpPath())
         val homeDir = File(EnvironmentUtils.getIndyHomePath())
 
-        StorageUtils.cleanDirectory(tmpDir)
-        StorageUtils.cleanDirectory(homeDir)
+        cleanDirectory(tmpDir)
+        cleanDirectory(homeDir)
     }
 
 }
