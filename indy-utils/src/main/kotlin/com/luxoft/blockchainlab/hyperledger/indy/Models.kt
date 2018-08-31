@@ -399,7 +399,7 @@ data class ProofRequest(
         val nonce: String,
         val requestedAttributes: Map<String, ClaimFieldReference>,
         val requestedPredicates: Map<String, ClaimPredicateReference>,
-        val nonRevoked: Interval? // ignoring 'from' for now
+        val nonRevoked: Interval? = null
 )
 
 @CordaSerializable
