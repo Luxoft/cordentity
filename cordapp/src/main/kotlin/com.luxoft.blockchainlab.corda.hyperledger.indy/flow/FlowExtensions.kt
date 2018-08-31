@@ -37,6 +37,13 @@ fun FlowLogic<Any>.verifyClaimAttributeValues(claimRequest: ClaimRequestInfo): B
     return serviceHub.cordaService(IndyService::class.java).claimAttributeValuesChecker.verifyRequestedClaimAttributes(claimRequest)
 }
 
+/**
+ * This method is used to get indy claim state from vault
+ *
+ * @param claimId           id of claim
+ *
+ * @return                  corda state of indy claim or null if none exists
+ */
 fun FlowLogic<Any>.getIndyClaimState(claimId: String): StateAndRef<IndyClaim>? {
     val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.ALL)
     val id = QueryCriteria.VaultCustomQueryCriteria(ClaimSchemaV1.PersistentClaim::id.equal(claimId))

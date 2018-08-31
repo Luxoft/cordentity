@@ -39,6 +39,8 @@ object IssueClaimFlow {
      * @param revRegId          Claim's revocation registry definition id
      * @param proverName        the node that can prove this credential
      *
+     * @return                  claim id
+     *
      * @note Flows starts by Issuer.
      * E.g User initially comes to university where asks for new education credential.
      * When user verification is completed the University runs IssueClaimFlow to produce required credential.
