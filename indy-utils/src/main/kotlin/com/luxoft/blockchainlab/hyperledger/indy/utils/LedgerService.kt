@@ -12,11 +12,14 @@ import java.util.*
 const val DELAY_MS = 2000
 const val RETRY_TIMES = 5
 
-class LedgerService(
-        private val did: String?,
-        private val wallet: Wallet,
-        private val pool: Pool
-) {
+/**
+ * This class abstracts operations on ledger
+ *
+ * @param did                   indy user's did
+ * @param wallet                indy user's wallet handle
+ * @param pool                  indy pool handle
+ */
+class LedgerService(private val did: String?, private val wallet: Wallet, private val pool: Pool) {
     private fun store(data: String) {
         val attemptId = Random().nextLong()
         logger.debug("Trying to store data on ledger [attempt id = $attemptId]: $data")
@@ -24,45 +27,98 @@ class LedgerService(
         logger.debug("Ledger responded [attempt id = $attemptId]: $response")
     }
 
+    /**
+     * Stores schema on ledger
+     *
+     * @param schema            schema to store
+     */
     fun storeSchema(schema: Schema) {
         val schemaJson = SerializationUtils.anyToJSON(schema)
         val schemaRequest = Ledger.buildSchemaRequest(did, schemaJson).get()
         store(schemaRequest)
     }
 
+    /**
+     * Stores revocation registry definition on ledger
+     *
+     * @param revRegDef         revocation registry definition to store
+     */
     fun storeRevocationRegistryDefinition(revRegDef: RevocationRegistryDefinition) {
         val defJson = SerializationUtils.anyToJSON(revRegDef)
         val defRequest = Ledger.buildRevocRegDefRequest(did, defJson).get()
         store(defRequest)
     }
 
+    /**
+     * Stores revocation registry entry on ledger (when claim is just created)
+     *
+     * @param revRegEntry       revocation registry entry to store
+     * @param revRegId          id of revocation registry definition coupled with this revocation registry
+     * @param revRegDefType     revocation registry definition type
+     */
     fun storeRevocationRegistryEntry(revRegEntry: RevocationRegistryEntry, revRegId: String, revRegDefType: String) {
         val entryJson = SerializationUtils.anyToJSON(revRegEntry)
         val entryRequest = Ledger.buildRevocRegEntryRequest(did, revRegId, revRegDefType, entryJson).get()
         store(entryRequest)
     }
 
+    /**
+     * Stores credential definition on ledger
+     *
+     * @param credDef           credentialDefinition to store
+     */
     fun storeCredentialDefinition(credDef: CredentialDefinition) {
         val credDefJson = SerializationUtils.anyToJSON(credDef)
         val request = Ledger.buildCredDefRequest(did, credDefJson).get()
         store(request)
     }
 
+    /**
+     * Shortcut to [LedgerService.retrieveSchema]
+     */
     fun retrieveSchema(schemaId: String) = LedgerService.retrieveSchema(did, pool, schemaId)
-    fun retrieveCredentialDefinition(credDefId: String) = LedgerService.retrieveCredentialDefinition(did, pool, credDefId)
-    fun retrieveRevocationRegistryDefinition(revRegDefId: String) = LedgerService.retrieveRevocationRegistryDefinition(did, pool, revRegDefId)
-    fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Int) = LedgerService.retrieveRevocationRegistryEntry(did, pool, revRegId, timestamp)
-    fun retrieveRevocationRegistryDelta(revRegDefId: String, interval: Interval) = LedgerService.retrieveRevocationRegistryDelta(did, pool, revRegDefId, interval)
 
-    fun addNym(constructAbout: () -> IndyUser.IdentityDetails) = LedgerService.addNym(did, pool, wallet, constructAbout)
-    fun addNym(about: IndyUser.IdentityDetails) = LedgerService.addNym(did, pool, wallet) { about }
+    /**
+     * Shortcut to [LedgerService.retrieveCredentialDefinition]
+     */
+    fun retrieveCredentialDefinition(credDefId: String)
+            = LedgerService.retrieveCredentialDefinition(did, pool, credDefId)
+
+    /**
+     * Shortcut to [LedgerService.retrieveRevocationRegistryDefinition]
+     */
+    fun retrieveRevocationRegistryDefinition(revRegDefId: String)
+            = LedgerService.retrieveRevocationRegistryDefinition(did, pool, revRegDefId)
+
+    /**
+     * Shortcut to [LedgerService.retrieveRevocationRegistryEntry]
+     */
+    fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Int)
+            = LedgerService.retrieveRevocationRegistryEntry(did, pool, revRegId, timestamp)
+
+    /**
+     * Shortcut to [LedgerService.retrieveRevocationRegistryDelta]
+     */
+    fun retrieveRevocationRegistryDelta(revRegDefId: String, interval: Interval)
+            = LedgerService.retrieveRevocationRegistryDelta(did, pool, revRegDefId, interval)
+
+    /**
+     * Shortcut to [LedgerService.addNym]
+     */
+    fun addNym(about: IndyUser.IdentityDetails) = LedgerService.addNym(did, pool, wallet, about)
 
     companion object {
         val logger = LoggerFactory.getLogger(IndyUser::class.java.name)!!
 
-        fun addNym(did: String?, pool: Pool, wallet: Wallet, constructAbout: () -> IndyUser.IdentityDetails) {
-            val about = constructAbout()
-
+        /**
+         * Adds NYM record to ledger. E.g. "I trust this person"
+         *
+         * @param did           trustee did
+         * @param pool          indy pool handle
+         * @param wallet        trustee wallet handle
+         * @param about         identity details about entity that trustee wants to trust
+         */
+        fun addNym(did: String?, pool: Pool, wallet: Wallet, about: IndyUser.IdentityDetails) {
             val nymRequest = Ledger.buildNymRequest(
                     did,
                     about.did,
@@ -74,6 +130,15 @@ class LedgerService(
             Ledger.signAndSubmitRequest(pool, wallet, did, nymRequest).get()
         }
 
+        /**
+         * Retrieves schema from ledger
+         *
+         * @param did           indy user did
+         * @param pool          indy pool handle
+         * @param schemaId      id of target schema
+         *
+         * @return              schema or null if none exists on ledger
+         */
         fun retrieveSchema(did: String?, pool: Pool, schemaId: String): Schema? = runBlocking {
             val result: Schema? = null
 
@@ -93,6 +158,15 @@ class LedgerService(
             result
         }
 
+        /**
+         * Retrieves credential definition from ledger
+         *
+         * @param did           indy user did
+         * @param pool          indy pool handle
+         * @param credDefId     id of target credential definition
+         *
+         * @return              credential definition or null if none exists on ledger
+         */
         fun retrieveCredentialDefinition(did: String?, pool: Pool, credDefId: String): CredentialDefinition? = runBlocking {
             val result: CredentialDefinition? = null
 
@@ -112,6 +186,15 @@ class LedgerService(
             result
         }
 
+        /**
+         * Retrieves revocation registry definition from ledger
+         *
+         * @param did           indy user did
+         * @param pool          indy pool handle
+         * @param revRegDefId   target revocation registry definition id
+         *
+         * @return              revocation registry definition or null if none exists on ledger
+         */
         fun retrieveRevocationRegistryDefinition(did: String?, pool: Pool, revRegDefId: String): RevocationRegistryDefinition? = runBlocking {
             val result: RevocationRegistryDefinition? = null
 
@@ -131,6 +214,17 @@ class LedgerService(
             result
         }
 
+        /**
+         * Retrieves revocation registry entry from ledger
+         *
+         * @param did           indy user did
+         * @param pool          indy pool handle
+         * @param revRegId      revocation registry id
+         * @param timestamp     time from unix epoch in seconds representing time moment you are interested in
+         *                      e.g. if you want to know current revocation state, you pass 'now' as a timestamp
+         *
+         * @return              revocation registry entry or null if none exists on ledger
+         */
         fun retrieveRevocationRegistryEntry(did: String?, pool: Pool, revRegId: String, timestamp: Int): Pair<Int, RevocationRegistryEntry>? = runBlocking {
             val result: Pair<Int, RevocationRegistryEntry>? = null
 
@@ -153,6 +247,16 @@ class LedgerService(
             result
         }
 
+        /**
+         * Retrieves revocation registry delta from ledger
+         *
+         * @param did           indy user did
+         * @param pool          indy pool handle
+         * @param revRegDefId   revocation registry definition id
+         * @param interval      time interval you are interested in
+         *
+         * @return              revocation registry delta or null if none exists on ledger
+         */
         fun retrieveRevocationRegistryDelta(did: String?, pool: Pool, revRegDefId: String, interval: Interval): Pair<Int, RevocationRegistryEntry>? = runBlocking {
             val result: Pair<Int, RevocationRegistryEntry>? = null
 
