@@ -27,9 +27,10 @@ import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateClaimDefFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.VerifyClaimFlow
 import org.junit.Ignore
+import org.slf4j.LoggerFactory
 
 
-//@Ignore
+@Ignore
 class ReadmeExampleTest {
 
     private lateinit var net: InternalMockNetwork
