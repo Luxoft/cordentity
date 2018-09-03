@@ -45,10 +45,9 @@ open class IndyUser {
     protected val wallet: Wallet
     protected val pool: Pool
 
-    constructor(wallet: Wallet, did: String? = null, didConfig: String = "{}") :
-            this(PoolManager.getInstance().pool, wallet, did, didConfig)
+    constructor(wallet: Wallet, did: String? = null, didConfig: String = "{}") : this(TODO(), wallet, did, didConfig)
 
-    constructor(pool: Pool, wallet: Wallet, did: String?, didConfig: String = "{}") {
+    constructor(pool: Pool, wallet: Wallet, did: String? = null, didConfig: String = "{}") {
 
         this.pool = pool
         this.wallet = wallet

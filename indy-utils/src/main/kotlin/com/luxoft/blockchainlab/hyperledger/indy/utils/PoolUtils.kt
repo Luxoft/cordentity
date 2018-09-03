@@ -15,7 +15,7 @@ import java.util.concurrent.ExecutionException
 
 object PoolUtils {
 
-    private val DEFAULT_POOL_NAME = "default_pool"
+    const val DEFAULT_POOL_NAME = "default_pool"
 
 
     private fun forceMakeDir(path: Path) {
@@ -57,15 +57,28 @@ object PoolUtils {
         fw.close()
     }
 
-    @Throws(IOException::class, InterruptedException::class, java.util.concurrent.ExecutionException::class, IndyException::class)
-    fun createPoolLedgerConfig(poolName: String = DEFAULT_POOL_NAME, nodesCnt: Int = 4): String {
+    @Deprecated("")
+    fun createPoolLedgerConfig(genesisFile: File? = null, poolName: String = DEFAULT_POOL_NAME, nodesCnt: Int = 4): String {
         val genesisTxnFile = createGenesisTxnFile("temp.txn", nodesCnt)
-        val createPoolLedgerConfigJSONParameter = PoolJSONParameters.CreatePoolLedgerConfigJSONParameter(genesisTxnFile.absolutePath)
+        val createPoolLedgerConfigJSONParameter = PoolJSONParameters.CreatePoolLedgerConfigJSONParameter("/home/voddan/Documents/indy/indy-cordapp/genesis/docker_pool_transactions_genesis.txt")
 
         try {
             Pool.createPoolLedgerConfig(poolName, createPoolLedgerConfigJSONParameter.toJson()).get()
         } catch (e: ExecutionException) {
             if(getRootCause(e) !is PoolLedgerConfigExistsException) throw e
+            // ok
+        }
+
+        return poolName
+    }
+
+    fun createPoolLedgerConfigFromFile(genesisFile: File, poolName: String = DEFAULT_POOL_NAME): String {
+        val ledgerConfig = PoolJSONParameters.CreatePoolLedgerConfigJSONParameter(genesisFile.absolutePath)
+
+        try {
+            Pool.createPoolLedgerConfig(poolName, ledgerConfig.toJson()).get()
+        } catch (e: ExecutionException) {
+            if(e.cause !is PoolLedgerConfigExistsException) throw e
             // ok
         }
 
