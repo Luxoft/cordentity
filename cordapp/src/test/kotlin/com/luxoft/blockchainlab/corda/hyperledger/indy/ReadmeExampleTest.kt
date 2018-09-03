@@ -26,8 +26,10 @@ import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateSchemaFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateClaimDefFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.VerifyClaimFlow
+import org.junit.Ignore
 
 
+//@Ignore
 class ReadmeExampleTest {
 
     private lateinit var net: InternalMockNetwork
@@ -100,7 +102,7 @@ class ReadmeExampleTest {
 
     @Test
     fun `grocery store example`() {
-        val ministry: StartedNode<*> = issuer
+        val ministry: StartedNode<InternalMockNetwork.MockNode> = issuer
         val alice: StartedNode<*> = alice
         val store: StartedNode<*> = bob
 
@@ -111,8 +113,10 @@ class ReadmeExampleTest {
 
 // And each Indy node has a DID, a.k.a Decentralized ID:
 
-        val ministryDID = store.services.startFlow(
-                GetDidFlow.Initiator(ministryX500)).resultFuture.get()
+//        val ministryDID = store.services.startFlow(
+//                GetDidFlow.Initiator(ministryX500)).resultFuture.get()
+
+        val ministryDID = ministry.getPartyDid()
 
 // To allow customers and shops to communicate, Ministry issues a shopping scheme:
 
