@@ -262,7 +262,7 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
 
             repeat(RETRY_TIMES) {
                 try {
-                    val from = interval.from ?: -1
+                    val from = interval.from ?: -1 // according to https://github.com/hyperledger/indy-sdk/blob/master/libindy/src/api/ledger.rs:1623
 
                     val request = Ledger.buildGetRevocRegDeltaRequest(did, revRegDefId, from, interval.to).get()
                     val response = Ledger.submitRequest(pool, request).get()
