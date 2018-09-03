@@ -81,10 +81,12 @@ class ReadmeExampleTest {
                             "indyuser.walletName" to name,
                             "indyuser.role" to "trustee",
                             "indyuser.did" to "V4SGRU86Z58d6TV7PBUe6f",
-                            "indyuser.seed" to "000000000000000000000000Trustee1"
+                            "indyuser.seed" to "000000000000000000000000Trustee1",
+                            "indyuser.genesisFile" to "/docker_pool_transactions_genesis.txt"
                     ))
                 } else ConfigurationMap(mapOf(
-                        "indyuser.walletName" to name + RD.nextLong().absoluteValue
+                        "indyuser.walletName" to name + RD.nextLong().absoluteValue,
+                        "indyuser.genesisFile" to "/docker_pool_transactions_genesis.txt"
                 ))
             }
         }

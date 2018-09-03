@@ -48,7 +48,7 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
 
         val wallet = Wallet.openWallet(walletName, null, credentials).get()
 
-        val genesisFile = File(javaClass.getResource("/docker_pool_transactions_genesis.txt").toURI())
+        val genesisFile = File(javaClass.getResource(config[indyuser.genesisFile]).toURI())
         val pool = PoolManager.openIndyPool(genesisFile)
 
         indyUser = if(config.getOrNull(indyuser.role)?.compareTo("trustee", true) == 0) {
@@ -82,5 +82,6 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
         val did    by stringType
         val seed   by stringType
         val walletName by stringType
+        val genesisFile by stringType
     }
 }
