@@ -41,6 +41,7 @@ class ReadmeExampleTest {
     private lateinit var parties: List<StartedNode<MockNode>>
 
     private val RD = Random()
+    private val logger = LoggerFactory.getLogger(this::class.java.name)
 
     @Before
     fun setup() {
@@ -106,19 +107,17 @@ class ReadmeExampleTest {
         val alice: StartedNode<*> = alice
         val store: StartedNode<*> = bob
 
-// Each Corda node has a X500 name:
+        logger.info("Each Corda node has a X500 name:")
 
         val ministryX500 = ministry.info.singleIdentity().name
         val aliceX500 = alice.info.singleIdentity().name
 
-// And each Indy node has a DID, a.k.a Decentralized ID:
+        logger.info("And each Indy node has a DID, a.k.a Decentralized ID:")
 
-//        val ministryDID = store.services.startFlow(
-//                GetDidFlow.Initiator(ministryX500)).resultFuture.get()
+        val ministryDID = store.services.startFlow(
+                GetDidFlow.Initiator(ministryX500)).resultFuture.get()
 
-        val ministryDID = ministry.getPartyDid()
-
-// To allow customers and shops to communicate, Ministry issues a shopping scheme:
+        logger.info("To allow customers and shops to communicate, Ministry issues a shopping scheme:")
 
         val schemaId = ministry.services.startFlow(
                 CreateSchemaFlow.Authority(
@@ -126,12 +125,12 @@ class ReadmeExampleTest {
                         "1.0",
                         listOf("NAME", "BORN"))).resultFuture.get()
 
-// Ministry creates a claim definition for the shopping scheme:
+        logger.info("Ministry creates a claim definition for the shopping scheme:")
 
         val credDefId = ministry.services.startFlow(
                 CreateClaimDefFlow.Authority(schemaId)).resultFuture.get()
 
-// Ministry verifies Alice's legal status and issues her a shopping credential:
+        logger.info("Ministry verifies Alice's legal status and issues her a shopping credential:")
 
         val credentialProposal = """
         {
@@ -147,7 +146,7 @@ class ReadmeExampleTest {
                         credentialProposal,
                         aliceX500)).resultFuture.get()
 
-// When Alice comes to grocery store, the store asks Alice to verify that she is legally allowed to buy drinks:
+        logger.info("When Alice comes to grocery store, the store asks Alice to verify that she is legally allowed to buy drinks:")
 
         // Alice.BORN >= currentYear - 18
         val eighteenYearsAgo = LocalDateTime.now().minusYears(18).year
@@ -160,9 +159,9 @@ class ReadmeExampleTest {
                         listOf(legalAgePredicate),
                         aliceX500)).resultFuture.get()
 
-// If the verification succeeds, the store can be sure that Alice's age is above 18.
+        logger.info("If the verification succeeds, the store can be sure that Alice's age is above 18.")
 
-        println("You can buy drinks: $verified")
+        logger.info("You can buy drinks: $verified")
     }
 
 }
