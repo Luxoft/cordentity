@@ -26,6 +26,7 @@ import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateSchemaFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateClaimDefFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.VerifyClaimFlow
+import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
 import org.junit.Ignore
 import org.slf4j.LoggerFactory
 
@@ -82,11 +83,11 @@ class ReadmeExampleTest {
                             "indyuser.role" to "trustee",
                             "indyuser.did" to "V4SGRU86Z58d6TV7PBUe6f",
                             "indyuser.seed" to "000000000000000000000000Trustee1",
-                            "indyuser.genesisFile" to "/docker_pool_transactions_genesis.txt"
+                            "indyuser.genesisFile" to PoolManager.DEFAULT_GENESIS_FILE
                     ))
                 } else ConfigurationMap(mapOf(
                         "indyuser.walletName" to name + RD.nextLong().absoluteValue,
-                        "indyuser.genesisFile" to "/docker_pool_transactions_genesis.txt"
+                        "indyuser.genesisFile" to PoolManager.DEFAULT_GENESIS_FILE
                 ))
             }
         }

@@ -11,6 +11,10 @@ object PoolManager {
 
     const val DEFAULT_POOL_NAME = "default_pool"
 
+    const val DEFAULT_GENESIS_FILE = "/docker_pool_transactions_genesis.txt"
+
+    val defaultGenesisResource by lazy { File(javaClass.getResource(DEFAULT_GENESIS_FILE).toURI()) }
+
     private val openIndyPools = ConcurrentHashMap<String, Pool>()
 
     fun openIndyPool(genesisFile: File, poolName: String = DEFAULT_POOL_NAME): Pool {

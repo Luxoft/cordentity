@@ -36,8 +36,7 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         // Create and Open Pool
         poolName = PoolManager.DEFAULT_POOL_NAME
 
-        val genesisFile = File(javaClass.getResource("/docker_pool_transactions_genesis.txt").toURI())
-        pool = PoolManager.openIndyPool(genesisFile, poolName)
+        pool = PoolManager.openIndyPool(PoolManager.defaultGenesisResource, poolName)
 
         // Issuer Create and Open Wallet
         Wallet.createWallet(poolName, "issuerWallet", TYPE, null, CREDENTIALS).get()

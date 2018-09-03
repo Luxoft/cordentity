@@ -3,6 +3,7 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
+import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
 
 import com.natpryce.konfig.Configuration
 import com.natpryce.konfig.ConfigurationMap
@@ -73,11 +74,11 @@ class MockCordaAsTransportTest {
                             "indyuser.role" to "trustee",
                             "indyuser.did" to "V4SGRU86Z58d6TV7PBUe6f",
                             "indyuser.seed" to "000000000000000000000000Trustee1",
-                            "indyuser.genesisFile" to "/docker_pool_transactions_genesis.txt"
+                            "indyuser.genesisFile" to PoolManager.DEFAULT_GENESIS_FILE
                     ))
                 } else ConfigurationMap(mapOf(
                         "indyuser.walletName" to name + RD.nextLong().absoluteValue,
-                        "indyuser.genesisFile" to "/docker_pool_transactions_genesis.txt"
+                        "indyuser.genesisFile" to PoolManager.DEFAULT_GENESIS_FILE
                 ))
             }
         }

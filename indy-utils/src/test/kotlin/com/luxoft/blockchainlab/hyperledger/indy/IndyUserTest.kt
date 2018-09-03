@@ -33,8 +33,7 @@ class IndyUserTest {
         }
 
         wallet = Wallet.openWallet(walletName, null, credentials).get()
-        val genesisFile = File(javaClass.getResource("/docker_pool_transactions_genesis.txt").toURI())
-        val pool = PoolManager.openIndyPool(genesisFile, "default_pool")
+        val pool = PoolManager.openIndyPool(PoolManager.defaultGenesisResource, poolName)
         indyUser = IndyUser(pool, wallet)
     }
 
