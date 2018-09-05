@@ -8,14 +8,18 @@ import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
 import com.natpryce.konfig.Configuration
 import com.natpryce.konfig.ConfigurationMap
 import com.natpryce.konfig.TestConfigurationsProvider
+import net.corda.core.concurrent.CordaFuture
+import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.CordaX500Name
+import net.corda.core.internal.FlowStateMachine
 import net.corda.core.utilities.getOrThrow
 import net.corda.node.internal.StartedNode
+import net.corda.node.services.api.StartedNodeServices
 import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.core.singleIdentity
 import net.corda.testing.node.internal.InternalMockNetwork
 import net.corda.testing.node.internal.InternalMockNetwork.MockNode
-import net.corda.testing.node.internal.startFlow
+import net.corda.testing.node.internal.newContext
 import org.junit.*
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -62,6 +66,18 @@ class MockCordaAsTransportTest {
         }
     }
 
+    private fun <T> StartedNodeServices.startFlow(logic: FlowLogic<T>): FlowStateMachine<T> {
+        val machine = startFlow(logic, newContext()).getOrThrow()
+
+        return object : FlowStateMachine<T> by machine {
+            override val resultFuture: CordaFuture<T>
+                get() {
+                    net.runNetwork()
+                    return machine.resultFuture
+                }
+        }
+    }
+
     private fun setupIndyConfigs() {
 
         TestConfigurationsProvider.provider = object : TestConfigurationsProvider {
@@ -101,7 +117,6 @@ class MockCordaAsTransportTest {
         val permissionsFuture = issuer.services.startFlow(AssignPermissionsFlow.Issuer(
                 authority = authority.info.singleIdentity().name, role = "TRUSTEE")).resultFuture
 
-        net.runNetwork()
         permissionsFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
@@ -116,14 +131,12 @@ class MockCordaAsTransportTest {
                         schema.schemaVersion,
                         schema.schemaAttrs)).resultFuture
 
-        net.runNetwork()
         val schemaId = schemaFuture.getOrThrow(Duration.ofSeconds(30))
 
         // create credential definition
         val claimDefFuture = claimDefOwner.services.startFlow(
                 CreateClaimDefFlow.Authority(schemaId)).resultFuture
 
-        net.runNetwork()
         val credDefId = claimDefFuture.getOrThrow(Duration.ofSeconds(30))
 
         return Pair(schemaId, credDefId)
@@ -142,7 +155,6 @@ class MockCordaAsTransportTest {
                         claimProposal,
                         claimProver.getName())).resultFuture
 
-        net.runNetwork()
         claimFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
@@ -159,7 +171,6 @@ class MockCordaAsTransportTest {
                         predicates,
                         prover.getName())).resultFuture
 
-        net.runNetwork()
         return proofCheckResultFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
