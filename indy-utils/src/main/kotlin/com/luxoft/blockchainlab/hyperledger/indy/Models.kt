@@ -333,7 +333,7 @@ data class RequestedPredicateInfo(
 /**
  * Represents proof request
  *
- * Example:
+ * Format:
  *     {
  *         "name": string,
  *         "version": string,
