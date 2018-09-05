@@ -15,11 +15,11 @@ import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
 import net.corda.testing.node.internal.InternalMockNetwork
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.AssignPermissionsFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreatePairwiseFlow
+import net.corda.core.internal.FlowStateMachine
 
 import java.util.UUID
 import java.time.LocalDateTime
 import net.corda.testing.core.singleIdentity
-import net.corda.testing.node.internal.startFlow
 import net.corda.node.internal.StartedNode
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.GetDidFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateSchemaFlow
@@ -27,15 +27,17 @@ import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreateClaimDefFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.VerifyClaimFlow
 import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
-import org.junit.Ignore
+import net.corda.core.concurrent.CordaFuture
+import net.corda.core.flows.FlowLogic
+import net.corda.core.utilities.getOrThrow
+import net.corda.node.services.api.StartedNodeServices
+import net.corda.testing.node.internal.newContext
 import org.slf4j.LoggerFactory
 
 
-@Ignore
 class ReadmeExampleTest {
 
     private lateinit var net: InternalMockNetwork
-    private lateinit var notary: StartedNode<InternalMockNetwork.MockNode>
     private lateinit var issuer: StartedNode<MockNode>
     private lateinit var alice: StartedNode<MockNode>
     private lateinit var bob: StartedNode<MockNode>
@@ -53,8 +55,6 @@ class ReadmeExampleTest {
         net = InternalMockNetwork(
                 cordappPackages = listOf("com.luxoft.blockchainlab.corda.hyperledger.indy"),
                 networkParameters = testNetworkParameters(maxTransactionSize = 10485760 * 5))
-
-        notary = net.defaultNotaryNode
 
         issuer = net.createPartyNode(CordaX500Name("Issuer", "London", "GB"))
         alice = net.createPartyNode(CordaX500Name("Alice", "London", "GB"))
@@ -168,4 +168,15 @@ class ReadmeExampleTest {
         logger.info("You can buy drinks: $verified")
     }
 
+    private fun <T> StartedNodeServices.startFlow(logic: FlowLogic<T>): FlowStateMachine<T> {
+        val machine = startFlow(logic, newContext()).getOrThrow()
+
+        return object : FlowStateMachine<T> by machine {
+            override val resultFuture: CordaFuture<T>
+                get() {
+                    net.runNetwork()
+                    return machine.resultFuture
+                }
+        }
+    }
 }
