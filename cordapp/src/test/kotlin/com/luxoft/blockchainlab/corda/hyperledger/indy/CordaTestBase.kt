@@ -25,8 +25,32 @@ import org.junit.Before
 import java.util.*
 import kotlin.math.absoluteValue
 
-open class IndyCordaSetup {
 
+/**
+ * [CordaTestBase] is the base class for any test that uses mocked Corda network.
+ *
+ * Note: [projectServises] and [projectReciverFlows] must be kept updated!
+ * */
+open class CordaTestBase {
+
+    /**
+     * List of all Corda services in the CordApp
+     * */
+    val projectServises = listOf(IndyService::class)
+
+    /**
+     * List of all flows that may be initiated by a message
+     * */
+    val projectReciverFlows = listOf(
+            AssignPermissionsFlow.Authority::class,
+            CreatePairwiseFlow.Issuer::class,
+            IssueClaimFlow.Prover::class,
+            VerifyClaimFlow.Prover::class,
+            VerifyClaimFlow.Prover::class)
+
+    /**
+     * The mocked Corda network
+     * */
     protected lateinit var net: InternalMockNetwork
         private set
 
@@ -34,20 +58,47 @@ open class IndyCordaSetup {
 
     protected val random = Random()
 
-    fun createPartyNode(legalName: CordaX500Name? = null): StartedNode<MockNode> {
+    /**
+     * Recreate nodes before each test
+     *
+     * Usage:
+     *
+     *     lateinit var issuer: StartedNode<MockNode>
+     *
+     *     @Before
+     *     createNodes() {
+     *         issuer = createPartyNode(CordaX500Name("Issuer", "London", "GB"))
+     *     }
+     * */
+    protected fun createPartyNode(legalName: CordaX500Name? = null): StartedNode<MockNode> {
         val party = net.createPartyNode(legalName)
 
         parties.add(party)
 
-        with(party) {
-            registerInitiatedFlow(AssignPermissionsFlow.Authority::class.java)
-            registerInitiatedFlow(CreatePairwiseFlow.Issuer::class.java)
-            registerInitiatedFlow(IssueClaimFlow.Prover::class.java)
-            registerInitiatedFlow(VerifyClaimFlow.Prover::class.java)
-            registerInitiatedFlow(VerifyClaimFlow.Prover::class.java)
+        for(flow in projectReciverFlows) {
+            party.registerInitiatedFlow(flow.java)
         }
 
         return party
+    }
+
+    /**
+     * Substitutes [StartedNodeServices.startFlow] method to run mocked Corda flows.
+     *
+     * Usage:
+     *
+     *     val did = store.services.startFlow(GetDidFlow.Initiator(name)).resultFuture.get()
+     */
+    protected fun <T> StartedNodeServices.startFlow(logic: FlowLogic<T>): FlowStateMachine<T> {
+        val machine = startFlow(logic, newContext()).getOrThrow()
+
+        return object : FlowStateMachine<T> by machine {
+            override val resultFuture: CordaFuture<T>
+                get() {
+                    net.runNetwork()
+                    return machine.resultFuture
+                }
+        }
     }
 
     @Before
@@ -81,23 +132,14 @@ open class IndyCordaSetup {
     @After
     fun commonTearDown() {
         try {
-            parties.forEach {
-                it.services.cordaService(IndyService::class.java).indyUser.close()
+            for (party in parties) {
+                for(service in projectServises) {
+                    party.services.cordaService(service.java).indyUser.close()
+                }
             }
+
         } finally {
             net.stopNodes()
-        }
-    }
-
-    protected fun <T> StartedNodeServices.startFlow(logic: FlowLogic<T>): FlowStateMachine<T> {
-        val machine = startFlow(logic, newContext()).getOrThrow()
-
-        return object : FlowStateMachine<T> by machine {
-            override val resultFuture: CordaFuture<T>
-                get() {
-                    net.runNetwork()
-                    return machine.resultFuture
-                }
         }
     }
 }

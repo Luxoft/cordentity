@@ -12,7 +12,7 @@ import java.time.LocalDateTime
 import java.util.*
 
 
-class ReadmeExampleTest : IndyCordaSetup() {
+class ReadmeExampleTest : CordaTestBase() {
 
     private lateinit var issuer: StartedNode<MockNode>
     private lateinit var alice: StartedNode<MockNode>

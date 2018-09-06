@@ -2,33 +2,19 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy
 
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
-import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
-import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
-
-import com.natpryce.konfig.Configuration
-import com.natpryce.konfig.ConfigurationMap
-import com.natpryce.konfig.TestConfigurationsProvider
-import net.corda.core.concurrent.CordaFuture
-import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.CordaX500Name
-import net.corda.core.internal.FlowStateMachine
 import net.corda.core.utilities.getOrThrow
 import net.corda.node.internal.StartedNode
-import net.corda.node.services.api.StartedNodeServices
-import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.core.singleIdentity
-import net.corda.testing.node.internal.InternalMockNetwork
 import net.corda.testing.node.internal.InternalMockNetwork.MockNode
-import net.corda.testing.node.internal.newContext
 import org.junit.*
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import java.time.Duration
 import java.util.*
-import kotlin.math.absoluteValue
 
 
-class MockCordaAsTransportTest : IndyCordaSetup() {
+class MockCordaAsTransportTest : CordaTestBase() {
 
     private lateinit var notary: StartedNode<MockNode>
     private lateinit var issuer: StartedNode<MockNode>
