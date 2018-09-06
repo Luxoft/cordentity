@@ -12,7 +12,13 @@ import net.corda.core.schemas.QueryableState
 
 /**
  * A Corda record of an Indy Credential [claim] issued on request [claimReq]
- * */
+ *
+ * @param id                claim persistent id
+ * @param claimRequestInfo  indy claim request
+ * @param claimInfo         indy claim
+ * @param issuerDid         did of an entity issued claim
+ * @param participants      corda participants
+ */
 open class IndyClaim(val id: String,
                      val claimRequestInfo: ClaimRequestInfo,
                      val claimInfo: ClaimInfo,

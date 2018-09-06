@@ -13,7 +13,14 @@ import net.corda.core.schemas.QueryableState
 
 /**
  * A Corda record of an Indy proof [proof] issued on request [proofReq]
- * */
+ *
+ * @param id                entity persistent id
+ * @param proofReq          indy proof request
+ * @param proof             indy proof
+ * @param usedData          data required by verifier to verify proof
+ * @param participants      list of corda participants
+ * @param linearId          corda id
+ */
 open class IndyClaimProof(val id: String,
                           val proofReq: ProofRequest,
                           val proof: ProofInfo,

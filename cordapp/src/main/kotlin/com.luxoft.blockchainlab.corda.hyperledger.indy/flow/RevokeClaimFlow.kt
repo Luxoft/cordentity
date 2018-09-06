@@ -14,16 +14,14 @@ object RevokeClaimFlow {
      */
     @InitiatingFlow
     @StartableByRPC
-    open class Issuer(
-            private val claimId: String
-    ) : FlowLogic<Unit>() {
+    open class Issuer(private val claimId: String) : FlowLogic<Unit>() {
 
         @Suspendable
         override fun call() {
             try {
                 // query vault for claim with id = claimid
                 val claim = getIndyClaimState(claimId)?.state?.data
-                        ?: throw RuntimeException("No such claim in vault")
+                    ?: throw RuntimeException("No such claim in vault")
 
                 val revRegId = claim.claimInfo.claim.revRegId!!
                 val credRevId = claim.claimInfo.credRevocId!!
@@ -35,12 +33,6 @@ object RevokeClaimFlow {
                 logger.error("", ex)
                 throw FlowException(ex.message)
             }
-        }
-    }
-
-    @InitiatedBy(Issuer::class)
-    open class Prover(private val flowSession: FlowSession) : FlowLogic<Unit>() {
-        override fun call() {
         }
     }
 }

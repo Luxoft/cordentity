@@ -9,9 +9,6 @@ import org.hyperledger.indy.sdk.wallet.Wallet
 import org.slf4j.LoggerFactory
 import java.util.*
 
-const val DELAY_MS = 2000
-const val RETRY_TIMES = 5
-
 /**
  * This class abstracts operations on ledger
  *
@@ -19,7 +16,8 @@ const val RETRY_TIMES = 5
  * @param wallet                indy user's wallet handle
  * @param pool                  indy pool handle
  */
-class LedgerService(private val did: String?, private val wallet: Wallet, private val pool: Pool) {
+class LedgerService(private val did: String, private val wallet: Wallet, private val pool: Pool) {
+
     private fun store(data: String) {
         val attemptId = Random().nextLong()
         logger.debug("Trying to store data on ledger [attempt id = $attemptId]: $data")
@@ -110,6 +108,9 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
     companion object {
         val logger = LoggerFactory.getLogger(IndyUser::class.java.name)!!
 
+        private val delayMs = 2000
+        private val retryTimes = 5
+
         /**
          * Adds NYM record to ledger. E.g. "I trust this person"
          *
@@ -118,7 +119,7 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
          * @param wallet        trustee wallet handle
          * @param about         identity details about entity that trustee wants to trust
          */
-        fun addNym(did: String?, pool: Pool, wallet: Wallet, about: IndyUser.IdentityDetails) {
+        fun addNym(did: String, pool: Pool, wallet: Wallet, about: IndyUser.IdentityDetails) {
             val nymRequest = Ledger.buildNymRequest(
                     did,
                     about.did,
@@ -139,10 +140,10 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
          *
          * @return              schema or null if none exists on ledger
          */
-        fun retrieveSchema(did: String?, pool: Pool, schemaId: String): Schema? = runBlocking {
+        fun retrieveSchema(did: String, pool: Pool, schemaId: String): Schema? = runBlocking {
             val result: Schema? = null
 
-            repeat(RETRY_TIMES) {
+            repeat(retryTimes) {
                 try {
                     val schemaReq = Ledger.buildGetSchemaRequest(did, schemaId).get()
                     val schemaRes = Ledger.submitRequest(pool, schemaReq).get()
@@ -151,7 +152,7 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
                     return@runBlocking SerializationUtils.jSONToAny<Schema>(parsedRes.objectJson)
                 } catch (e: Exception) {
                     logger.debug("Schema retrieving failed (id: $schemaId). Retry attempt $it")
-                    delay(DELAY_MS)
+                    delay(delayMs)
                 }
             }
 
@@ -167,10 +168,10 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
          *
          * @return              credential definition or null if none exists on ledger
          */
-        fun retrieveCredentialDefinition(did: String?, pool: Pool, credDefId: String): CredentialDefinition? = runBlocking {
+        fun retrieveCredentialDefinition(did: String, pool: Pool, credDefId: String): CredentialDefinition? = runBlocking {
             val result: CredentialDefinition? = null
 
-            repeat(RETRY_TIMES) {
+            repeat(retryTimes) {
                 try {
                     val getCredDefRequest = Ledger.buildGetCredDefRequest(did, credDefId).get()
                     val getCredDefResponse = Ledger.submitRequest(pool, getCredDefRequest).get()
@@ -179,7 +180,7 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
                     return@runBlocking SerializationUtils.jSONToAny<CredentialDefinition>(credDefIdInfo.objectJson)
                 } catch (e: Exception) {
                     logger.debug("Credential definition retrieving failed (id: $credDefId). Retry attempt $it")
-                    delay(DELAY_MS)
+                    delay(delayMs)
                 }
             }
 
@@ -195,10 +196,10 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
          *
          * @return              revocation registry definition or null if none exists on ledger
          */
-        fun retrieveRevocationRegistryDefinition(did: String?, pool: Pool, revRegDefId: String): RevocationRegistryDefinition? = runBlocking {
+        fun retrieveRevocationRegistryDefinition(did: String, pool: Pool, revRegDefId: String): RevocationRegistryDefinition? = runBlocking {
             val result: RevocationRegistryDefinition? = null
 
-            repeat(RETRY_TIMES) {
+            repeat(retryTimes) {
                 try {
                     val request = Ledger.buildGetRevocRegDefRequest(did, revRegDefId).get()
                     val response = Ledger.submitRequest(pool, request).get()
@@ -207,7 +208,7 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
                     return@runBlocking SerializationUtils.jSONToAny<RevocationRegistryDefinition>(revRegDefJson)
                 } catch (e: Exception) {
                     logger.debug("Revocation registry definition retrieving failed (id: $revRegDefId). Retry attempt $it")
-                    delay(DELAY_MS)
+                    delay(delayMs)
                 }
             }
 
@@ -225,10 +226,10 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
          *
          * @return              revocation registry entry or null if none exists on ledger
          */
-        fun retrieveRevocationRegistryEntry(did: String?, pool: Pool, revRegId: String, timestamp: Int): Pair<Int, RevocationRegistryEntry>? = runBlocking {
+        fun retrieveRevocationRegistryEntry(did: String, pool: Pool, revRegId: String, timestamp: Int): Pair<Int, RevocationRegistryEntry>? = runBlocking {
             val result: Pair<Int, RevocationRegistryEntry>? = null
 
-            repeat(RETRY_TIMES) {
+            repeat(retryTimes) {
                 try {
                     val request = Ledger.buildGetRevocRegRequest(did, revRegId, timestamp).get()
                     val response = Ledger.submitRequest(pool, request).get()
@@ -240,7 +241,7 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
                     return@runBlocking Pair(tmsp, revRegEntry)
                 } catch (e: Exception) {
                     logger.debug("Revocation registry entry retrieving failed (id: $revRegId, timestamp: $timestamp). Retry attempt $it")
-                    delay(DELAY_MS)
+                    delay(delayMs)
                 }
             }
 
@@ -257,10 +258,10 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
          *
          * @return              revocation registry delta or null if none exists on ledger
          */
-        fun retrieveRevocationRegistryDelta(did: String?, pool: Pool, revRegDefId: String, interval: Interval): Pair<Int, RevocationRegistryEntry>? = runBlocking {
+        fun retrieveRevocationRegistryDelta(did: String, pool: Pool, revRegDefId: String, interval: Interval): Pair<Int, RevocationRegistryEntry>? = runBlocking {
             val result: Pair<Int, RevocationRegistryEntry>? = null
 
-            repeat(RETRY_TIMES) {
+            repeat(retryTimes) {
                 try {
                     val from = interval.from ?: -1 // according to https://github.com/hyperledger/indy-sdk/blob/master/libindy/src/api/ledger.rs:1623
 
@@ -274,7 +275,7 @@ class LedgerService(private val did: String?, private val wallet: Wallet, privat
                     return@runBlocking Pair(timestamp, revRegDelta)
                 } catch (e: Exception) {
                     logger.debug("Revocation registry delta retrieving failed (id: $revRegDefId, interval: $interval). Retry attempt $it")
-                    delay(DELAY_MS)
+                    delay(delayMs)
                 }
             }
 

@@ -62,7 +62,6 @@ class CordentityE2E {
             it.registerInitiatedFlow(CreatePairwiseFlow.Issuer::class.java)
             it.registerInitiatedFlow(IssueClaimFlow.Prover::class.java)
             it.registerInitiatedFlow(VerifyClaimFlow.Prover::class.java)
-            it.registerInitiatedFlow(RevokeClaimFlow.Prover::class.java)
         }
 
         // Request permissions from trustee to write on ledger

@@ -297,6 +297,12 @@ data class ProofRequestCredentials(
         val predicates: Map<String, List<ClaimReferenceInfo>>
 )
 
+/**
+ * Reference to a claim with additional data that is used to create proof request
+ *
+ * @param credInfo              claim reference itself
+ * @param interval              interval of non-revocation, can be null if revocation is disabled
+ */
 @CordaSerializable
 data class ClaimReferenceInfo(val credInfo: ClaimReference, val interval: Interval? = null)
 

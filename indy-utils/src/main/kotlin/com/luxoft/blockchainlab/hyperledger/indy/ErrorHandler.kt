@@ -27,18 +27,18 @@ fun handleIndyError(execResult: String) {
 typealias IndyParser = (msg: String) -> CompletableFuture<LedgerResults.ParseResponseResult>
 
 inline fun <reified T: Any> extractIndyResult(execResult: String, indyParser: IndyParser): T {
-        try {
-            handleIndyError(execResult)
+    handleIndyError(execResult)
 
-            val payload = indyParser(execResult).get()
-            val output = SerializationUtils.jSONToAny(payload.objectJson!!, T::class.java)
+    try {
+        val payload = indyParser(execResult).get()
+        val output = SerializationUtils.jSONToAny(payload.objectJson!!, T::class.java)
 
-            logger.info("Payload successfully parsed ${payload.id}:${payload.objectJson}")
-            return output
+        logger.info("Payload successfully parsed ${payload.id}:${payload.objectJson}")
+        return output
 
-        } catch (e: Exception) {
-            logger.info("Indy parsing has failed", e)
-            if (e.cause is LedgerInvalidTransactionException) throw ArtifactDoesntExist()
-            throw ArtifactRequestFailed("Can not parse the response: " + e.message)
-        }
+    } catch (e: Exception) {
+        logger.info("Indy parsing has failed", e)
+        if (e.cause is LedgerInvalidTransactionException) throw ArtifactDoesntExist()
+        throw ArtifactRequestFailed("Can not parse the response: " + e.message)
+    }
 }
