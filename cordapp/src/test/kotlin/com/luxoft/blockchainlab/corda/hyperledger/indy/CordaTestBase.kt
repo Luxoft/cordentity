@@ -29,14 +29,9 @@ import kotlin.math.absoluteValue
 /**
  * [CordaTestBase] is the base class for any test that uses mocked Corda network.
  *
- * Note: [projectServises] and [projectReciverFlows] must be kept updated!
+ * Note: [projectReciverFlows] must be kept updated!
  * */
 open class CordaTestBase {
-
-    /**
-     * List of all Corda services in the CordApp
-     * */
-    val projectServises = listOf(IndyService::class)
 
     /**
      * List of all flows that may be initiated by a message
@@ -45,7 +40,6 @@ open class CordaTestBase {
             AssignPermissionsFlow.Authority::class,
             CreatePairwiseFlow.Issuer::class,
             IssueClaimFlow.Prover::class,
-            VerifyClaimFlow.Prover::class,
             VerifyClaimFlow.Prover::class)
 
     /**
@@ -133,9 +127,7 @@ open class CordaTestBase {
     fun commonTearDown() {
         try {
             for (party in parties) {
-                for(service in projectServises) {
-                    party.services.cordaService(service.java).indyUser.close()
-                }
+                party.services.cordaService(IndyService::class.java).indyUser.close()
             }
 
         } finally {
