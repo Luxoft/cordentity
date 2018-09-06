@@ -64,7 +64,7 @@ open class CordaTestBase {
      *         issuer = createPartyNode(CordaX500Name("Issuer", "London", "GB"))
      *     }
      * */
-    protected fun createPartyNode(legalName: CordaX500Name? = null): StartedNode<MockNode> {
+    protected fun createPartyNode(legalName: CordaX500Name): StartedNode<MockNode> {
         val party = net.createPartyNode(legalName)
 
         parties.add(party)
