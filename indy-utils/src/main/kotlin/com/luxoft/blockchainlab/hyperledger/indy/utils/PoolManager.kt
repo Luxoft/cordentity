@@ -1,24 +1,42 @@
 package com.luxoft.blockchainlab.hyperledger.indy.utils
 
 import org.hyperledger.indy.sdk.pool.Pool
+import org.hyperledger.indy.sdk.pool.PoolJSONParameters
+import org.hyperledger.indy.sdk.pool.PoolJSONParameters.OpenPoolLedgerJSONParameter
+import org.hyperledger.indy.sdk.pool.PoolLedgerConfigExistsException
+import java.io.File
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ExecutionException
 
-class PoolManager private constructor() {
+object PoolManager {
 
-    private val configName: String = PoolUtils.createPoolLedgerConfig()
-    private val config: String = "{}"
+    const val DEFAULT_POOL_NAME = "default_pool"
 
-    init {
-        Pool.setProtocolVersion(2).get()
-    }
-    
-    val pool: Pool = Pool.openPoolLedger(configName, config).get()
+    const val DEFAULT_GENESIS_FILE = "/docker_pool_transactions_genesis.txt"
 
-    companion object {
-        private val mInstance: PoolManager = PoolManager()
+    val defaultGenesisResource by lazy { File(javaClass.getResource(DEFAULT_GENESIS_FILE).toURI()) }
 
-        @Synchronized
-        fun getInstance(): PoolManager {
-            return mInstance
+    private val openIndyPools = ConcurrentHashMap<String, Pool>()
+
+    fun openIndyPool(genesisFile: File,
+                     poolName: String = DEFAULT_POOL_NAME,
+                     poolConfig: OpenPoolLedgerJSONParameter = OpenPoolLedgerJSONParameter(null, null, null)
+    ): Pool {
+        val pool = openIndyPools.getOrPut(poolName) {
+            val ledgerConfig = PoolJSONParameters.CreatePoolLedgerConfigJSONParameter(genesisFile.absolutePath)
+
+            try {
+                Pool.createPoolLedgerConfig(poolName, ledgerConfig.toJson()).get()
+            } catch (e: ExecutionException) {
+                if(e.cause !is PoolLedgerConfigExistsException) throw e
+                // ok
+            }
+
+            Pool.setProtocolVersion(2).get()
+
+            Pool.openPoolLedger(poolName, poolConfig.toJson()).get()
         }
+
+        return pool
     }
 }

@@ -22,5 +22,4 @@ task cleanDefaultPool(type: Delete, group: INDY_RUN_GROUP) {
 test.dependsOn(dockerCleanRun)
 test.dependsOn(cleanDefaultPool)
 
-clean.dependsOn(dockerStop)
 clean.dependsOn(cleanDefaultPool)

@@ -37,8 +37,14 @@ allprojects {
     apply plugin: 'net.corda.plugins.quasar-utils'
 
     sourceSets {
-        main { resources { srcDir "config/dev"  } }
-        test { resources { srcDir "config/test" } }
+        main.resources {
+            srcDir "config/dev"
+            srcDir "$rootDir/genesis"
+        }
+        test.resources {
+            srcDir "config/test"
+            srcDir "$rootDir/genesis"
+        }
     }
 
 

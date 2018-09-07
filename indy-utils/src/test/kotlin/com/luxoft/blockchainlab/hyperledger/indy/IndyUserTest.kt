@@ -1,5 +1,6 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
+import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
 import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds
 import org.hyperledger.indy.sdk.wallet.Wallet
@@ -7,6 +8,7 @@ import org.hyperledger.indy.sdk.wallet.WalletExistsException
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 
 class IndyUserTest {
 
@@ -31,7 +33,8 @@ class IndyUserTest {
         }
 
         wallet = Wallet.openWallet(walletName, null, credentials).get()
-        indyUser = IndyUser(wallet)
+        val pool = PoolManager.openIndyPool(PoolManager.defaultGenesisResource, poolName)
+        indyUser = IndyUser(pool, wallet)
     }
 
     @After
