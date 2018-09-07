@@ -1,5 +1,3 @@
-group 'com.luxoft.blockchainlab.corda.hyperledger.indy'
-
 apply plugin: 'net.corda.plugins.cordapp'
 
 dependencies {
