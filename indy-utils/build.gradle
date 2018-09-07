@@ -11,3 +11,13 @@ dependencies {
 }
 
 apply from: "$rootDir/indy-run.gradle"
+
+apply plugin: 'maven-publish'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
