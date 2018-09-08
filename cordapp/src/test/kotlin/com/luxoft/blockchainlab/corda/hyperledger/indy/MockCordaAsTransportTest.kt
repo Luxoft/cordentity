@@ -2,103 +2,39 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy
 
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
-import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
-
-import com.natpryce.konfig.Configuration
-import com.natpryce.konfig.ConfigurationMap
-import com.natpryce.konfig.TestConfigurationsProvider
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
 import net.corda.node.internal.StartedNode
-import net.corda.testing.common.internal.testNetworkParameters
 import net.corda.testing.core.singleIdentity
-import net.corda.testing.node.internal.InternalMockNetwork
 import net.corda.testing.node.internal.InternalMockNetwork.MockNode
-import net.corda.testing.node.internal.startFlow
 import org.junit.*
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import java.time.Duration
 import java.util.*
-import kotlin.math.absoluteValue
 
 
-class MockCordaAsTransportTest {
+class MockCordaAsTransportTest : CordaTestBase() {
 
-    private lateinit var net: InternalMockNetwork
     private lateinit var notary: StartedNode<MockNode>
     private lateinit var issuer: StartedNode<MockNode>
     private lateinit var alice: StartedNode<MockNode>
     private lateinit var bob: StartedNode<MockNode>
 
-    private lateinit var parties: List<StartedNode<MockNode>>
-
-    private val RD = Random()
-
     @Before
     fun setup() {
-
-        setupIndyConfigs()
-
-        net = InternalMockNetwork(
-                cordappPackages = listOf("com.luxoft.blockchainlab.corda.hyperledger.indy"),
-                networkParameters = testNetworkParameters(maxTransactionSize = 10485760 * 5))
-
         notary = net.defaultNotaryNode
 
-        issuer = net.createPartyNode(CordaX500Name("Issuer", "London", "GB"))
-        alice = net.createPartyNode(CordaX500Name("Alice", "London", "GB"))
-        bob = net.createPartyNode(CordaX500Name("Bob", "London", "GB"))
-
-        parties = listOf(issuer, alice, bob)
-
-        parties.forEach {
-            it.registerInitiatedFlow(AssignPermissionsFlow.Authority::class.java)
-            it.registerInitiatedFlow(CreatePairwiseFlow.Issuer::class.java)
-            it.registerInitiatedFlow(IssueClaimFlow.Prover::class.java)
-            it.registerInitiatedFlow(VerifyClaimFlow.Prover::class.java)
-            it.registerInitiatedFlow(VerifyClaimFlow.Prover::class.java)
-        }
+        issuer = createPartyNode(CordaX500Name("Issuer", "London", "GB"))
+        alice = createPartyNode(CordaX500Name("Alice", "London", "GB"))
+        bob = createPartyNode(CordaX500Name("Bob", "London", "GB"))
     }
-
-    private fun setupIndyConfigs() {
-
-        TestConfigurationsProvider.provider = object : TestConfigurationsProvider {
-            override fun getConfig(name: String): Configuration? {
-                // Watch carefully for these hard-coded values
-                // Now we assume that issuer(indy trustee) is the first created node from SomeNodes
-                return if (name == "Issuer") {
-                    ConfigurationMap(mapOf(
-                            "indyuser.walletName" to name,
-                            "indyuser.role" to "trustee",
-                            "indyuser.did" to "V4SGRU86Z58d6TV7PBUe6f",
-                            "indyuser.seed" to "000000000000000000000000Trustee1"
-                    ))
-                } else ConfigurationMap(mapOf(
-                        "indyuser.walletName" to name + RD.nextLong().absoluteValue
-                ))
-            }
-        }
-    }
-
-    @After
-    fun tearDown() {
-        try {
-            issuer.services.cordaService(IndyService::class.java).indyUser.close()
-            alice.services.cordaService(IndyService::class.java).indyUser.close()
-            bob.services.cordaService(IndyService::class.java).indyUser.close()
-        } finally {
-            net.stopNodes()
-        }
-    }
-
 
     private fun setPermissions(issuer: StartedNode<MockNode>,
                                authority: StartedNode<MockNode>) {
         val permissionsFuture = issuer.services.startFlow(AssignPermissionsFlow.Issuer(
                 authority = authority.info.singleIdentity().name, role = "TRUSTEE")).resultFuture
 
-        net.runNetwork()
         permissionsFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
@@ -113,14 +49,12 @@ class MockCordaAsTransportTest {
                         schema.schemaVersion,
                         schema.schemaAttrs)).resultFuture
 
-        net.runNetwork()
         val schemaId = schemaFuture.getOrThrow(Duration.ofSeconds(30))
 
         // create credential definition
         val claimDefFuture = claimDefOwner.services.startFlow(
                 CreateClaimDefFlow.Authority(schemaId)).resultFuture
 
-        net.runNetwork()
         val credDefId = claimDefFuture.getOrThrow(Duration.ofSeconds(30))
 
         return Pair(schemaId, credDefId)
@@ -139,7 +73,6 @@ class MockCordaAsTransportTest {
                         claimProposal,
                         claimProver.getName())).resultFuture
 
-        net.runNetwork()
         claimFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
@@ -156,7 +89,6 @@ class MockCordaAsTransportTest {
                         predicates,
                         prover.getName())).resultFuture
 
-        net.runNetwork()
         return proofCheckResultFuture.getOrThrow(Duration.ofSeconds(30))
     }
 

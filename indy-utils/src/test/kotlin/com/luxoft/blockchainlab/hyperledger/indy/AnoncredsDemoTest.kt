@@ -1,6 +1,6 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
-import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolUtils
+import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
 import org.hyperledger.indy.sdk.pool.Pool
 import org.hyperledger.indy.sdk.pool.PoolJSONParameters
 import org.hyperledger.indy.sdk.wallet.Wallet
@@ -10,6 +10,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Ignore
 import org.junit.Test
+import java.io.File
 
 @Ignore
 class AnoncredsDemoTest : IndyIntegrationTest() {
@@ -33,10 +34,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         Pool.setProtocolVersion(PROTOCOL_VERSION).get()
 
         // Create and Open Pool
-        poolName = PoolUtils.createPoolLedgerConfig()
+        poolName = PoolManager.DEFAULT_POOL_NAME
 
-        val config = PoolJSONParameters.OpenPoolLedgerJSONParameter(null, null, null)
-        pool = Pool.openPoolLedger(poolName, config.toJson()).get()
+        pool = PoolManager.openIndyPool(PoolManager.defaultGenesisResource, poolName)
 
         // Issuer Create and Open Wallet
         Wallet.createWallet(poolName, "issuerWallet", TYPE, null, CREDENTIALS).get()

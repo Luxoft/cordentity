@@ -27,6 +27,7 @@ Each [IndyService](#Services) can be configured with its own `indy.properties`
 - indyuser.role - the role of the service
 - indyuser.did - a preconfigured DID of the node
 - indyuser.seed - a seed to generate private keys of the node
+- indyuser.genesisFile - absolute path to a Genesis file or relative to a resource folder. Must start with `/`
 - indyuser.wallet - deprecated
 
 Example `indy.properties` file:
@@ -36,6 +37,7 @@ Example `indy.properties` file:
     indyuser.role=trustee
     indyuser.did=V4SGRU86Z58d6TV7PBUe6f
     indyuser.seed=000000000000000000000000Trustee1
+    indyuser.genesisFile=/docker_pool_transactions_genesis.txt
 
 #### Indy Terminology
 
@@ -51,6 +53,9 @@ For more please see [Indy documentation](https://github.com/hyperledger/indy-sdk
 For more please see [Indy documentation](https://github.com/hyperledger/indy-sdk/blob/master/doc/how-tos/save-schema-and-cred-def/java/README.md#step-4).
 
 - Wallet - local storage for private keys and saved Credentials
+
+- Genesis File - a file to get access to an Indy network. 
+For some networks you can find Genesis files in the [genesis directory](../genesis/README.md)
 
 
 ### In terms of Corda
