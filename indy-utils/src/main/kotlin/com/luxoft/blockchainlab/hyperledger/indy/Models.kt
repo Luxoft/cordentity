@@ -111,7 +111,7 @@ data class Claim(
         val signatureCorrectnessProof: RawJsonMap
 )
 
-typealias RawJsonMap = Map<String, String?>
+typealias RawJsonMap = Map<String, Any?>
 
 @CordaSerializable
 data class ClaimValue(val raw: String, val encoded: String)
