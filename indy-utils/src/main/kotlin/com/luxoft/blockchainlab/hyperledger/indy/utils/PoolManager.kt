@@ -20,7 +20,7 @@ object PoolManager {
 
     fun openIndyPool(genesisFile: File,
                      poolName: String = DEFAULT_POOL_NAME,
-                     poolConfig: OpenPoolLedgerJSONParameter = OpenPoolLedgerJSONParameter(null, null, null)
+                     poolConfig: OpenPoolLedgerJSONParameter = OpenPoolLedgerJSONParameter(null, null)
     ): Pool {
         val pool = openIndyPools.getOrPut(poolName) {
             val ledgerConfig = PoolJSONParameters.CreatePoolLedgerConfigJSONParameter(genesisFile.absolutePath)
