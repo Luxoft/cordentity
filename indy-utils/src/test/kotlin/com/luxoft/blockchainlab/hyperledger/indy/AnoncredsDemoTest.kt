@@ -1,6 +1,7 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
 import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
+import com.luxoft.blockchainlab.hyperledger.indy.utils.SerializationUtils
 import org.hyperledger.indy.sdk.pool.Pool
 import org.hyperledger.indy.sdk.pool.PoolJSONParameters
 import org.hyperledger.indy.sdk.wallet.Wallet
@@ -38,13 +39,15 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         pool = PoolManager.openIndyPool(PoolManager.defaultGenesisResource, poolName)
 
+        val walletConfig = SerializationUtils.anyToJSON(WalletConfig("issuerWallet"))
+
         // Issuer Create and Open Wallet
-        Wallet.createWallet(poolName, "issuerWallet", TYPE, null, CREDENTIALS).get()
-        issuerWallet = Wallet.openWallet("issuerWallet", null, CREDENTIALS).get()
+        Wallet.createWallet(walletConfig, CREDENTIALS).get()
+        issuerWallet = Wallet.openWallet(walletConfig, CREDENTIALS).get()
 
         // Prover Create and Open Wallet
-        Wallet.createWallet(poolName, "proverWallet", TYPE, null, CREDENTIALS).get()
-        proverWallet = Wallet.openWallet("proverWallet", null, CREDENTIALS).get()
+        Wallet.createWallet(walletConfig, CREDENTIALS).get()
+        proverWallet = Wallet.openWallet(walletConfig, CREDENTIALS).get()
     }
 
     @After
@@ -102,8 +105,10 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     fun testAnoncredsWorksForMultipleIssuerSingleProver() {
         val gvtIssuer = IndyUser(pool, issuerWallet, issuerDid, TRUSTEE_IDENTITY_JSON)
 
-        Wallet.createWallet(poolName, "issuer2Wallet", "default", null, CREDENTIALS).get()
-        val issuerXyzWallet = Wallet.openWallet("issuer2Wallet", null, CREDENTIALS).get()
+        val walletConfig = SerializationUtils.anyToJSON(WalletConfig("issuer2Wallet"))
+
+        Wallet.createWallet(walletConfig, CREDENTIALS).get()
+        val issuerXyzWallet = Wallet.openWallet(walletConfig, CREDENTIALS).get()
         val xyzIssuer = IndyUser(pool, issuerXyzWallet, "VsKV7grR1BUE29mG2Fm2kX", TRUSTEE_IDENTITY_JSON)
 
         val prover = IndyUser(pool, proverWallet, proverDid, TRUSTEE_IDENTITY_JSON)
