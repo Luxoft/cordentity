@@ -17,11 +17,13 @@ import net.corda.core.utilities.getOrThrow
 import net.corda.node.internal.StartedNode
 import net.corda.node.services.api.StartedNodeServices
 import net.corda.testing.common.internal.testNetworkParameters
+import net.corda.testing.core.singleIdentity
 import net.corda.testing.node.internal.InternalMockNetwork
 import net.corda.testing.node.internal.InternalMockNetwork.MockNode
 import net.corda.testing.node.internal.newContext
 import org.junit.After
 import org.junit.Before
+import java.time.Duration
 import java.util.*
 import kotlin.math.absoluteValue
 
@@ -51,6 +53,21 @@ open class CordaTestBase {
     private val parties: MutableList<StartedNode<MockNode>> = mutableListOf()
 
     protected val random = Random()
+
+    /**
+     * Shares permissions from [authority] to [issuer]
+     * This action is needed to implement authority chains
+     *
+     * @param issuer            a node that needs permissions
+     * @param authority         a node that can share permissions
+     */
+    protected fun setPermissions(issuer: StartedNode<MockNode>, authority: StartedNode<MockNode>) {
+        val permissionsFuture = issuer.services.startFlow(
+            AssignPermissionsFlow.Issuer(authority = authority.info.singleIdentity().name, role = "TRUSTEE")
+        ).resultFuture
+
+        permissionsFuture.getOrThrow(Duration.ofSeconds(30))
+    }
 
     /**
      * Recreate nodes before each test
@@ -101,7 +118,7 @@ open class CordaTestBase {
             override fun getConfig(name: String): Configuration? {
                 // Watch carefully for these hard-coded values
                 // Now we assume that issuer(indy trustee) is the first created node from SomeNodes
-                return if (name == "Issuer") {
+                return if (name == "Trustee") {
                     ConfigurationMap(mapOf(
                             "indyuser.walletName" to name,
                             "indyuser.role" to "trustee",
@@ -119,8 +136,6 @@ open class CordaTestBase {
         net = InternalMockNetwork(
                 cordappPackages = listOf("com.luxoft.blockchainlab.corda.hyperledger.indy"),
                 networkParameters = testNetworkParameters(maxTransactionSize = 10485760 * 5))
-
-        parties.clear()
     }
 
     @After
@@ -130,6 +145,7 @@ open class CordaTestBase {
                 party.services.cordaService(IndyService::class.java).indyUser.close()
             }
 
+            parties.clear()
         } finally {
             net.stopNodes()
         }

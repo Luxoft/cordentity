@@ -37,14 +37,6 @@ class CordentityE2E : CordaTestBase() {
         setPermissions(bob, trustee)
     }
 
-    private fun setPermissions(issuer: StartedNode<MockNode>, authority: StartedNode<MockNode>) {
-        val permissionsFuture = issuer.services.startFlow(
-            AssignPermissionsFlow.Issuer(authority = authority.info.singleIdentity().name, role = "TRUSTEE")
-        ).resultFuture
-
-        permissionsFuture.getOrThrow(Duration.ofSeconds(30))
-    }
-
     private fun issueSchema(schemaOwner: StartedNode<MockNode>, schema: Schema): String {
         val schemaFuture = schemaOwner.services.startFlow(
                 CreateSchemaFlow.Authority(schema.schemaName, schema.schemaVersion, schema.schemaAttrs)
