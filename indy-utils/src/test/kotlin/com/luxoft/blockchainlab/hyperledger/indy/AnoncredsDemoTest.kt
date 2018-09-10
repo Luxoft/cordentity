@@ -1,7 +1,7 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
 import com.luxoft.blockchainlab.hyperledger.indy.utils.LedgerService
-import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolUtils
+import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
 import com.luxoft.blockchainlab.hyperledger.indy.utils.StorageUtils
 import junit.framework.Assert.assertFalse
 import org.hyperledger.indy.sdk.did.Did
@@ -13,6 +13,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 
 
 class AnoncredsDemoTest : IndyIntegrationTest() {
@@ -44,8 +45,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         Pool.setProtocolVersion(PROTOCOL_VERSION).get()
 
         // Create and Open Pool
-        poolName = PoolUtils.createPoolLedgerConfig()
-        pool = PoolUtils.createAndOpenPoolLedger(poolName)
+        poolName = PoolManager.DEFAULT_POOL_NAME
+
+        pool = PoolManager.openIndyPool(PoolManager.defaultGenesisResource, poolName)
 
         // Issuer Create and Open Wallet
         Wallet.createWallet(poolName, issuerWalletName, TYPE, null, CREDENTIALS).get()

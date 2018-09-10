@@ -2,6 +2,7 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.service
 
 import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
+import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
 import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
 import com.natpryce.konfig.*
 import net.corda.core.node.AppServiceHub
@@ -47,13 +48,16 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
 
         val wallet = Wallet.openWallet(walletName, null, credentials).get()
 
+        val genesisFile = File(javaClass.getResource(config[indyuser.genesisFile]).toURI())
+        val pool = PoolManager.openIndyPool(genesisFile)
+
         indyUser = if(config.getOrNull(indyuser.role)?.compareTo("trustee", true) == 0) {
             val didConfig = DidJSONParameters.CreateAndStoreMyDidJSONParameter(
                     config[indyuser.did], config[indyuser.seed], null, null).toJson()
 
-            IndyUser(wallet, config[indyuser.did], didConfig)
+            IndyUser(pool, wallet, config[indyuser.did], didConfig)
         } else {
-            IndyUser(wallet)
+            IndyUser(pool, wallet)
         }
     }
 
@@ -78,5 +82,6 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
         val did    by stringType
         val seed   by stringType
         val walletName by stringType
+        val genesisFile by stringType
     }
 }
