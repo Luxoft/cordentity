@@ -2,7 +2,6 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy
 
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
-import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
 import com.luxoft.blockchainlab.hyperledger.indy.Interval
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
@@ -37,20 +36,6 @@ class CordentityE2E : CordaTestBase() {
         setPermissions(issuer, trustee)
         setPermissions(bob, trustee)
     }
-
-
-    @After
-    fun tearDown() {
-        try {
-            trustee.services.cordaService(IndyService::class.java).indyUser.close()
-            issuer.services.cordaService(IndyService::class.java).indyUser.close()
-            alice.services.cordaService(IndyService::class.java).indyUser.close()
-            bob.services.cordaService(IndyService::class.java).indyUser.close()
-        } finally {
-            net.stopNodes()
-        }
-    }
-
 
     private fun setPermissions(issuer: StartedNode<MockNode>, authority: StartedNode<MockNode>) {
         val permissionsFuture = issuer.services.startFlow(
@@ -106,8 +91,6 @@ class CordentityE2E : CordaTestBase() {
         val flowResult = issuer.services.startFlow(
                 RevokeClaimFlow.Issuer(claimId)
         ).resultFuture
-
-        net.runNetwork()
 
         flowResult.getOrThrow(Duration.ofSeconds(30))
     }

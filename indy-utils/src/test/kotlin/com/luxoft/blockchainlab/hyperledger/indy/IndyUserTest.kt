@@ -34,7 +34,7 @@ class IndyUserTest {
 
         wallet = Wallet.openWallet(walletName, null, credentials).get()
         val pool = PoolManager.openIndyPool(PoolManager.defaultGenesisResource, poolName)
-        indyUser = IndyUser(pool, wallet)
+        indyUser = IndyUser(pool, wallet, null)
     }
 
     @After

@@ -57,7 +57,7 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
 
             IndyUser(pool, wallet, config[indyuser.did], didConfig)
         } else {
-            IndyUser(pool, wallet)
+            IndyUser(pool, wallet, null)
         }
     }
 

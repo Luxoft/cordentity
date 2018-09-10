@@ -190,9 +190,6 @@ open class IndyUser {
 
     private var ledgerService: LedgerService
 
-    constructor(wallet: Wallet, did: String? = null, didConfig: String = EMPTY_OBJECT) :
-            this(PoolManager.getInstance().pool, wallet, did, didConfig)
-
     constructor(pool: Pool, wallet: Wallet, did: String?, didConfig: String = EMPTY_OBJECT) {
 
         this.pool = pool

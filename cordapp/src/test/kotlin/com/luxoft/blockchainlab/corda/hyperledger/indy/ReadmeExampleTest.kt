@@ -52,7 +52,7 @@ class ReadmeExampleTest : CordaTestBase() {
 // Ministry creates a claim definition for the shopping scheme:
 
         val credDefId = ministry.services.startFlow(
-                CreateClaimDefFlow.Authority(schemaId)).resultFuture.get()
+                CreateClaimDefinitionFlow.Authority(schemaId)).resultFuture.get()
 
 // Ministry verifies Alice's legal status and issues her a shopping credential:
 
