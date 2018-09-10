@@ -119,7 +119,7 @@ class CordentityE2E {
         return schemaFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
-    private fun issueClaimDefinition(claimDefOwner: StartedNode<MockNode>, schemaId: String): CreateClaimDefinitionFlowResult {
+    private fun issueClaimDefinition(claimDefOwner: StartedNode<MockNode>, schemaId: String): String {
         val claimDefFuture = claimDefOwner.services.startFlow(
                 CreateClaimDefinitionFlow.Authority(schemaId)
         ).resultFuture
@@ -132,8 +132,7 @@ class CordentityE2E {
             claimProver: StartedNode<MockNode>,
             claimIssuer: StartedNode<MockNode>,
             claimProposal: String,
-            claimDefId: String,
-            revRegId: String
+            claimDefId: String
     ): String {
 
         val identifier = UUID.randomUUID().toString()
@@ -141,9 +140,8 @@ class CordentityE2E {
         val claimFuture = claimIssuer.services.startFlow(
                 IssueClaimFlow.Issuer(
                         identifier,
-                        claimDefId,
                         claimProposal,
-                        revRegId,
+                        claimDefId,
                         claimProver.getName()
                 )
         ).resultFuture
@@ -202,18 +200,18 @@ class CordentityE2E {
         val personSchemaId = issueSchema(issuer, schemaPerson)
         val educationSchemaId = issueSchema(issuer, schemaEducation)
 
-        val (personClaimDefId, personRevRegId) = issueClaimDefinition(issuer, personSchemaId)
-        val (educationClaimDefId, educationRevRegId) = issueClaimDefinition(bob, educationSchemaId)
+        val personClaimDefId = issueClaimDefinition(issuer, personSchemaId)
+        val educationClaimDefId = issueClaimDefinition(bob, educationSchemaId)
 
         // Issue claim #1
         var claimProposal = schemaPerson.formatProposal(attr1.key, "119191919", pred1.key, pred1.key)
 
-        issueClaim(alice, issuer, claimProposal, personClaimDefId, personRevRegId)
+        issueClaim(alice, issuer, claimProposal, personClaimDefId)
 
         // Issue claim #2
         claimProposal = schemaEducation.formatProposal(attr2.key, "119191918", pred2.key, pred2.key)
 
-        issueClaim(alice, bob, claimProposal, educationClaimDefId, educationRevRegId)
+        issueClaim(alice, bob, claimProposal, educationClaimDefId)
 
         // Verify claims
         val attributes = listOf(
@@ -277,13 +275,13 @@ class CordentityE2E {
         val schemaId = issueSchema(issuer, schemaPerson)
 
         // issuer claim definition
-        val (claimDefId, revRegId) = issueClaimDefinition(issuer, schemaId)
+        val claimDefId = issueClaimDefinition(issuer, schemaId)
 
         // Issue claim
         val schemaAttrInt = "1988"
         val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        issueClaim(alice, issuer, claimProposal, claimDefId, revRegId)
+        issueClaim(alice, issuer, claimProposal, claimDefId)
 
         // Verify claim
         val attributes = listOf(
@@ -308,13 +306,13 @@ class CordentityE2E {
         val schemaId = issueSchema(issuer, schemaPerson)
 
         // issuer claim definition
-        val (claimDefId, revRegId) = issueClaimDefinition(issuer, schemaId)
+        val claimDefId = issueClaimDefinition(issuer, schemaId)
 
         // Issue claim
         val schemaAttrInt = "1988"
         val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        val claimId = issueClaim(alice, issuer, claimProposal, claimDefId, revRegId)
+        val claimId = issueClaim(alice, issuer, claimProposal, claimDefId)
 
         // Verify claim
         val attributes = listOf(
@@ -346,20 +344,20 @@ class CordentityE2E {
         val personSchemaId = issueSchema(issuer, schemaPerson)
         val educationSchemaId = issueSchema(issuer, schemaEducation)
 
-        val (personClaimDefId, personRevRegId) = issueClaimDefinition(issuer, personSchemaId)
-        val (educationClaimDefId, educationRevRegId) = issueClaimDefinition(issuer, educationSchemaId)
+        val personClaimDefId = issueClaimDefinition(issuer, personSchemaId)
+        val educationClaimDefId = issueClaimDefinition(issuer, educationSchemaId)
 
         // Issue claim #1
         val schemaPersonAttrInt = "1988"
         var claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaPersonAttrInt, schemaPersonAttrInt)
 
-        issueClaim(alice, issuer, claimProposal, personClaimDefId, personRevRegId)
+        issueClaim(alice, issuer, claimProposal, personClaimDefId)
 
         // Issue claim #2
         val schemaEducationAttrInt = "2016"
         claimProposal = schemaEducation.formatProposal("University", "119191918", schemaEducationAttrInt, schemaEducationAttrInt)
 
-        issueClaim(alice, issuer, claimProposal, educationClaimDefId, educationRevRegId)
+        issueClaim(alice, issuer, claimProposal, educationClaimDefId)
 
         // Verify claims
         val attributes = listOf(
@@ -382,13 +380,13 @@ class CordentityE2E {
         val schemaPerson = SchemaPerson()
 
         val schemaId = issueSchema(issuer, schemaPerson)
-        val (claimDefId, revRegId) = issueClaimDefinition(issuer, schemaId)
+        val claimDefId = issueClaimDefinition(issuer, schemaId)
 
         // Issue claim
         val schemaAttrInt = "1988"
         val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        issueClaim(alice, issuer, claimProposal, claimDefId, revRegId)
+        issueClaim(alice, issuer, claimProposal, claimDefId)
 
         // Verify claim
         val attributes = listOf(
@@ -405,13 +403,13 @@ class CordentityE2E {
         val schemaPerson = SchemaPerson()
 
         val schemaId = issueSchema(issuer, schemaPerson)
-        val (claimDefId, revRegId) = issueClaimDefinition(issuer, schemaId)
+        val claimDefId = issueClaimDefinition(issuer, schemaId)
 
         // Issue claim
         val schemaAttrInt = "1988"
         val claimProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        issueClaim(alice, issuer, claimProposal, claimDefId, revRegId)
+        issueClaim(alice, issuer, claimProposal, claimDefId)
 
         // Verify claim
         val attributes = listOf(

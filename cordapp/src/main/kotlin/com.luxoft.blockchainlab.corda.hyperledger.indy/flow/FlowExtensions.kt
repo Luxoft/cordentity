@@ -1,7 +1,9 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.ClaimDefinitionSchemaV1
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.ClaimSchemaV1
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimDefinition
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
 import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
@@ -45,11 +47,21 @@ fun FlowLogic<Any>.verifyClaimAttributeValues(claimRequest: ClaimRequestInfo): B
  * @return                  corda state of indy claim or null if none exists
  */
 fun FlowLogic<Any>.getIndyClaimState(claimId: String): StateAndRef<IndyClaim>? {
-    val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.ALL)
+    val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
     val id = QueryCriteria.VaultCustomQueryCriteria(ClaimSchemaV1.PersistentClaim::id.equal(claimId))
 
     val criteria = generalCriteria.and(id)
     val result = serviceHub.vaultService.queryBy<IndyClaim>(criteria)
+
+    return result.states.firstOrNull()
+}
+
+fun FlowLogic<Any>.getIndyClaimDefinitionState(claimDefId: String): StateAndRef<IndyClaimDefinition>? {
+    val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+    val id = QueryCriteria.VaultCustomQueryCriteria(ClaimDefinitionSchemaV1.PersistentClaimDefinition::claimDefId.equal(claimDefId))
+
+    val criteria = generalCriteria.and(id)
+    val result = serviceHub.vaultService.queryBy<IndyClaimDefinition>(criteria)
 
     return result.states.firstOrNull()
 }

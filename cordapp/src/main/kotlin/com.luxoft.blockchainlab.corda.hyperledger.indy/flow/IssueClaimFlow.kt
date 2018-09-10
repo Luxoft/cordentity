@@ -2,7 +2,9 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
+import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimMetadataChecker
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimDefinition
 import com.luxoft.blockchainlab.hyperledger.indy.ClaimOffer
 import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
 import net.corda.core.contracts.Command
@@ -49,9 +51,8 @@ object IssueClaimFlow {
     @StartableByRPC
     open class Issuer(
             private val identifier: String,
-            private val credDefId: String,
             private val credProposal: String,
-            private val revRegId: String,
+            private val credDefId: String,
             private val proverName: CordaX500Name
     ) : FlowLogic<Unit>() {
 
@@ -61,11 +62,16 @@ object IssueClaimFlow {
             val flowSession: FlowSession = initiateFlow(prover)
 
             try {
-                val offer = indyUser().createClaimOffer(credDefId)
+                val credDefState = getIndyClaimDefinitionState(credDefId)
+                    ?: throw RuntimeException("No indy claim definition with id=$credDefId in vault")
+
+                val credDef = credDefState.state.data
+
+                val offer = indyUser().createClaimOffer(credDef.claimDefId)
 
                 val newClaimOut = flowSession.sendAndReceive<ClaimRequestInfo>(offer).unwrap { claimReq ->
                     verifyClaimAttributeValues(claimReq)
-                    val claim = indyUser().issueClaim(claimReq, credProposal, offer, revRegId)
+                    val claim = indyUser().issueClaim(claimReq, credProposal, offer, credDef.revRegId)
                     val claimOut = IndyClaim(identifier, claimReq, claim, indyUser().did, listOf(ourIdentity, prover))
                     StateAndContract(claimOut, ClaimChecker::class.java.name)
                 }
@@ -75,8 +81,11 @@ object IssueClaimFlow {
 
                 val newClaimCmd = Command(newClaimData, newClaimSigners)
 
+                val claimDefCmdType = ClaimMetadataChecker.Command.Use()
+                val claimDefCmd = Command(claimDefCmdType, newClaimSigners)
+
                 val trxBuilder = TransactionBuilder(whoIsNotary())
-                        .withItems(newClaimOut, newClaimCmd)
+                        .withItems(newClaimOut, newClaimCmd, credDefState, claimDefCmd)
 
                 trxBuilder.toWireTransaction(serviceHub)
                         .toLedgerTransaction(serviceHub)
@@ -111,14 +120,19 @@ object IssueClaimFlow {
 
                 val flow = object : SignTransactionFlow(flowSession) {
                     override fun checkTransaction(stx: SignedTransaction) {
-                        val output = stx.tx.toLedgerTransaction(serviceHub).outputs.singleOrNull()
-                        val state = output!!.data
-                        when (state) {
-                            is IndyClaim -> {
-                                require(state.claimRequestInfo == claimRequestInfo) { "Received incorrected ClaimReq" }
-                                indyUser().receiveClaim(state.claimInfo, state.claimRequestInfo, offer)
+                        val outputs = stx.tx.toLedgerTransaction(serviceHub).outputs
+
+                        outputs.forEach {
+                            val state = it.data
+
+                            when (state) {
+                                is IndyClaim -> {
+                                    require(state.claimRequestInfo == claimRequestInfo) { "Received incorrect ClaimReq" }
+                                    indyUser().receiveClaim(state.claimInfo, state.claimRequestInfo, offer)
+                                }
+                                is IndyClaimDefinition -> println("Got indy claim definition")
+                                else -> throw FlowException("invalid output state. IndyClaim is expected")
                             }
-                            else -> throw FlowException("invalid output state. IndyClaim is expected")
                         }
                     }
                 }

@@ -600,6 +600,7 @@ data class ProofInfo(
         val proofData: ParsedProof
 ) {
     @JsonIgnore fun isAttributeExists(value: String) = proofData.requestedProof.revealedAttrs.values.any { it.raw == value }
+    @JsonIgnore fun getAttribyteValue(attrName: String) = proofData.requestedProof.revealedAttrs[attrName]
 }
 
 @CordaSerializable

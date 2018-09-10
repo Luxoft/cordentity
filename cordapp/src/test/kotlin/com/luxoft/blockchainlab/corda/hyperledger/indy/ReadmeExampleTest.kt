@@ -112,7 +112,7 @@ class ReadmeExampleTest {
                         listOf("NAME", "BORN"))).resultFuture.get()
 
         // Ministry creates a claim definition for the shopping scheme:
-        val (credDefId, revRegId) = ministry.services.startFlow(
+        val credDefId = ministry.services.startFlow(
                 CreateClaimDefinitionFlow.Authority(schemaId)
         ).resultFuture.get()
 
@@ -129,7 +129,6 @@ class ReadmeExampleTest {
                         UUID.randomUUID().toString(),
                         credDefId,
                         credentialProposal,
-                        revRegId,
                         aliceX500
                 )
         ).resultFuture.get()

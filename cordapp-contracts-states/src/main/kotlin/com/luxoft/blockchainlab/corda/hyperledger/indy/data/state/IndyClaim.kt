@@ -30,7 +30,7 @@ open class IndyClaim(val id: String,
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
         return when(schema) {
             is ClaimSchemaV1 -> ClaimSchemaV1.PersistentClaim(this)
-            else ->  throw IllegalArgumentException("Unrecognised schema $schema")
+            else -> throw IllegalArgumentException("Unrecognised schema $schema")
         }
     }
     override fun supportedSchemas(): Iterable<MappedSchema> = listOf(ClaimSchemaV1)
