@@ -172,6 +172,14 @@ To manually start the `indy-pool` container on ports 9701-9708:
     docker pull teamblockchain/indy-pool:1.5.0
     docker create -p 9701-9708:9701-9708 --name indypool --rm teamblockchain/indy-pool:1.5.0
     docker start indypool
+
+
+## I want to participate
+
+If you want to submit a new issue feel free to do it. We are suggesting you to use next templates:
+* [If you have found a bug](docs/templates/BUG_ISSUE_TEMPLATE.md)
+* [If you want to request a feature](docs/templates/REQUEST_ISSUE_TEMPLATE.md)
+
     
 ## Contributors
 
