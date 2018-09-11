@@ -175,6 +175,7 @@ To manually start the `indy-pool` container on ports 9701-9708:
 
 
 ## I want to participate
+
 If you want to submit a new issue feel free to do it. We are suggesting you to use next templates:
 * [If you have found a bug](docs/templates/BUG_ISSUE_TEMPLATE.md)
 * [If you want to request a feature](docs/templates/REQUEST_ISSUE_TEMPLATE.md)
