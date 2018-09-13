@@ -2,6 +2,7 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimMetadataChecker
+import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.SchemaChecker
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimDefinition
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
@@ -27,6 +28,9 @@ object CreateClaimDefinitionFlow {
         @Suspendable
         override fun call(): String {
             try {
+                val schemaFromVault = getIndySchemaState(schemaId)
+                    ?: throw RuntimeException("There is no schema with id: $schemaId in vault")
+
                 val credDef = indyUser().createClaimDefinition(schemaId, true)
                 val revReg = indyUser().createRevocationRegistry(credDef.id, maxCredNumber)
 
@@ -38,8 +42,11 @@ object CreateClaimDefinitionFlow {
 
                 val command = Command(commandType, signers)
 
+                val schemaCmdType = SchemaChecker.Command.Use()
+                val schemaCmd = Command(schemaCmdType, signers)
+
                 val trxBuilder = TransactionBuilder(whoIsNotary())
-                    .withItems(claimDefOut, command)
+                    .withItems(claimDefOut, command, schemaFromVault, schemaCmd)
 
                 trxBuilder.toWireTransaction(serviceHub)
                     .toLedgerTransaction(serviceHub)

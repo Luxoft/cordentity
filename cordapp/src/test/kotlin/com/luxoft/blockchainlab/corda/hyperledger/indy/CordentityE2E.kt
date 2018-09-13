@@ -119,7 +119,7 @@ class CordentityE2E : CordaTestBase() {
         val schemaEducation = SchemaEducation()
 
         val personSchemaId = issueSchema(issuer, schemaPerson)
-        val educationSchemaId = issueSchema(issuer, schemaEducation)
+        val educationSchemaId = issueSchema(bob, schemaEducation)
 
         val personClaimDefId = issueClaimDefinition(issuer, personSchemaId)
         val educationClaimDefId = issueClaimDefinition(bob, educationSchemaId)
