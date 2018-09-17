@@ -1,9 +1,10 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimMetadataChecker
-import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.SchemaChecker
+import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndyCredentialDefinitionContract
+import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndySchemaContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimDefinition
+import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -28,25 +29,44 @@ object CreateClaimDefinitionFlow {
         @Suspendable
         override fun call(): String {
             try {
-                val schemaFromVault = getIndySchemaState(schemaId)
-                    ?: throw RuntimeException("There is no schema with id: $schemaId in vault")
+                // checking if credential definition already exists
+                val schema = indyUser().retrieveSchema(schemaId)
+                    ?: throw RuntimeException("There is no schema with id: $schemaId in ledger")
+                val credDefId = IndyUser.buildCredentialDefinitionId(indyUser().did, schema.seqNo!!)
+                val credDefFromLedger = indyUser().retrieveClaimDefinition(credDefId)
+                if (credDefFromLedger != null) {
+                    throw IndyCredentialDefinitionAlreadyExistsException(credDefId)
+                }
 
+                // create indy stuff
                 val credDef = indyUser().createClaimDefinition(schemaId, true)
                 val revReg = indyUser().createRevocationRegistry(credDef.id, maxCredNumber)
 
-                val claimDef = IndyClaimDefinition(schemaId, credDef.id, revReg.definition.id, listOf(ourIdentity))
-                val claimDefOut = StateAndContract(claimDef, ClaimMetadataChecker::class.java.name)
-
-                val commandType = ClaimMetadataChecker.Command.Create()
                 val signers = listOf(ourIdentity.owningKey)
 
-                val command = Command(commandType, signers)
+                // create new credential definition state
+                val credDefState = IndyClaimDefinition(
+                    schemaId,
+                    credDef.id,
+                    revReg.definition.id,
+                    0,
+                    maxCredNumber,
+                    listOf(ourIdentity)
+                )
+                val credDefOut = StateAndContract(credDefState, IndyCredentialDefinitionContract::class.java.name)
+                val credDefCmdType = IndyCredentialDefinitionContract.Command.Create()
+                val credDefCmd = Command(credDefCmdType, signers)
 
-                val schemaCmdType = SchemaChecker.Command.Use()
+                // consume old schema state
+                val schemaStateIn = getIndySchemaState(schemaId)
+                    ?: throw RuntimeException("There is no schema with id: $schemaId in vault")
+                val schemaStateOut = StateAndContract(schemaStateIn.state.data, IndySchemaContract::class.java.name)
+                val schemaCmdType = IndySchemaContract.Command.Consume()
                 val schemaCmd = Command(schemaCmdType, signers)
 
+                // do stuff
                 val trxBuilder = TransactionBuilder(whoIsNotary())
-                    .withItems(claimDefOut, command, schemaFromVault, schemaCmd)
+                    .withItems(credDefOut, credDefCmd, schemaStateIn, schemaStateOut, schemaCmd)
 
                 trxBuilder.toWireTransaction(serviceHub)
                     .toLedgerTransaction(serviceHub)
@@ -56,7 +76,7 @@ object CreateClaimDefinitionFlow {
 
                 subFlow(FinalityFlow(selfSignedTx))
 
-                return claimDef.claimDefId
+                return credDefId
 
             } catch (t: Throwable) {
                 logger.error("", t)

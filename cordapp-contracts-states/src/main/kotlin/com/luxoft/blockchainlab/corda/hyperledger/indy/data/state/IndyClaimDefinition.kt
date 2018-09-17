@@ -13,8 +13,23 @@ class IndyClaimDefinition(
     val schemaId: String,
     val claimDefId: String,
     val revRegId: String,
+    val currentCredNumber: Int,
+    val maxCredNumber: Int,
     override val participants: List<AbstractParty>
 ) : LinearState, QueryableState {
+
+    companion object {
+        fun upgrade(credDef: IndyClaimDefinition): IndyClaimDefinition {
+            return IndyClaimDefinition(
+                credDef.schemaId,
+                credDef.claimDefId,
+                credDef.revRegId,
+                credDef.currentCredNumber + 1,
+                credDef.maxCredNumber,
+                credDef.participants
+            )
+        }
+    }
 
     override val linearId: UniqueIdentifier = UniqueIdentifier()
 
@@ -26,4 +41,9 @@ class IndyClaimDefinition(
     }
 
     override fun supportedSchemas() = listOf(ClaimDefinitionSchemaV1)
+
+    /**
+     * Returns true if this credential definition is able to hold 1 more credential
+     */
+    fun canProduceCredentials() = currentCredNumber < maxCredNumber
 }

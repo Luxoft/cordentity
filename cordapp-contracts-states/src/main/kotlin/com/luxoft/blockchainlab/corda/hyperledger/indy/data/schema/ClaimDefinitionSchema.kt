@@ -18,9 +18,15 @@ object ClaimDefinitionSchemaV1 : MappedSchema(
     data class PersistentClaimDefinition(
         @Column(name = "id") val claimDefId: String = "",
         val schemaId: String = "",
-        val revRegId: String = ""
+        val revRegId: String = "",
+        val currentCredNumber: Int = 0
 
     ) : PersistentState() {
-        constructor(claimDef: IndyClaimDefinition) : this(claimDef.claimDefId, claimDef.schemaId, claimDef.revRegId)
+        constructor(claimDef: IndyClaimDefinition) : this(
+            claimDef.claimDefId,
+            claimDef.schemaId,
+            claimDef.revRegId,
+            claimDef.currentCredNumber
+        )
     }
 }

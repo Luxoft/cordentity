@@ -1,7 +1,7 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.DummyClaimChecker
+import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndyCredentialContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
 import com.luxoft.blockchainlab.hyperledger.indy.*
 import net.corda.core.contracts.Command
@@ -57,6 +57,8 @@ object VerifyClaimFlow {
      *                          if not specified then revocation is not verified
      *
      * @returns TRUE if verification succeeds
+     *
+     * TODO: make it return false in case of failed verification
      * */
     @InitiatingFlow
     @StartableByRPC
@@ -95,17 +97,16 @@ object VerifyClaimFlow {
 
                     if (!indyUser().verifyProof(claimProofOut.proofReq, proof, usedData)) throw FlowException("Proof verification failed")
 
-                    StateAndContract(claimProofOut, DummyClaimChecker::class.java.name)
+                    StateAndContract(claimProofOut, IndyCredentialContract::class.java.name)
                 }
 
                 val expectedAttrs = attributes
                         .filter { it.value.isNotEmpty() }
                         .associateBy({ it.field }, { it.value })
-                        .map { DummyClaimChecker.ExpectedAttr(it.key, it.value) }
+                        .map { IndyCredentialContract.ExpectedAttr(it.key, it.value) }
 
-                val verifyClaimData = DummyClaimChecker.Commands.Verify(expectedAttrs)
+                val verifyClaimData = IndyCredentialContract.Command.Verify(expectedAttrs)
                 val verifyClaimSigners = listOf(ourIdentity.owningKey, prover.owningKey)
-
                 val verifyClaimCmd = Command(verifyClaimData, verifyClaimSigners)
 
                 val trxBuilder = TransactionBuilder(whoIsNotary())

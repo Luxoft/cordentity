@@ -1,8 +1,8 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimChecker
-import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimMetadataChecker
+import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndyCredentialContract
+import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndyCredentialDefinitionContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimDefinition
 import com.luxoft.blockchainlab.hyperledger.indy.ClaimOffer
@@ -38,7 +38,6 @@ object IssueClaimFlow {
      *                          }
      *                          See `credValuesJson` in [org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredential]
      *
-     * @param revRegId          Claim's revocation registry definition id
      * @param proverName        the node that can prove this credential
      *
      * @return                  claim id
@@ -62,30 +61,34 @@ object IssueClaimFlow {
             val flowSession: FlowSession = initiateFlow(prover)
 
             try {
-                val credDefState = getIndyClaimDefinitionState(credDefId)
+                // checking if cred def exists and can produce new credentials
+                val credDefStateIn = getIndyClaimDefinitionState(credDefId)
                     ?: throw RuntimeException("No indy claim definition with id=$credDefId in vault")
+                val credDefIn = credDefStateIn.state.data
+                if (!credDefIn.canProduceCredentials()) throw IndyCredentialMaximumReachedException(credDefIn.revRegId)
 
-                val credDef = credDefState.state.data
+                // issue credential
+                val offer = indyUser().createClaimOffer(credDefIn.claimDefId)
 
-                val offer = indyUser().createClaimOffer(credDef.claimDefId)
-
-                val newClaimOut = flowSession.sendAndReceive<ClaimRequestInfo>(offer).unwrap { claimReq ->
+                val signers = listOf(ourIdentity.owningKey, prover.owningKey)
+                val credOut = flowSession.sendAndReceive<ClaimRequestInfo>(offer).unwrap { claimReq ->
                     verifyClaimAttributeValues(claimReq)
-                    val claim = indyUser().issueClaim(claimReq, credProposal, offer, credDef.revRegId)
+                    val claim = indyUser().issueClaim(claimReq, credProposal, offer, credDefIn.revRegId)
                     val claimOut = IndyClaim(identifier, claimReq, claim, indyUser().did, listOf(ourIdentity, prover))
-                    StateAndContract(claimOut, ClaimChecker::class.java.name)
+                    StateAndContract(claimOut, IndyCredentialContract::class.java.name)
                 }
+                val credCmdType = IndyCredentialContract.Command.Issue()
+                val credCmd = Command(credCmdType, signers)
 
-                val newClaimData = ClaimChecker.Commands.Issue()
-                val newClaimSigners = listOf(ourIdentity.owningKey, prover.owningKey)
+                // consume credential definition
+                val credDefOut = IndyClaimDefinition.upgrade(credDefIn)
+                val credDefStateOut = StateAndContract(credDefOut, IndyCredentialDefinitionContract::class.java.name)
+                val credDefCmdType = IndyCredentialDefinitionContract.Command.Consume()
+                val credDefCmd = Command(credDefCmdType, signers)
 
-                val newClaimCmd = Command(newClaimData, newClaimSigners)
-
-                val claimDefCmdType = ClaimMetadataChecker.Command.Use()
-                val claimDefCmd = Command(claimDefCmdType, newClaimSigners)
-
+                // do stuff
                 val trxBuilder = TransactionBuilder(whoIsNotary())
-                        .withItems(newClaimOut, newClaimCmd, credDefState, claimDefCmd)
+                        .withItems(credOut, credCmd, credDefStateIn, credDefStateOut, credDefCmd)
 
                 trxBuilder.toWireTransaction(serviceHub)
                         .toLedgerTransaction(serviceHub)
@@ -130,7 +133,7 @@ object IssueClaimFlow {
                                     require(state.claimRequestInfo == claimRequestInfo) { "Received incorrect ClaimReq" }
                                     indyUser().receiveClaim(state.claimInfo, state.claimRequestInfo, offer)
                                 }
-                                is IndyClaimDefinition -> println("Got indy claim definition")
+                                is IndyClaimDefinition -> logger.info("Got indy claim definition")
                                 else -> throw FlowException("invalid output state. IndyClaim is expected")
                             }
                         }

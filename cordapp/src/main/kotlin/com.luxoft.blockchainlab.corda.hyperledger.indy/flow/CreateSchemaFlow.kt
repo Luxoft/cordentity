@@ -1,9 +1,9 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.ClaimMetadataChecker
-import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.SchemaChecker
+import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndySchemaContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndySchema
+import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -33,12 +33,19 @@ object CreateSchemaFlow {
         @Suspendable
         override fun call(): String {
             try {
+                // check if schema already exists
+                val schemaId = IndyUser.buildSchemaId(indyUser().did, schemaName, schemaVersion)
+                val schemaFromLedger = indyUser().retrieveSchema(schemaId)
+                if (schemaFromLedger != null) {
+                    throw IndySchemaAlreadyExistsException(schemaId)
+                }
 
+                // create schema
                 val schema = indyUser().createSchema(schemaName, schemaVersion, schemaAttributes)
                 val indySchema = IndySchema(schema.id, listOf(ourIdentity))
-                val schemaOut = StateAndContract(indySchema, SchemaChecker::class.java.name)
+                val schemaOut = StateAndContract(indySchema, IndySchemaContract::class.java.name)
 
-                val commandType = SchemaChecker.Command.Create()
+                val commandType = IndySchemaContract.Command.Create()
                 val signers = listOf(ourIdentity.owningKey)
                 val command = Command(commandType, signers)
 
