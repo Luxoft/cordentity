@@ -36,7 +36,7 @@ object CreateSchemaFlow {
         override fun call(): String {
             try {
                 // check if schema already exists
-                if(indyUser().retrieveSchema(schemaName, schemaVersion) == null)
+                if(indyUser().isSchemaExist(schemaName, schemaVersion))
                     throw IndySchemaAlreadyExistsException(schemaName, schemaVersion)
 
                 // create schema
@@ -61,7 +61,7 @@ object CreateSchemaFlow {
                 return schema.id
 
             } catch (t: Throwable) {
-                logger.error("New schema creating was failed", t)
+                logger.error("New schema creating has been failed", t)
                 throw FlowException(t.message)
             }
         }

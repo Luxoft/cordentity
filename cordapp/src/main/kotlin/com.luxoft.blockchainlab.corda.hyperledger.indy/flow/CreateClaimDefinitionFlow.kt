@@ -78,7 +78,7 @@ object CreateClaimDefinitionFlow {
                 return credentialDefinition.claimDefId
 
             } catch (t: Throwable) {
-                logger.error("New credential definition creating was failed", t)
+                logger.error("New credential definition has been failed", t)
                 throw FlowException(t.message)
             }
         }
@@ -94,7 +94,7 @@ object CreateClaimDefinitionFlow {
         }
 
         private fun checkNoCredentialDefinitionOnIndy() {
-            if(indyUser().retrieveCredentialDefinitionBySchemaId(schemaId) != null)
+            if(indyUser().isCredentialDefinitionExist(schemaId))
                 throw IndyCredentialDefinitionAlreadyExistsException(schemaId,
                         "Credential definition already exist on Indy ledger")
         }
