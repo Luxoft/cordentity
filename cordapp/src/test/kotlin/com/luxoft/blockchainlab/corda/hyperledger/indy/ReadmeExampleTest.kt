@@ -14,14 +14,18 @@ import java.util.*
 
 class ReadmeExampleTest : CordaTestBase() {
 
+    private lateinit var trustee: StartedNode<MockNode>
     private lateinit var issuer: StartedNode<MockNode>
     private lateinit var alice: StartedNode<MockNode>
     private lateinit var bob: StartedNode<MockNode>
 
     @Before fun setup() {
+        trustee = createPartyNode(CordaX500Name("Trustee", "London", "GB"))
         issuer = createPartyNode(CordaX500Name("Issuer", "London", "GB"))
         alice = createPartyNode(CordaX500Name("Alice", "London", "GB"))
         bob = createPartyNode(CordaX500Name("Bob", "London", "GB"))
+
+        setPermissions(issuer, trustee)
     }
 
 
@@ -52,7 +56,7 @@ class ReadmeExampleTest : CordaTestBase() {
 // Ministry creates a claim definition for the shopping scheme:
 
         val credDefId = ministry.services.startFlow(
-                CreateClaimDefFlow.Authority(schemaId)).resultFuture.get()
+                CreateClaimDefinitionFlow.Authority(schemaId)).resultFuture.get()
 
 // Ministry verifies Alice's legal status and issues her a shopping credential:
 
@@ -66,8 +70,8 @@ class ReadmeExampleTest : CordaTestBase() {
         ministry.services.startFlow(
                 IssueClaimFlow.Issuer(
                         UUID.randomUUID().toString(),
-                        credDefId,
                         credentialProposal,
+                        credDefId,
                         aliceX500)).resultFuture.get()
 
 // When Alice comes to grocery store, the store asks Alice to verify that she is legally allowed to buy drinks:

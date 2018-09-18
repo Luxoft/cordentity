@@ -38,7 +38,7 @@ object CreatePairwiseFlow {
                 return sessionDid
 
             } catch (ex: Exception) {
-                logger.error("", ex)
+                logger.error("Pairwise has not been created", ex)
                 throw FlowException(ex.message)
             }
         }
@@ -50,7 +50,6 @@ object CreatePairwiseFlow {
 
         @Suspendable
         override fun call() {
-
             try {
                 val myIdentityRecord = indyUser().getIdentity().getIdentityRecord()
 

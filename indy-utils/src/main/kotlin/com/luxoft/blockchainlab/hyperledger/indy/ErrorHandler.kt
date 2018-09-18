@@ -8,8 +8,8 @@ import java.util.concurrent.CompletableFuture
 
 open class IndyWrapperException(msg: String) : IllegalArgumentException(msg)
 
-class ArtifactDoesntExist(msg: String = "") : IndyWrapperException("Artifact " + msg + " doesn't exist on the public ledger")
-class ArtifactRequestFailed(msg: String) : IndyWrapperException("Request to public Indy ledger has failed: " + msg)
+class ArtifactDoesntExist(msg: String = "") : IndyWrapperException("Artifact $msg doesn't exist on the public ledger")
+class ArtifactRequestFailed(msg: String) : IndyWrapperException("Request to public Indy ledger has failed: $msg")
 
 enum class Status { REJECT, REPLY }
 data class IndyOpCode(val op: Status, val result: Any?)
@@ -24,20 +24,21 @@ fun handleIndyError(execResult: String) {
     }
 }
 
-inline fun <reified T: Any>extractIndyResult(execResult: String,
-                                             indyParser: ((msg: String) -> CompletableFuture<LedgerResults.ParseResponseResult>)): T {
-        try {
-            handleIndyError(execResult)
+typealias IndyParser = (msg: String) -> CompletableFuture<LedgerResults.ParseResponseResult>
 
-            val payload = indyParser(execResult).get()
-            val output = SerializationUtils.jSONToAny(payload.objectJson!!, T::class.java)
+inline fun <reified T: Any> extractIndyResult(execResult: String, indyParser: IndyParser): T {
+    handleIndyError(execResult)
 
-            logger.info("Payload successfully parsed ${payload.id}:${payload.objectJson}")
-            return output
+    try {
+        val payload = indyParser(execResult).get()
+        val output = SerializationUtils.jSONToAny(payload.objectJson!!, T::class.java)
 
-        } catch (e: Exception) {
-            logger.info("Indy parsing has failed", e)
-            if(e.cause is LedgerInvalidTransactionException) throw ArtifactDoesntExist()
-            throw ArtifactRequestFailed("Can not parse the response: " + e.message)
-        }
+        logger.info("Payload successfully parsed ${payload.id}:${payload.objectJson}")
+        return output
+
+    } catch (e: Exception) {
+        logger.info("Indy parsing has failed", e)
+        if (e.cause is LedgerInvalidTransactionException) throw ArtifactDoesntExist()
+        throw ArtifactRequestFailed("Can not parse the response: " + e.message)
+    }
 }

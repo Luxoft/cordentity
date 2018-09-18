@@ -1,5 +1,6 @@
 package com.luxoft.blockchainlab.hyperledger.indy.utils
 
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.PropertyNamingStrategy
 import com.fasterxml.jackson.module.kotlin.KotlinModule
@@ -11,9 +12,10 @@ import com.fasterxml.jackson.module.kotlin.KotlinModule
 object SerializationUtils {
     val mapper: ObjectMapper = ObjectMapper().registerModule(KotlinModule())
 
-    init {
-        mapper.propertyNamingStrategy = PropertyNamingStrategy.SNAKE_CASE
-    }
+        init {
+            mapper.propertyNamingStrategy = PropertyNamingStrategy.SNAKE_CASE
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL)
+        }
 
     fun anyToJSON(obj: Any?): String = mapper.writeValueAsString(obj)
     fun anyToBytes(obj: Any?): ByteArray = mapper.writeValueAsBytes(obj)
