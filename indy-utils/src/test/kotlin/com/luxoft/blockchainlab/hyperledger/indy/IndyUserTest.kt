@@ -34,7 +34,7 @@ class IndyUserTest {
 
         wallet = Wallet.openWallet(walletName, null, credentials).get()
         val pool = PoolManager.openIndyPool(PoolManager.defaultGenesisResource, poolName)
-        indyUser = IndyUser(pool, wallet)
+        indyUser = IndyUser(pool, wallet, null)
     }
 
     @After
@@ -48,14 +48,16 @@ class IndyUserTest {
         val version = "1.0"
         val utilsId = IndyUser.buildSchemaId(indyUser.did, name, version)
 
-        val schemaInfo = Anoncreds.issuerCreateSchema(indyUser.did, name, version, """["attr1"]""").get()
+        val schemaInfo = Anoncreds.issuerCreateSchema(
+                indyUser.did, name, version, """["attr1"]"""
+        ).get()
         assert(utilsId == schemaInfo.schemaId) {"Generated schema ID doesn't match SDK' ID anymore"}
     }
 
     @Test
     fun `check definition id format wasnt changed`() {
         val schemaSeqNo = 14
-        val utilsId = IndyUser.buildCredDefId(indyUser.did, schemaSeqNo)
+        val utilsId = IndyUser.buildCredentialDefinitionId(indyUser.did, schemaSeqNo)
 
         val schemaJson = """{
             "ver":"1.0",
@@ -65,8 +67,9 @@ class IndyUserTest {
             "seqNo":${schemaSeqNo}
         }"""
 
-        val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(wallet,
-                indyUser.did, schemaJson, IndyUser.TAG, IndyUser.SIGNATURE_TYPE, null).get()
+        val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(
+                wallet, indyUser.did, schemaJson, IndyUser.TAG, IndyUser.SIGNATURE_TYPE, null
+        ).get()
         assert(utilsId == credDefInfo.credDefId) {"Generated credDef ID doesn't match SDK' ID anymore"}
     }
 }

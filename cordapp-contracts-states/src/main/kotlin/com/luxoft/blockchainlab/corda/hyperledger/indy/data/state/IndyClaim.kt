@@ -12,7 +12,13 @@ import net.corda.core.schemas.QueryableState
 
 /**
  * A Corda record of an Indy Credential [claim] issued on request [claimReq]
- * */
+ *
+ * @param id                claim persistent id
+ * @param claimRequestInfo  indy claim request
+ * @param claimInfo         indy claim
+ * @param issuerDid         did of an entity issued claim
+ * @param participants      corda participants
+ */
 open class IndyClaim(val id: String,
                      val claimRequestInfo: ClaimRequestInfo,
                      val claimInfo: ClaimInfo,
@@ -24,7 +30,7 @@ open class IndyClaim(val id: String,
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
         return when(schema) {
             is ClaimSchemaV1 -> ClaimSchemaV1.PersistentClaim(this)
-            else ->  throw IllegalArgumentException("Unrecognised schema $schema")
+            else -> throw IllegalArgumentException("Unrecognised schema $schema")
         }
     }
     override fun supportedSchemas(): Iterable<MappedSchema> = listOf(ClaimSchemaV1)
