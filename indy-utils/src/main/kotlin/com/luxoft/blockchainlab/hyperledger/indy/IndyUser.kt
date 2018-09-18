@@ -627,7 +627,35 @@ open class IndyUser {
      *
      * @return                  schema or null if schema doesn't exist in ledger
      */
-    fun retrieveSchema(schemaId: String) = ledgerService.retrieveSchema(schemaId)
+    fun retrieveSchemaById(schemaId: String) = ledgerService.retrieveSchema(schemaId)
+
+    /**
+     * Retrieves schema from ledger
+     *
+     * @param name          schema name
+     * @param version       schema version
+     *
+     * @return              schema or null if schema doesn't exist in ledger
+     */
+    fun retrieveSchema(name: String, version: String): Schema? {
+        val schemaId = IndyUser.buildSchemaId(did, name, version)
+        return retrieveSchemaById(schemaId)
+    }
+
+    /**
+     * Retrieves claim definition from ledger by schema Id
+     *
+     * @param schemaId        schema id
+     *
+     * @return                claim definition or null if it doesn't exist in ledger
+     */
+    fun retrieveCredentialDefinitionBySchemaId(schemaId: String): CredentialDefinition? {
+        val schema = retrieveSchema(schemaId)
+                ?: throw IndySchemaNotFoundException(schemaId, "Indy ledger does't have proper states")
+
+        val credentialDefinitionId = IndyUser.buildCredentialDefinitionId(did, schema.seqNo!!)
+        return ledgerService.retrieveCredentialDefinition(credentialDefinitionId)
+    }
 
     /**
      * Retrieves claim definition from ledger
@@ -636,7 +664,8 @@ open class IndyUser {
      *
      * @return                  claim definition or null if it doesn't exist in ledger
      */
-    fun retrieveClaimDefinition(claimDefId: String) = ledgerService.retrieveCredentialDefinition(claimDefId)
+    fun retrieveCredentialDefinitionById(credentialDefinitionId: String) =
+            ledgerService.retrieveCredentialDefinition(credentialDefinitionId)
 
     /**
      * Retrieves revocation registry entry from ledger

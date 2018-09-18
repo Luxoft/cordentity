@@ -3,6 +3,8 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndySchemaContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndySchema
+import com.luxoft.blockchainlab.hyperledger.indy.IndySchemaAlreadyExistsException
+import com.luxoft.blockchainlab.hyperledger.indy.IndySchemaNotFoundException
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
@@ -34,23 +36,19 @@ object CreateSchemaFlow {
         override fun call(): String {
             try {
                 // check if schema already exists
-                val schemaId = IndyUser.buildSchemaId(indyUser().did, schemaName, schemaVersion)
-                val schemaFromLedger = indyUser().retrieveSchema(schemaId)
-                if (schemaFromLedger != null) {
-                    throw IndySchemaAlreadyExistsException(schemaId)
-                }
+                if(indyUser().retrieveSchema(schemaName, schemaVersion) == null)
+                    throw IndySchemaAlreadyExistsException(schemaName, schemaVersion)
 
                 // create schema
-                val schema = indyUser().createSchema(schemaName, schemaVersion, schemaAttributes)
-                val indySchema = IndySchema(schema.id, listOf(ourIdentity))
-                val schemaOut = StateAndContract(indySchema, IndySchemaContract::class.java.name)
+                val schemaObj = indyUser().createSchema(schemaName, schemaVersion, schemaAttributes)
+                val schema = IndySchema(schemaObj.id, listOf(ourIdentity))
+                val schemaOut = StateAndContract(schema, IndySchemaContract::class.java.name)
 
-                val commandType = IndySchemaContract.Command.Create()
-                val signers = listOf(ourIdentity.owningKey)
-                val command = Command(commandType, signers)
+                val newSchemaCmdType = IndySchemaContract.Command.Create()
+                val newSchemaCmd = Command(newSchemaCmdType, listOf(ourIdentity.owningKey))
 
                 val trxBuilder = TransactionBuilder(whoIsNotary())
-                    .withItems(schemaOut, command)
+                    .withItems(schemaOut, newSchemaCmd)
 
                 trxBuilder.toWireTransaction(serviceHub)
                     .toLedgerTransaction(serviceHub)
@@ -63,7 +61,7 @@ object CreateSchemaFlow {
                 return schema.id
 
             } catch (t: Throwable) {
-                logger.error("", t)
+                logger.error("New schema creating was failed", t)
                 throw FlowException(t.message)
             }
         }

@@ -105,9 +105,8 @@ object VerifyClaimFlow {
                         .associateBy({ it.field }, { it.value })
                         .map { IndyCredentialContract.ExpectedAttr(it.key, it.value) }
 
-                val verifyClaimData = IndyCredentialContract.Command.Verify(expectedAttrs)
-                val verifyClaimSigners = listOf(ourIdentity.owningKey, prover.owningKey)
-                val verifyClaimCmd = Command(verifyClaimData, verifyClaimSigners)
+                val verifyClaimCmdType = IndyCredentialContract.Command.Verify(expectedAttrs)
+                val verifyClaimCmd = Command(verifyClaimCmdType, listOf(ourIdentity.owningKey, prover.owningKey))
 
                 val trxBuilder = TransactionBuilder(whoIsNotary())
                         .withItems(verifyClaimOut, verifyClaimCmd)

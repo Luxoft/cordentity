@@ -7,6 +7,8 @@ import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimDefinition
 import com.luxoft.blockchainlab.hyperledger.indy.ClaimOffer
 import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
+import com.luxoft.blockchainlab.hyperledger.indy.IndyCredentialDefinitionNotFoundException
+import com.luxoft.blockchainlab.hyperledger.indy.IndyCredentialMaximumReachedException
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -62,33 +64,38 @@ object IssueClaimFlow {
 
             try {
                 // checking if cred def exists and can produce new credentials
-                val credDefStateIn = getIndyClaimDefinitionState(credDefId)
-                    ?: throw RuntimeException("No indy claim definition with id=$credDefId in vault")
-                val credDefIn = credDefStateIn.state.data
-                if (!credDefIn.canProduceCredentials()) throw IndyCredentialMaximumReachedException(credDefIn.revRegId)
+                val originalCredentialDefIn = getCredentialDefinitionById(credDefId)
+                    ?: throw IndyCredentialDefinitionNotFoundException(credDefId, "State doesn't exist in Corda vault")
+                val originalCredentialDef = originalCredentialDefIn.state.data
+
+                if (!originalCredentialDef.canProduceCredentials())
+                    throw IndyCredentialMaximumReachedException(originalCredentialDef.revRegId)
 
                 // issue credential
-                val offer = indyUser().createClaimOffer(credDefIn.claimDefId)
+                val offer = indyUser().createClaimOffer(originalCredentialDef.claimDefId)
 
                 val signers = listOf(ourIdentity.owningKey, prover.owningKey)
-                val credOut = flowSession.sendAndReceive<ClaimRequestInfo>(offer).unwrap { claimReq ->
-                    verifyClaimAttributeValues(claimReq)
-                    val claim = indyUser().issueClaim(claimReq, credProposal, offer, credDefIn.revRegId)
+                val newCredentialOut = flowSession.sendAndReceive<ClaimRequestInfo>(offer).unwrap { claimReq ->
+                    val claim = indyUser().issueClaim(claimReq, credProposal, offer, originalCredentialDef.revRegId)
                     val claimOut = IndyClaim(identifier, claimReq, claim, indyUser().did, listOf(ourIdentity, prover))
                     StateAndContract(claimOut, IndyCredentialContract::class.java.name)
                 }
-                val credCmdType = IndyCredentialContract.Command.Issue()
-                val credCmd = Command(credCmdType, signers)
+                val newCredentialCmdType = IndyCredentialContract.Command.Issue()
+                val newCredentialCmd = Command(newCredentialCmdType, signers)
 
                 // consume credential definition
-                val credDefOut = IndyClaimDefinition.upgrade(credDefIn)
-                val credDefStateOut = StateAndContract(credDefOut, IndyCredentialDefinitionContract::class.java.name)
-                val credDefCmdType = IndyCredentialDefinitionContract.Command.Consume()
-                val credDefCmd = Command(credDefCmdType, signers)
+                val credentialDefinition = originalCredentialDef.requestNewCredential()
+                val credentialDefinitionOut = StateAndContract(credentialDefinition, IndyCredentialDefinitionContract::class.java.name)
+                val credentialDefinitionCmdType = IndyCredentialDefinitionContract.Command.Consume()
+                val credentialDefinitionCmd = Command(credentialDefinitionCmdType, signers)
 
                 // do stuff
-                val trxBuilder = TransactionBuilder(whoIsNotary())
-                        .withItems(credOut, credCmd, credDefStateIn, credDefStateOut, credDefCmd)
+                val trxBuilder = TransactionBuilder(whoIsNotary()).withItems(
+                        originalCredentialDefIn,
+                        newCredentialOut,
+                        newCredentialCmd,
+                        credentialDefinitionOut,
+                        credentialDefinitionCmd)
 
                 trxBuilder.toWireTransaction(serviceHub)
                         .toLedgerTransaction(serviceHub)
@@ -101,7 +108,7 @@ object IssueClaimFlow {
                 subFlow(FinalityFlow(signedTrx))
 
             } catch (ex: Exception) {
-                logger.error("", ex)
+                logger.error("Credential has not been issued", ex)
                 throw FlowException(ex.message)
             }
         }
@@ -143,7 +150,7 @@ object IssueClaimFlow {
                 subFlow(flow)
 
             } catch (ex: Exception) {
-                logger.error("", ex)
+                logger.error("Credential has not been issued", ex)
                 throw FlowException(ex.message)
             }
         }

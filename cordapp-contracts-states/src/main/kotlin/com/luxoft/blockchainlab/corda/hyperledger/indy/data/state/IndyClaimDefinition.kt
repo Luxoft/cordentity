@@ -9,27 +9,14 @@ import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
 
 
-class IndyClaimDefinition(
+data class IndyClaimDefinition(
     val schemaId: String,
     val claimDefId: String,
     val revRegId: String,
-    val currentCredNumber: Int,
-    val maxCredNumber: Int,
-    override val participants: List<AbstractParty>
+    val credentialsLimit: Int,
+    override val participants: List<AbstractParty>,
+    val currentCredNumber: Int = 0
 ) : LinearState, QueryableState {
-
-    companion object {
-        fun upgrade(credDef: IndyClaimDefinition): IndyClaimDefinition {
-            return IndyClaimDefinition(
-                credDef.schemaId,
-                credDef.claimDefId,
-                credDef.revRegId,
-                credDef.currentCredNumber + 1,
-                credDef.maxCredNumber,
-                credDef.participants
-            )
-        }
-    }
 
     override val linearId: UniqueIdentifier = UniqueIdentifier()
 
@@ -45,5 +32,7 @@ class IndyClaimDefinition(
     /**
      * Returns true if this credential definition is able to hold 1 more credential
      */
-    fun canProduceCredentials() = currentCredNumber < maxCredNumber
+    fun canProduceCredentials() = currentCredNumber < credentialsLimit
+
+    fun requestNewCredential() = copy(currentCredNumber = this.currentCredNumber + 1)
 }

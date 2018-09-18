@@ -4,7 +4,8 @@ import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndyCredentialDefinitionContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndySchemaContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimDefinition
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
+import com.luxoft.blockchainlab.hyperledger.indy.IndyCredentialDefinitionAlreadyExistsException
+import com.luxoft.blockchainlab.hyperledger.indy.IndySchemaNotFoundException
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -17,56 +18,54 @@ import net.corda.core.transactions.TransactionBuilder
 object CreateClaimDefinitionFlow {
 
     /**
-     * @param schemaId          Id of target schema
-     * @param maxCredNumber     Maximum number of issued claims per schema
+     * @param schemaId             Id of target schema
+     * @param credentialsLimit     Maximum number of possible credentials issued per definition
      *
-     * @returns                 claim definition persistent id
+     * @returns                    credential definition persistent id
      * */
     @InitiatingFlow
     @StartableByRPC
-    class Authority(private val schemaId: String, private val maxCredNumber: Int = 100) : FlowLogic<String>() {
+    class Authority(private val schemaId: String, private val credentialsLimit: Int = 100) : FlowLogic<String>() {
 
         @Suspendable
         override fun call(): String {
             try {
-                // checking if credential definition already exists
-                val schema = indyUser().retrieveSchema(schemaId)
-                    ?: throw RuntimeException("There is no schema with id: $schemaId in ledger")
-                val credDefId = IndyUser.buildCredentialDefinitionId(indyUser().did, schema.seqNo!!)
-                val credDefFromLedger = indyUser().retrieveClaimDefinition(credDefId)
-                if (credDefFromLedger != null) {
-                    throw IndyCredentialDefinitionAlreadyExistsException(credDefId)
-                }
+                checkNoCredentialDefinitionOnCorda()
+                checkNoCredentialDefinitionOnIndy()
 
                 // create indy stuff
-                val credDef = indyUser().createClaimDefinition(schemaId, true)
-                val revReg = indyUser().createRevocationRegistry(credDef.id, maxCredNumber)
+                val credentialDefinitionObj = indyUser().createClaimDefinition(schemaId, true)
+                val revocationRegistry = indyUser().createRevocationRegistry(credentialDefinitionObj.id, credentialsLimit)
 
                 val signers = listOf(ourIdentity.owningKey)
 
                 // create new credential definition state
-                val credDefState = IndyClaimDefinition(
-                    schemaId,
-                    credDef.id,
-                    revReg.definition.id,
-                    0,
-                    maxCredNumber,
-                    listOf(ourIdentity)
+                val credentialDefinition = IndyClaimDefinition(
+                        schemaId,
+                        credentialDefinitionObj.id,
+                        revocationRegistry.definition.id,
+                        credentialsLimit,
+                        listOf(ourIdentity)
                 )
-                val credDefOut = StateAndContract(credDefState, IndyCredentialDefinitionContract::class.java.name)
-                val credDefCmdType = IndyCredentialDefinitionContract.Command.Create()
-                val credDefCmd = Command(credDefCmdType, signers)
+                val credentialDefinitionOut = StateAndContract(credentialDefinition, IndyCredentialDefinitionContract::class.java.name)
+                val credentialDefinitionCmdType = IndyCredentialDefinitionContract.Command.Create()
+                val credentialDefinitionCmd = Command(credentialDefinitionCmdType, signers)
 
                 // consume old schema state
-                val schemaStateIn = getIndySchemaState(schemaId)
-                    ?: throw RuntimeException("There is no schema with id: $schemaId in vault")
-                val schemaStateOut = StateAndContract(schemaStateIn.state.data, IndySchemaContract::class.java.name)
+                val schemaIn = getSchemaById(schemaId)
+                        ?: throw IndySchemaNotFoundException(schemaId, "Corda does't have proper schema in vault")
+
+                val schemaOut = StateAndContract(schemaIn.state.data, IndySchemaContract::class.java.name)
                 val schemaCmdType = IndySchemaContract.Command.Consume()
                 val schemaCmd = Command(schemaCmdType, signers)
 
                 // do stuff
-                val trxBuilder = TransactionBuilder(whoIsNotary())
-                    .withItems(credDefOut, credDefCmd, schemaStateIn, schemaStateOut, schemaCmd)
+                val trxBuilder = TransactionBuilder(whoIsNotary()).withItems(
+                        schemaIn,
+                        credentialDefinitionOut,
+                        credentialDefinitionCmd,
+                        schemaOut,
+                        schemaCmd)
 
                 trxBuilder.toWireTransaction(serviceHub)
                     .toLedgerTransaction(serviceHub)
@@ -76,12 +75,28 @@ object CreateClaimDefinitionFlow {
 
                 subFlow(FinalityFlow(selfSignedTx))
 
-                return credDefId
+                return credentialDefinition.claimDefId
 
             } catch (t: Throwable) {
-                logger.error("", t)
+                logger.error("New credential definition creating was failed", t)
                 throw FlowException(t.message)
             }
+        }
+
+        private fun checkNoCredentialDefinitionOnCorda() {
+            getSchemaById(schemaId)
+                    ?: throw IndySchemaNotFoundException(schemaId, "Corda does't have proper states")
+
+            if (getCredentialDefinitionBySchemaId(schemaId) != null) {
+                throw IndyCredentialDefinitionAlreadyExistsException(schemaId,
+                        "Credential definition already exist on Corda ledger")
+            }
+        }
+
+        private fun checkNoCredentialDefinitionOnIndy() {
+            if(indyUser().retrieveCredentialDefinitionBySchemaId(schemaId) != null)
+                throw IndyCredentialDefinitionAlreadyExistsException(schemaId,
+                        "Credential definition already exist on Indy ledger")
         }
     }
 }

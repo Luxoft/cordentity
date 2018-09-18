@@ -35,8 +35,6 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
 
     val indyUser: IndyUser
 
-    val claimAttributeValuesChecker: ClaimAttributeValuesChecker = object : ClaimAttributeValuesChecker {}
-
     init {
         val walletName = try { config[indyuser.walletName] } catch (e: Exception) { services.myInfo.legalIdentities.first().name.organisation }
 
@@ -60,21 +58,6 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
             IndyUser(pool, wallet, null)
         }
     }
-
-
-    interface ClaimAttributeValuesChecker {
-
-        /**
-         * Checks if requested attributes and its values matches with Issuer's view of world
-         * e.g. age of counterparty is really 21 in your trusted database
-         * @return true if attribute values are ok and Issuer can sign claim
-         */
-        fun verifyRequestedClaimAttributes(claimRequest: ClaimRequestInfo): Boolean {
-            // do nothing in default implementation
-            return true
-        }
-    }
-
 
     @Suppress("ClassName")
     object indyuser : PropertyGroup() {

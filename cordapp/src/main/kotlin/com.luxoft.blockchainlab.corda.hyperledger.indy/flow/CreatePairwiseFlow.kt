@@ -38,7 +38,7 @@ object CreatePairwiseFlow {
                 return sessionDid
 
             } catch (ex: Exception) {
-                logger.error("", ex)
+                logger.error("Pairwise has not been created", ex)
                 throw FlowException(ex.message)
             }
         }
