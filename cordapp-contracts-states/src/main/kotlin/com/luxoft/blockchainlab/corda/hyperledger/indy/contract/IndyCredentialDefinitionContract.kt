@@ -44,13 +44,13 @@ class IndyCredentialDefinitionContract : Contract {
 
     interface Command : CommandData {
 
-        // when we create new schema
+        // when we create new credential definition
         class Create : TypeOnlyCommandData(), Command
 
         // when we reach maxCredNumber
         class Upgrade : TypeOnlyCommandData(), Command
 
-        // when we issue new credential definition
+        // when we issue new credential
         class Consume : TypeOnlyCommandData(), Command
     }
 }

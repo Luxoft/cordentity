@@ -9,6 +9,16 @@ import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
 
 
+/**
+ * A Corda record of an indy credential definition.
+ *
+ * @param schemaId              id of schema coupled with this credential definition
+ * @param claimDefId            id of this credential definition
+ * @param revRegId              id of revocation registry coupled with this credential definition
+ * @param credentialsLimit      maximum number of credential which can be issued using this credential definition
+ * @param participants          corda participants
+ * @param currentCredNumber     current number of credentials issued using this credential definition
+ */
 data class IndyClaimDefinition(
     val schemaId: String,
     val claimDefId: String,

@@ -9,6 +9,12 @@ import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
 
 
+/**
+ * A Corda record representing indy schema
+ *
+ * @param id                id of this schema
+ * @param participants      corda participants
+ */
 class IndySchema(
     val id: String,
     override val participants: List<AbstractParty>
