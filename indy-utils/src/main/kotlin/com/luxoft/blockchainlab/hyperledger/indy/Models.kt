@@ -327,13 +327,13 @@ data class RequestedCredentials(
 data class RequestedAttributeInfo(
         val credId: String,
         val revealed: Boolean = true,
-        val timestamp: Int?
+        val timestamp: Long?
 )
 
 @CordaSerializable
 data class RequestedPredicateInfo(
         val credId: String,
-        val timestamp: Int?
+        val timestamp: Long?
 )
 
 /**
@@ -764,7 +764,7 @@ data class RevocationRegistryEntry(
 data class RevocationState(
         val witness: RawJsonMap,
         val revReg: RawJsonMap,
-        val timestamp: Int,
+        val timestamp: Long,
         @JsonIgnore var revRegId: String? = null
 )
 
