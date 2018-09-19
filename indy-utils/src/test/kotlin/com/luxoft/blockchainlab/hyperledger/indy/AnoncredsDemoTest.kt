@@ -12,7 +12,6 @@ import org.hyperledger.indy.sdk.wallet.Wallet
 import org.junit.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import java.io.File
 
 
 class AnoncredsDemoTest : IndyIntegrationTest() {
@@ -20,9 +19,10 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     private val gvtCredentialValues = GVT_CRED_VALUES
     private val xyzCredentialValues = """{"status":{"raw":"partial","encoded":"51792877103171595686471452153480627530895"},"period":{"raw":"8","encoded":"8"}}"""
 
-    private val proverWalletName = "proverWallet"
-    private val issuerWalletName = "issuerWallet"
-    private val issuer2WalletName = "issuer2Wallet"
+    private val issuerWalletConfig = SerializationUtils.anyToJSON(WalletConfig("issuerWallet"))
+    private val issuer2WalletConfig = SerializationUtils.anyToJSON(WalletConfig("issuer2Wallet"))
+    private val proverWalletConfig = SerializationUtils.anyToJSON(WalletConfig("proverWallet"))
+
     private lateinit var issuerWallet: Wallet
     private lateinit var issuer2Wallet: Wallet
     private lateinit var proverWallet: Wallet
@@ -61,16 +61,13 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         StorageUtils.cleanupStorage()
 
         // Issuer Create and Open Wallet
-        val issuerWalletConfig = SerializationUtils.anyToJSON(WalletConfig(issuerWalletName))
         Wallet.createWallet(issuerWalletConfig, CREDENTIALS).get()
         issuerWallet = Wallet.openWallet(issuerWalletConfig, CREDENTIALS).get()
 
-        val issuer2WalletConfig = SerializationUtils.anyToJSON(WalletConfig(issuer2WalletName))
         Wallet.createWallet(issuer2WalletConfig, CREDENTIALS).get()
         issuer2Wallet = Wallet.openWallet(issuer2WalletConfig, CREDENTIALS).get()
 
         // Prover Create and Open Wallet
-        val proverWalletConfig = SerializationUtils.anyToJSON(WalletConfig(issuer2WalletName))
         Wallet.createWallet(proverWalletConfig, CREDENTIALS).get()
         proverWallet = Wallet.openWallet(proverWalletConfig , CREDENTIALS).get()
 
@@ -94,14 +91,14 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     fun tearDown() {
         // Issuer Remove Wallet
         issuerWallet.closeWallet().get()
-        Wallet.deleteWallet(issuerWalletName, CREDENTIALS).get()
+        Wallet.deleteWallet(issuerWalletConfig, CREDENTIALS).get()
 
         issuer2Wallet.closeWallet().get()
-        Wallet.deleteWallet(issuer2WalletName, CREDENTIALS).get()
+        Wallet.deleteWallet(issuer2WalletConfig, CREDENTIALS).get()
 
         // Prover Remove Wallet
         proverWallet.closeWallet().get()
-        Wallet.deleteWallet(proverWalletName, CREDENTIALS).get()
+        Wallet.deleteWallet(proverWalletConfig, CREDENTIALS).get()
 
         // Clean indy stuff
         StorageUtils.cleanupStorage()
