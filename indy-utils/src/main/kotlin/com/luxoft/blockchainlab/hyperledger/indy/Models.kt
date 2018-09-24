@@ -21,14 +21,14 @@ typealias RawJsonMap = Map<String, Any?>
  * Timestamps in indy-world are represented as seconds from current unix epoch and are passed as ints.
  */
 object Timestamp {
-    fun now() = (System.currentTimeMillis() / 1000).toInt()
+    fun now() = (System.currentTimeMillis() / 1000)
 }
 
 /**
  * Represents time interval used for non-revocation proof request creation
  */
 @CordaSerializable
-data class Interval(val from: Int?, val to: Int) {
+data class Interval(val from: Long?, val to: Long) {
     companion object {
         fun recent() = Interval(Timestamp.now() - 1, Timestamp.now())
         fun allTime() = Interval(null, Timestamp.now())
@@ -327,13 +327,13 @@ data class RequestedCredentials(
 data class RequestedAttributeInfo(
         val credId: String,
         val revealed: Boolean = true,
-        val timestamp: Int?
+        val timestamp: Long?
 )
 
 @CordaSerializable
 data class RequestedPredicateInfo(
         val credId: String,
-        val timestamp: Int?
+        val timestamp: Long?
 )
 
 /**
@@ -604,7 +604,7 @@ data class ProofInfo(
 }
 
 @CordaSerializable
-data class ProofIdentifier(val schemaId: String, val credDefId: String, val revRegId: String?, val timestamp: Int?)
+data class ProofIdentifier(val schemaId: String, val credDefId: String, val revRegId: String?, val timestamp: Long?)
 
 @CordaSerializable
 data class Proof(val proofs: List<ProofDetails>, val aggregatedProof: Any)
@@ -764,7 +764,7 @@ data class RevocationRegistryEntry(
 data class RevocationState(
         val witness: RawJsonMap,
         val revReg: RawJsonMap,
-        val timestamp: Int,
+        val timestamp: Long,
         @JsonIgnore var revRegId: String? = null
 )
 
@@ -784,3 +784,30 @@ data class ReferentClaim(val key: String, val claimUuid: String)
  */
 @CordaSerializable
 data class DataUsedInProofJson(val schemas: String, val claimDefs: String, val revRegDefs: String, val revRegs: String)
+
+data class StorageConfig(val path: String)
+
+/**
+* {
+*     "id": string, Identifier of the wallet. Configured storage uses this identifier to lookup exact wallet data placement.
+*
+*     "storage_type": optional<string>, Type of the wallet storage. Defaults to 'default'.
+*     'Default' storage type allows to store wallet data in the local file.
+*     Custom storage types can be registered with indy_register_wallet_storage call.
+*
+*     "storage_config": optional<object>, Storage configuration json. Storage type defines set of supported keys.
+*     Can be optional if storage supports default configuration.
+*
+*     For 'default' storage type configuration is:
+*     {
+*         "path": optional<string>, Path to the directory with wallet files.
+*         Defaults to $HOME/.indy_client/wallets.
+*         Wallet will be stored in the file {path}/{id}/sqlite.db
+*     }
+* }
+*/
+data class WalletConfig(
+        val id: String,
+        val storageType: String = "default",
+        val storageConfig: StorageConfig? = null
+)

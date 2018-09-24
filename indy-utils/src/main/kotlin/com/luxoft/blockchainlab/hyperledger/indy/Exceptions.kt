@@ -14,5 +14,11 @@ class IndySchemaAlreadyExistsException(name: String, version: String)
 class IndySchemaNotFoundException(id: String, msg: String)
     : IllegalArgumentException("There is no schema with id: $id. $msg")
 
+class IndyRevRegNotFoundException(id: String, msg: String)
+    : IllegalArgumentException("There is no revocation registry with id: $id. $msg")
+
+class IndyRevDeltaNotFoundException(id: String, msg: String)
+    : IllegalArgumentException("Revocation registry delta $id for definition doesn't exist in ledger. $msg")
+
 class IndyCredentialDefinitionNotFoundException(id: String, msg: String)
     : FlowException("There is no credential definition with id: $id. $msg")

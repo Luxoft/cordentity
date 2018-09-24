@@ -122,7 +122,7 @@ open class IndyUser {
                                     ?: throw RuntimeException("Revocation registry for definition $revRegId at timestamp $timestamp doesn't exist in ledger")
 
                             val (tmstmp, revReg) = response
-                            val map = hashMapOf<Int, RevocationRegistryEntry>()
+                            val map = hashMapOf<Long, RevocationRegistryEntry>()
                             map[tmstmp] = revReg
 
                             revRegId to map
@@ -337,7 +337,7 @@ open class IndyUser {
      */
     fun createClaimDefinition(schemaId: String, enableRevocation: Boolean): CredentialDefinition {
         val schema = ledgerService.retrieveSchema(schemaId)
-                ?: throw RuntimeException("Schema with id: $schemaId doesn't exist in ledger")
+                ?: throw IndySchemaNotFoundException(schemaId, "Create credential definition has been failed")
         val schemaJson = SerializationUtils.anyToJSON(schema)
 
         val credDefConfigJson = if (enableRevocation) getCredentialDefinitionConfig() else EMPTY_OBJECT
@@ -421,7 +421,7 @@ open class IndyUser {
      */
     fun createClaimRequest(proverDid: String, offer: ClaimOffer, masterSecretId: String = defaultMasterSecretId): ClaimRequestInfo {
         val credDef = ledgerService.retrieveCredentialDefinition(offer.credDefId)
-                ?: throw RuntimeException("Credential definition ${offer.credDefId} doesn't exist in ledger")
+                ?: throw IndyCredentialDefinitionNotFoundException(offer.credDefId, "Create credential request has been failed")
 
         val claimOfferJson = SerializationUtils.anyToJSON(offer)
         val credDefJson = SerializationUtils.anyToJSON(credDef)
@@ -466,7 +466,7 @@ open class IndyUser {
 
         if (revRegId != null) {
             val revocationRegistryDefinition = ledgerService.retrieveRevocationRegistryDefinition(revRegId)
-                    ?: throw RuntimeException("Revocation registry definition $revRegId doesn't exist in ledger")
+                    ?: throw IndyRevRegNotFoundException(revRegId, "Issue credential has been failed")
 
             val revRegDelta = SerializationUtils.jSONToAny<RevocationRegistryEntry>(createClaimResult.revocRegDeltaJson)
 
@@ -487,7 +487,7 @@ open class IndyUser {
         val revRegDeltaJson = Anoncreds.issuerRevokeCredential(wallet, tailsReaderHandle, revRegId, credRevId).get()
         val revRegDelta = SerializationUtils.jSONToAny<RevocationRegistryEntry>(revRegDeltaJson)
         val revRegDef = ledgerService.retrieveRevocationRegistryDefinition(revRegId)
-                ?: throw RuntimeException("Revocation registry definition $revRegId doesn't exist in ledger")
+                ?: throw IndyRevRegNotFoundException(revRegId, "Revoke credential has been failed")
 
         ledgerService.storeRevocationRegistryEntry(revRegDelta, revRegId, revRegDef.revDefType)
     }
@@ -502,13 +502,13 @@ open class IndyUser {
     fun receiveClaim(claimInfo: ClaimInfo, claimReq: ClaimRequestInfo, offer: ClaimOffer) {
         val revRegDefJson = if (claimInfo.claim.revRegId != null) {
             val revRegDef = ledgerService.retrieveRevocationRegistryDefinition(claimInfo.claim.revRegId)
-                    ?: throw RuntimeException("Revocation registry definition ${claimInfo.claim.revRegId} doesn't exist in ledger")
+                    ?: throw IndyRevRegNotFoundException(claimInfo.claim.revRegId, "Receive credential has been failed")
 
             SerializationUtils.anyToJSON(revRegDef)
         } else null
 
         val credDef = ledgerService.retrieveCredentialDefinition(offer.credDefId)
-                ?: throw RuntimeException("Credential definition ${offer.credDefId} doesn't exist in ledger")
+                ?: throw IndyCredentialDefinitionNotFoundException(offer.credDefId, "Receive credential has been failed")
 
         val claimJson = SerializationUtils.anyToJSON(claimInfo.claim)
         val claimRequestMetadataJson = SerializationUtils.anyToJSON(claimReq.metadata)
@@ -563,7 +563,7 @@ open class IndyUser {
                 .distinct()
                 .map {
                     ledgerService.retrieveSchema(it)
-                            ?: throw RuntimeException("Schema $it doesn't exist in ledger")
+                            ?: throw IndySchemaNotFoundException(it, "Create proof has been failed")
                 }
 
         val allClaimDefs = (attrProofData + predProofData)
@@ -571,7 +571,7 @@ open class IndyUser {
                 .distinct()
                 .map {
                     ledgerService.retrieveCredentialDefinition(it)
-                            ?: throw RuntimeException("Credential definition $it doesn't exist in ledger")
+                            ?: throw IndyCredentialDefinitionNotFoundException(it, "Create proof has been failed")
                 }
 
         val allRevStates = (attrProofData + predProofData)
@@ -584,7 +584,7 @@ open class IndyUser {
         val usedRevocationStates = allRevStates
                 .filter { it != null }
                 .associate {
-                    val stateByTimestamp = hashMapOf<Int, RevocationState>()
+                    val stateByTimestamp = hashMapOf<Long, RevocationState>()
                     stateByTimestamp[it!!.timestamp] = it
 
                     it.revRegId!! to stateByTimestamp
@@ -698,7 +698,7 @@ open class IndyUser {
      *
      * @return                  revocation registry entry or null if it doesn't exist in ledger
      */
-    fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Int) = ledgerService.retrieveRevocationRegistryEntry(revRegId, timestamp)
+    fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Long) = ledgerService.retrieveRevocationRegistryEntry(revRegId, timestamp)
 
     /**
      * Same as [retrieveRevocationRegistryEntry] but finds any non-revoked state in [interval]
@@ -773,11 +773,11 @@ open class IndyUser {
         val tailsReaderHandle = getTailsHandler().reader.blobStorageReaderHandle
 
         val revRegDef = ledgerService.retrieveRevocationRegistryDefinition(revRegDefId)
-                ?: throw RuntimeException("Revocation registry definition $revRegDefId doesn't exist in ledger")
+                ?: throw IndyRevRegNotFoundException(revRegDefId, "Get revocation state has been failed")
         val revRegDefJson = SerializationUtils.anyToJSON(revRegDef)
 
         val response = ledgerService.retrieveRevocationRegistryDelta(revRegDefId, interval)
-                ?: throw RuntimeException("Revocation registry delta for definition $revRegDefId at interval $interval doesn't exist in ledger")
+                ?: throw IndyRevDeltaNotFoundException(revRegDefId, "Interval is $interval")
         val (timestamp, revRegDelta) = response
         val revRegDeltaJson = SerializationUtils.anyToJSON(revRegDelta)
 

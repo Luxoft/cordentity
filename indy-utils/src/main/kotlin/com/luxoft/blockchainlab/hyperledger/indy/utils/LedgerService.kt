@@ -91,7 +91,7 @@ class LedgerService(private val did: String, private val wallet: Wallet, private
     /**
      * Shortcut to [LedgerService.retrieveRevocationRegistryEntry]
      */
-    fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Int)
+    fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Long)
             = LedgerService.retrieveRevocationRegistryEntry(did, pool, revRegId, timestamp)
 
     /**
@@ -226,8 +226,8 @@ class LedgerService(private val did: String, private val wallet: Wallet, private
          *
          * @return              revocation registry entry or null if none exists on ledger
          */
-        fun retrieveRevocationRegistryEntry(did: String, pool: Pool, revRegId: String, timestamp: Int): Pair<Int, RevocationRegistryEntry>? = runBlocking {
-            val result: Pair<Int, RevocationRegistryEntry>? = null
+        fun retrieveRevocationRegistryEntry(did: String, pool: Pool, revRegId: String, timestamp: Long): Pair<Long, RevocationRegistryEntry>? = runBlocking {
+            val result: Pair<Long, RevocationRegistryEntry>? = null
 
             repeat(retryTimes) {
                 try {
@@ -258,8 +258,8 @@ class LedgerService(private val did: String, private val wallet: Wallet, private
          *
          * @return              revocation registry delta or null if none exists on ledger
          */
-        fun retrieveRevocationRegistryDelta(did: String, pool: Pool, revRegDefId: String, interval: Interval): Pair<Int, RevocationRegistryEntry>? = runBlocking {
-            val result: Pair<Int, RevocationRegistryEntry>? = null
+        fun retrieveRevocationRegistryDelta(did: String, pool: Pool, revRegDefId: String, interval: Interval): Pair<Long, RevocationRegistryEntry>? = runBlocking {
+            val result: Pair<Long, RevocationRegistryEntry>? = null
 
             repeat(retryTimes) {
                 try {
