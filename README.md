@@ -112,8 +112,8 @@ Thanks to our Indy CorDapp solution, patient’s personal data is disclosed only
     }
 
     dependencies {
-        cordapp "com.github.Luxoft:cordentity:cordapp:0.4.11"
-        cordapp "com.github.Luxoft:cordentity:cordapp-contracts-states:0.4.11"
+        cordapp "com.github.Luxoft.cordentity:cordapp:0.4.11"
+        cordapp "com.github.Luxoft.cordentity:cordapp-contracts-states:0.4.11"
     }
 
 On all machines that are going to run [IndyService](cordapp/README.md#services) install the `libindy` package:
