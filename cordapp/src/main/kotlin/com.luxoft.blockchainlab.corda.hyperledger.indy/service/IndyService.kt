@@ -2,6 +2,9 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.service
 
 import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
+import com.luxoft.blockchainlab.hyperledger.indy.WalletConfig
+import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
+import com.luxoft.blockchainlab.hyperledger.indy.utils.SerializationUtils
 import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
 import com.natpryce.konfig.*
 import net.corda.core.node.AppServiceHub
@@ -34,43 +37,31 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
 
     val indyUser: IndyUser
 
-    val claimAttributeValuesChecker: ClaimAttributeValuesChecker = object : ClaimAttributeValuesChecker {}
-
     init {
         val walletName = try { config[indyuser.walletName] } catch (e: Exception) { services.myInfo.legalIdentities.first().name.organisation }
+        val walletConfig = SerializationUtils.anyToJSON(WalletConfig(walletName))
 
         try {
-            Wallet.createWallet(poolName, walletName, "default", null, credentials).get()
+
+            Wallet.createWallet(walletConfig, credentials).get()
         } catch (ex: Exception) {
             if (getRootCause(ex) !is WalletExistsException) throw ex else logger.debug("Wallet already exists")
         }
 
-        val wallet = Wallet.openWallet(walletName, null, credentials).get()
+        val wallet = Wallet.openWallet(walletConfig, credentials).get()
+
+        val genesisFile = File(javaClass.getResource(config[indyuser.genesisFile]).toURI())
+        val pool = PoolManager.openIndyPool(genesisFile)
 
         indyUser = if(config.getOrNull(indyuser.role)?.compareTo("trustee", true) == 0) {
             val didConfig = DidJSONParameters.CreateAndStoreMyDidJSONParameter(
                     config[indyuser.did], config[indyuser.seed], null, null).toJson()
 
-            IndyUser(wallet, config[indyuser.did], didConfig)
+            IndyUser(pool, wallet, config[indyuser.did], didConfig)
         } else {
-            IndyUser(wallet)
+            IndyUser(pool, wallet, null)
         }
     }
-
-
-    interface ClaimAttributeValuesChecker {
-
-        /**
-         * Checks if requested attributes and its values matches with Issuer's view of world
-         * e.g. age of counterparty is really 21 in your trusted database
-         * @return true if attribute values are ok and Issuer can sign claim
-         */
-        fun verifyRequestedClaimAttributes(claimRequest: ClaimRequestInfo): Boolean {
-            // do nothing in default implementation
-            return true
-        }
-    }
-
 
     @Suppress("ClassName")
     object indyuser : PropertyGroup() {
@@ -78,5 +69,6 @@ class IndyService(services: AppServiceHub) : SingletonSerializeAsToken() {
         val did    by stringType
         val seed   by stringType
         val walletName by stringType
+        val genesisFile by stringType
     }
 }

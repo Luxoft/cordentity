@@ -1,5 +1,7 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
+import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
+import com.luxoft.blockchainlab.hyperledger.indy.utils.SerializationUtils
 import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds
 import org.hyperledger.indy.sdk.wallet.Wallet
@@ -7,6 +9,7 @@ import org.hyperledger.indy.sdk.wallet.WalletExistsException
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import java.io.File
 
 class IndyUserTest {
 
@@ -19,19 +22,17 @@ class IndyUserTest {
         val poolName = "default-pool"
         val credentials = """{"key": "key"}"""
 
+        val walletConfig = SerializationUtils.anyToJSON(WalletConfig(walletName))
+
         try {
-            Wallet.createWallet(
-                    poolName,
-                    walletName,
-                    "default",
-                    null,
-                    credentials).get()
+            Wallet.createWallet(walletConfig, credentials).get()
         } catch (ex: Exception) {
             if (getRootCause(ex) !is WalletExistsException) throw ex else logger.debug("Wallet already exists")
         }
 
-        wallet = Wallet.openWallet(walletName, null, credentials).get()
-        indyUser = IndyUser(wallet)
+        wallet = Wallet.openWallet(walletConfig, credentials).get()
+        val pool = PoolManager.openIndyPool(PoolManager.defaultGenesisResource, poolName)
+        indyUser = IndyUser(pool, wallet, null)
     }
 
     @After
@@ -45,14 +46,16 @@ class IndyUserTest {
         val version = "1.0"
         val utilsId = IndyUser.buildSchemaId(indyUser.did, name, version)
 
-        val schemaInfo = Anoncreds.issuerCreateSchema(indyUser.did, name, version, """["attr1"]""").get()
+        val schemaInfo = Anoncreds.issuerCreateSchema(
+                indyUser.did, name, version, """["attr1"]"""
+        ).get()
         assert(utilsId == schemaInfo.schemaId) {"Generated schema ID doesn't match SDK' ID anymore"}
     }
 
     @Test
     fun `check definition id format wasnt changed`() {
         val schemaSeqNo = 14
-        val utilsId = IndyUser.buildCredDefId(indyUser.did, schemaSeqNo)
+        val utilsId = IndyUser.buildCredentialDefinitionId(indyUser.did, schemaSeqNo)
 
         val schemaJson = """{
             "ver":"1.0",
@@ -62,8 +65,9 @@ class IndyUserTest {
             "seqNo":${schemaSeqNo}
         }"""
 
-        val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(wallet,
-                indyUser.did, schemaJson, IndyUser.TAG, IndyUser.SIGNATURE_TYPE, null).get()
+        val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(
+                wallet, indyUser.did, schemaJson, IndyUser.TAG, IndyUser.SIGNATURE_TYPE, null
+        ).get()
         assert(utilsId == credDefInfo.credDefId) {"Generated credDef ID doesn't match SDK' ID anymore"}
     }
 }
