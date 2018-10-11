@@ -157,6 +157,47 @@ After that use the standard Gradle build procedure:
 
     gradle clean build
     
+### Run indy-pool in cloud
+
+By default gradle starts indy-pool using Docker image ``teamblockchain/indy-pool`` on local host.
+
+To run in another pool, genesis file should be changes and supplied both to cordentity and to the new pool.
+The genesis file contains some initial transactions, which configure the pool itself, so care should be
+taken when modify it. Exactly the same genesis file should be used on both running pool and cordentity.
+
+
+Example genesis files are located in ``genesis/`` folder. These are embedded into application as resources, so that
+the cordentity can create pool connection using one of these genesis files at run time.
+
+
+In our example we move docker-based indy pool to the cloud. Original docker genesis file is in
+`genesis/docker_pool_transactions_genesis.txt`. Copy it and change `txn.data.data.client_ip`,
+`txn.data.data.client_port`, `txn.data.data.node_ip`, `txn.data.data.node_port` in each transaction as appropriate.
+
+Leave these json structures on a single line each.
+
+Copy this genesis to the pool host and to the client host (it named `could_genesis.txt` below).
+
+
+To use this file in cordentity, change `devops/indyconfig/indy.properties` file,
+and set `indy_user.genesisFile` setting to the new file name.
+
+Another option is to change `~/.indy_client/pool/default_pool/config.json` so it points
+to the newly created genesis file.
+
+
+install docker on the target host, copy genesis file and run pool manually:
+
+    set -e
+    GENESIS_FILE=cloud_genesis.txt
+    GENESIS_GUEST=/var/lib/indy/sandbox/pool_transactions_genesis
+    VERSION=1.6.4
+
+    docker run --rm -d --network host --name indy-pool -v$(readlink -e "${GENESIS_FILE}"):$GENESIS_GUEST:ro teamblockchain/indy-pool:${VERSION}
+
+This replaces default genesis file with the newly created one.
+
+
 ### Troubleshooting    
     
 Before every test run it is recommended to clean local pool and wallets data, which by default are stored in `~/.indy_client/`:
