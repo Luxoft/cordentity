@@ -28,7 +28,7 @@ object RevokeClaimFlow {
 
                 val claim = claimStateIn.state.data
 
-                val revRegId = claim.claimInfo.claim.revRegId!!
+                val revRegId = claim.claimInfo.claim.revocationRegistryId!!
                 val credRevId = claim.claimInfo.credRevocId!!
 
                 // revoke that claim

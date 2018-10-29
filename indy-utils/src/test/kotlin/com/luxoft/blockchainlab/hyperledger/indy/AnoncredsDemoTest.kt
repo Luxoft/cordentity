@@ -133,12 +133,12 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         Thread.sleep(3000)
 
-        val field_name = CredFieldRef("name", gvtSchema.id, credDef.id)
-        val field_sex = CredFieldRef("sex", gvtSchema.id, credDef.id)
-        val field_age = CredFieldRef("age", gvtSchema.id, credDef.id)
+        val field_name = CredentialFieldReference("name", gvtSchema.id, credDef.id)
+        val field_sex = CredentialFieldReference("sex", gvtSchema.id, credDef.id)
+        val field_age = CredentialFieldReference("age", gvtSchema.id, credDef.id)
         val proofReq = IndyUser.createProofRequest(
                 attributes = listOf(field_name, field_sex),
-                predicates = listOf(CredPredicate(field_age, 18)),
+                predicates = listOf(CredentialPredicate(field_age, 18)),
                 nonRevoked = Interval.recent()
         )
 
@@ -148,12 +148,12 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         assertEquals("Alex", proof.proofData.requestedProof.revealedAttrs["name"]!!.raw)
         assertTrue(IndyUser.verifyProof(proofReq, proof, usedData))
 
-        issuer1.revokeClaim(claimInfo.claim.revRegId!!, claimInfo.credRevocId!!)
+        issuer1.revokeClaim(claimInfo.claim.revocationRegistryId!!, claimInfo.credRevocId!!)
         Thread.sleep(3000)
 
         val proofReqAfterRevocation = IndyUser.createProofRequest(
                 attributes = listOf(field_name, field_sex),
-                predicates = listOf(CredPredicate(field_age, 18)),
+                predicates = listOf(CredentialPredicate(field_age, 18)),
                 nonRevoked = Interval.recent()
         )
         val proofAfterRevocation = prover.createProof(proofReqAfterRevocation, masterSecretId)
@@ -176,12 +176,12 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val claimInfo = issuer1.issueClaim(credReq, gvtCredentialValues, credOffer, null)
         prover.receiveClaim(claimInfo, credReq, credOffer)
 
-        val field_name = CredFieldRef("name", gvtSchema.id, credDef.id)
-        val field_sex = CredFieldRef("sex", gvtSchema.id, credDef.id)
-        val field_age = CredFieldRef("age", gvtSchema.id, credDef.id)
+        val field_name = CredentialFieldReference("name", gvtSchema.id, credDef.id)
+        val field_sex = CredentialFieldReference("sex", gvtSchema.id, credDef.id)
+        val field_age = CredentialFieldReference("age", gvtSchema.id, credDef.id)
         val proofReq = IndyUser.createProofRequest(
                 attributes = listOf(field_name, field_sex),
-                predicates = listOf(CredPredicate(field_age, 18)),
+                predicates = listOf(CredentialPredicate(field_age, 18)),
                 nonRevoked = null
         )
 
@@ -215,14 +215,14 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val xyzCredential = issuer2.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer, null)
         prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer)
 
-        val field_name = CredFieldRef("name", schema1.id, credDef1.id)
-        val field_age = CredFieldRef("age", schema1.id, credDef1.id)
-        val field_status = CredFieldRef("status", schema2.id, credDef2.id)
-        val field_period = CredFieldRef("period", schema2.id, credDef2.id)
+        val field_name = CredentialFieldReference("name", schema1.id, credDef1.id)
+        val field_age = CredentialFieldReference("age", schema1.id, credDef1.id)
+        val field_status = CredentialFieldReference("status", schema2.id, credDef2.id)
+        val field_period = CredentialFieldReference("period", schema2.id, credDef2.id)
 
         val proofReq = IndyUser.createProofRequest(
                 attributes = listOf(field_name, field_status),
-                predicates = listOf(CredPredicate(field_age, 18), CredPredicate(field_period, 5)),
+                predicates = listOf(CredentialPredicate(field_age, 18), CredentialPredicate(field_period, 5)),
                 nonRevoked = null
         )
 
@@ -262,14 +262,14 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val xyzCredential = issuer1.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer, null)
         prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer)
 
-        val field_name = CredFieldRef("name", gvtSchema.id, gvtCredDef.id)
-        val field_age = CredFieldRef("age", gvtSchema.id, gvtCredDef.id)
-        val field_status = CredFieldRef("status", xyzSchema.id, xyzCredDef.id)
-        val field_period = CredFieldRef("period", xyzSchema.id, xyzCredDef.id)
+        val field_name = CredentialFieldReference("name", gvtSchema.id, gvtCredDef.id)
+        val field_age = CredentialFieldReference("age", gvtSchema.id, gvtCredDef.id)
+        val field_status = CredentialFieldReference("status", xyzSchema.id, xyzCredDef.id)
+        val field_period = CredentialFieldReference("period", xyzSchema.id, xyzCredDef.id)
 
         val proofReq = IndyUser.createProofRequest(
                 attributes = listOf(field_name, field_status),
-                predicates = listOf(CredPredicate(field_age, 18), CredPredicate(field_period, 5)),
+                predicates = listOf(CredentialPredicate(field_age, 18), CredentialPredicate(field_period, 5)),
                 nonRevoked = null
         )
 

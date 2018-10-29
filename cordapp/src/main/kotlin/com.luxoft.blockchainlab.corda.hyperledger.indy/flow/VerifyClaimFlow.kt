@@ -77,12 +77,12 @@ object VerifyClaimFlow {
                 val flowSession: FlowSession = initiateFlow(prover)
 
                 val fieldRefAttr = attributes.map {
-                    CredFieldRef(it.field, it.schemaId, it.credDefId)
+                    CredentialFieldReference(it.field, it.schemaId, it.credDefId)
                 }
 
                 val fieldRefPred =  predicates.map {
-                    val fieldRef = CredFieldRef(it.field, it.schemaId, it.credDefId)
-                    CredPredicate(fieldRef, it.value)
+                    val fieldRef = CredentialFieldReference(it.field, it.schemaId, it.credDefId)
+                    CredentialPredicate(fieldRef, it.value)
                 }
 
                 val proofRequest = IndyUser.createProofRequest(
