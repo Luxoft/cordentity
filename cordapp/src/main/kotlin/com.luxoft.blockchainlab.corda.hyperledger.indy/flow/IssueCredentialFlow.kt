@@ -3,10 +3,10 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndyCredentialContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndyCredentialDefinitionContract
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimDefinition
-import com.luxoft.blockchainlab.hyperledger.indy.ClaimOffer
-import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredential
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredentialDefinition
+import com.luxoft.blockchainlab.hyperledger.indy.CredentialOffer
+import com.luxoft.blockchainlab.hyperledger.indy.CredentialRequestInfo
 import com.luxoft.blockchainlab.hyperledger.indy.IndyCredentialDefinitionNotFoundException
 import com.luxoft.blockchainlab.hyperledger.indy.IndyCredentialMaximumReachedException
 import net.corda.core.contracts.Command
@@ -21,39 +21,39 @@ import net.corda.core.utilities.unwrap
 /**
  * Flows to issue Indy credentials
  * */
-object IssueClaimFlow {
+object IssueCredentialFlow {
 
     /**
      * A flow to issue an Indy credential based on proposal [credProposal]
      *
      * [identifier] must be unique for the given Indy user to allow searching Credentials by `(identifier, issuerDID)`
      *
-     * @param identifier        new unique ID for the new credential.
-     *                          Must be unique for the given Indy user to allow searching Credentials by `(identifier, issuerDID)`
+     * @param identifier                new unique ID for the new credential.
+     *                                  Must be unique for the given Indy user to allow searching Credentials by `(identifier, issuerDID)`
      *
-     * @param credDefId         id of the credential definition to create new statement (credential)
-     * @param credProposal      credential JSON containing attribute values for each of requested attribute names.
-     *                          Example:
-     *                          {
-     *                            "attr1" : {"raw": "value1", "encoded": "value1_as_int" },
-     *                            "attr2" : {"raw": "value1", "encoded": "value1_as_int" }
-     *                          }
-     *                          See `credValuesJson` in [org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredential]
+     * @param credentialDefinitionId    id of the credential definition to create new statement (credential)
+     * @param credentialProposal        credential JSON containing attribute values for each of requested attribute names.
+     *                                  Example:
+     *                                  {
+     *                                      "attr1" : {"raw": "value1", "encoded": "value1_as_int" },
+     *                                      "attr2" : {"raw": "value1", "encoded": "value1_as_int" }
+     *                                  }
+     *                                  See `credValuesJson` in [org.hyperledger.indy.sdk.anoncreds.Anoncreds.issuerCreateCredential]
      *
-     * @param proverName        the node that can prove this credential
+     * @param proverName                the node that can prove this credential
      *
-     * @return                  claim id
+     * @return                          credential id
      *
      * @note Flows starts by Issuer.
      * E.g User initially comes to university where asks for new education credential.
-     * When user verification is completed the University runs IssueClaimFlow to produce required credential.
+     * When user verification is completed the University runs IssueCredentialFlow to produce required credential.
      * */
     @InitiatingFlow
     @StartableByRPC
     open class Issuer(
             private val identifier: String,
-            private val credProposal: String,
-            private val credDefId: String,
+            private val credentialProposal: String,
+            private val credentialDefinitionId: String,
             private val proverName: CordaX500Name
     ) : FlowLogic<Unit>() {
 
@@ -64,21 +64,21 @@ object IssueClaimFlow {
 
             try {
                 // checking if cred def exists and can produce new credentials
-                val originalCredentialDefIn = getCredentialDefinitionById(credDefId)
-                    ?: throw IndyCredentialDefinitionNotFoundException(credDefId, "State doesn't exist in Corda vault")
+                val originalCredentialDefIn = getCredentialDefinitionById(credentialDefinitionId)
+                    ?: throw IndyCredentialDefinitionNotFoundException(credentialDefinitionId, "State doesn't exist in Corda vault")
                 val originalCredentialDef = originalCredentialDefIn.state.data
 
                 if (!originalCredentialDef.canProduceCredentials())
                     throw IndyCredentialMaximumReachedException(originalCredentialDef.revRegId)
 
                 // issue credential
-                val offer = indyUser().createClaimOffer(originalCredentialDef.claimDefId)
+                val offer = indyUser().createCredentialOffer(originalCredentialDef.credentialDefId)
 
                 val signers = listOf(ourIdentity.owningKey, prover.owningKey)
-                val newCredentialOut = flowSession.sendAndReceive<ClaimRequestInfo>(offer).unwrap { claimReq ->
-                    val claim = indyUser().issueClaim(claimReq, credProposal, offer, originalCredentialDef.revRegId)
-                    val claimOut = IndyClaim(identifier, claimReq, claim, indyUser().did, listOf(ourIdentity, prover))
-                    StateAndContract(claimOut, IndyCredentialContract::class.java.name)
+                val newCredentialOut = flowSession.sendAndReceive<CredentialRequestInfo>(offer).unwrap { credentialReq ->
+                    val credential = indyUser().issueCredential(credentialReq, credentialProposal, offer, originalCredentialDef.revRegId)
+                    val credentialOut = IndyCredential(identifier, credentialReq, credential, indyUser().did, listOf(ourIdentity, prover))
+                    StateAndContract(credentialOut, IndyCredentialContract::class.java.name)
                 }
                 val newCredentialCmdType = IndyCredentialContract.Command.Issue()
                 val newCredentialCmd = Command(newCredentialCmdType, signers)
@@ -122,11 +122,11 @@ object IssueClaimFlow {
             try {
                 val issuer = flowSession.counterparty.name
 
-                val offer = flowSession.receive<ClaimOffer>().unwrap { offer -> offer }
+                val offer = flowSession.receive<CredentialOffer>().unwrap { offer -> offer }
                 val sessionDid = subFlow(CreatePairwiseFlow.Prover(issuer))
 
-                val claimRequestInfo = indyUser().createClaimRequest(sessionDid, offer)
-                flowSession.send(claimRequestInfo)
+                val credentialRequestInfo = indyUser().createCredentialRequest(sessionDid, offer)
+                flowSession.send(credentialRequestInfo)
 
                 val flow = object : SignTransactionFlow(flowSession) {
                     override fun checkTransaction(stx: SignedTransaction) {
@@ -136,12 +136,12 @@ object IssueClaimFlow {
                             val state = it.data
 
                             when (state) {
-                                is IndyClaim -> {
-                                    require(state.claimRequestInfo == claimRequestInfo) { "Received incorrect ClaimReq" }
-                                    indyUser().receiveClaim(state.claimInfo, state.claimRequestInfo, offer)
+                                is IndyCredential -> {
+                                    require(state.credentialRequestInfo == credentialRequestInfo) { "Received incorrect CredentialRequest" }
+                                    indyUser().receiveCredential(state.credentialInfo, state.credentialRequestInfo, offer)
                                 }
-                                is IndyClaimDefinition -> logger.info("Got indy claim definition")
-                                else -> throw FlowException("invalid output state. IndyClaim is expected")
+                                is IndyCredentialDefinition -> logger.info("Got indy credential definition")
+                                else -> throw FlowException("invalid output state. IndyCredential is expected")
                             }
                         }
                     }

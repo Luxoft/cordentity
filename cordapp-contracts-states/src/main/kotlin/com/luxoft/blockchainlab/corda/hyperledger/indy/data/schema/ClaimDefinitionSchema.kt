@@ -1,32 +1,32 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimDefinition
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredentialDefinition
 import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import javax.persistence.Column
 import javax.persistence.Entity
 
 
-object ClaimDefinitionSchema
+object CredentialDefinitionSchema
 
-object ClaimDefinitionSchemaV1 : MappedSchema(
+object CredentialDefinitionSchemaV1 : MappedSchema(
     version = 1,
-    schemaFamily = ClaimDefinitionSchema.javaClass,
-    mappedTypes = listOf(PersistentClaimDefinition::class.java)
+    schemaFamily = CredentialDefinitionSchema.javaClass,
+    mappedTypes = listOf(PersistentCredentialDefinition::class.java)
 ) {
     @Entity
-    data class PersistentClaimDefinition(
-        @Column(name = "id") val claimDefId: String = "",
+    data class PersistentCredentialDefinition(
+        @Column(name = "id") val credentialDefId: String = "",
         val schemaId: String = "",
         val revRegId: String = "",
         val currentCredNumber: Int = 0
 
     ) : PersistentState() {
-        constructor(claimDef: IndyClaimDefinition) : this(
-            claimDef.claimDefId,
-            claimDef.schemaId,
-            claimDef.revRegId,
-            claimDef.currentCredNumber
+        constructor(credentialDef: IndyCredentialDefinition) : this(
+            credentialDef.credentialDefId,
+            credentialDef.schemaId,
+            credentialDef.revRegId,
+            credentialDef.currentCredNumber
         )
     }
 }

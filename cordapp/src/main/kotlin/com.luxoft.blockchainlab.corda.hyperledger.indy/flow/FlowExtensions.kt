@@ -1,13 +1,13 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.ClaimDefinitionSchemaV1
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.ClaimSchemaV1
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.CredentialDefinitionSchemaV1
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.CredentialSchemaV1
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.IndySchemaSchemaV1
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaim
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimDefinition
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredential
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredentialDefinition
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndySchema
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
-import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
+import com.luxoft.blockchainlab.hyperledger.indy.CredentialRequestInfo
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.flows.FlowLogic
@@ -38,41 +38,41 @@ fun FlowLogic<Any>.indyUser(): IndyUser {
 }
 
 /**
- * This method is used to get indy claim state from vault
+ * This method is used to get indy credential state from vault
  *
- * @param claimId           id of claim
+ * @param id                id of credential
  *
- * @return                  corda state of indy claim or null if none exists
+ * @return                  corda state of indy credential or null if none exists
  */
-fun FlowLogic<Any>.getIndyClaimState(claimId: String): StateAndRef<IndyClaim>? {
+fun FlowLogic<Any>.getIndyCredentialState(id: String): StateAndRef<IndyCredential>? {
     val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
-    val id = QueryCriteria.VaultCustomQueryCriteria(ClaimSchemaV1.PersistentClaim::id.equal(claimId))
+    val existingId = QueryCriteria.VaultCustomQueryCriteria(CredentialSchemaV1.PersistentCredential::id.equal(id))
 
-    val criteria = generalCriteria.and(id)
-    val result = serviceHub.vaultService.queryBy<IndyClaim>(criteria)
+    val criteria = generalCriteria.and(existingId)
+    val result = serviceHub.vaultService.queryBy<IndyCredential>(criteria)
 
     return result.states.firstOrNull()
 }
 
 private fun FlowLogic<Any>.getUnconsumedCredentialDefinitionByCriteria(
-        criteria: QueryCriteria.VaultCustomQueryCriteria<ClaimDefinitionSchemaV1.PersistentClaimDefinition>)
-        : StateAndRef<IndyClaimDefinition>? {
+        criteria: QueryCriteria.VaultCustomQueryCriteria<CredentialDefinitionSchemaV1.PersistentCredentialDefinition>)
+        : StateAndRef<IndyCredentialDefinition>? {
     val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
 
     val criteria = generalCriteria.and(criteria)
-    val result = serviceHub.vaultService.queryBy<IndyClaimDefinition>(criteria)
+    val result = serviceHub.vaultService.queryBy<IndyCredentialDefinition>(criteria)
 
     return result.states.firstOrNull()
 }
 
-fun FlowLogic<Any>.getCredentialDefinitionById(credentialDefinitionId: String): StateAndRef<IndyClaimDefinition>? {
+fun FlowLogic<Any>.getCredentialDefinitionById(credentialDefinitionId: String): StateAndRef<IndyCredentialDefinition>? {
     return getUnconsumedCredentialDefinitionByCriteria(QueryCriteria.VaultCustomQueryCriteria(
-            ClaimDefinitionSchemaV1.PersistentClaimDefinition::claimDefId.equal(credentialDefinitionId)))
+            CredentialDefinitionSchemaV1.PersistentCredentialDefinition::credentialDefId.equal(credentialDefinitionId)))
 }
 
-fun FlowLogic<Any>.getCredentialDefinitionBySchemaId(schemaId: String): StateAndRef<IndyClaimDefinition>? {
+fun FlowLogic<Any>.getCredentialDefinitionBySchemaId(schemaId: String): StateAndRef<IndyCredentialDefinition>? {
     return getUnconsumedCredentialDefinitionByCriteria(QueryCriteria.VaultCustomQueryCriteria(
-            ClaimDefinitionSchemaV1.PersistentClaimDefinition::schemaId.equal(schemaId)))
+            CredentialDefinitionSchemaV1.PersistentCredentialDefinition::schemaId.equal(schemaId)))
 }
 
 fun FlowLogic<Any>.getSchemaById(schemaId: String): StateAndRef<IndySchema>? {

@@ -53,10 +53,10 @@ class ReadmeExampleTest : CordaTestBase() {
                         "1.0",
                         listOf("NAME", "BORN"))).resultFuture.get()
 
-// Ministry creates a claim definition for the shopping scheme:
+// Ministry creates a credential definition for the shopping scheme:
 
         val credDefId = ministry.services.startFlow(
-                CreateClaimDefinitionFlow.Authority(schemaId)).resultFuture.get()
+                CreateCredentialDefinitionFlow.Authority(schemaId)).resultFuture.get()
 
 // Ministry verifies Alice's legal status and issues her a shopping credential:
 
@@ -68,7 +68,7 @@ class ReadmeExampleTest : CordaTestBase() {
         """
 
         ministry.services.startFlow(
-                IssueClaimFlow.Issuer(
+                IssueCredentialFlow.Issuer(
                         UUID.randomUUID().toString(),
                         credentialProposal,
                         credDefId,
@@ -78,10 +78,10 @@ class ReadmeExampleTest : CordaTestBase() {
 
         // Alice.BORN >= currentYear - 18
         val eighteenYearsAgo = LocalDateTime.now().minusYears(18).year
-        val legalAgePredicate = VerifyClaimFlow.ProofPredicate(schemaId, credDefId, ministryDID, "BORN", eighteenYearsAgo)
+        val legalAgePredicate = VerifyCredentialFlow.ProofPredicate(schemaId, credDefId, ministryDID, "BORN", eighteenYearsAgo)
 
         val verified = store.services.startFlow(
-                VerifyClaimFlow.Verifier(
+                VerifyCredentialFlow.Verifier(
                         UUID.randomUUID().toString(),
                         emptyList(),
                         listOf(legalAgePredicate),

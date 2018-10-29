@@ -48,7 +48,7 @@ class LedgerService(private val did: String, private val wallet: Wallet, private
     }
 
     /**
-     * Stores revocation registry entry on ledger (when claim is just created)
+     * Stores revocation registry entry on ledger (when credential is just created)
      *
      * @param entry             revocation registry entry to store
      * @param definitionId      id of revocation registry definition coupled with this revocation registry

@@ -1,6 +1,6 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.service
 
-import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
+import com.luxoft.blockchainlab.hyperledger.indy.CredentialRequestInfo
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import com.luxoft.blockchainlab.hyperledger.indy.WalletConfig
 import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager

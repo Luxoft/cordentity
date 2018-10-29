@@ -2,8 +2,8 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.AssignPermissionsFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.CreatePairwiseFlow
-import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueClaimFlow
-import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.VerifyClaimFlow
+import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.IssueCredentialFlow
+import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.VerifyCredentialFlow
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
 import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
 import com.natpryce.konfig.Configuration
@@ -41,8 +41,8 @@ open class CordaTestBase {
     val projectReciverFlows = listOf(
             AssignPermissionsFlow.Authority::class,
             CreatePairwiseFlow.Issuer::class,
-            IssueClaimFlow.Prover::class,
-            VerifyClaimFlow.Prover::class)
+            IssueCredentialFlow.Prover::class,
+            VerifyCredentialFlow.Prover::class)
 
     /**
      * The mocked Corda network

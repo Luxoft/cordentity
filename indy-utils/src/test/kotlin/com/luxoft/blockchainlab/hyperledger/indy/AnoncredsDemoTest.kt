@@ -121,15 +121,15 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     @Throws(Exception::class)
     fun `revocation works fine`() {
         val gvtSchema = issuer1.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
-        val credDef = issuer1.createClaimDefinition(gvtSchema.id, true)
+        val credDef = issuer1.createCredentialDefinition(gvtSchema.id, true)
         val revRegInfo = issuer1.createRevocationRegistry(credDef.id)
 
         prover.createMasterSecret(masterSecretId)
 
-        val credOffer = issuer1.createClaimOffer(credDef.id)
-        val credReq = prover.createClaimRequest(prover.did, credOffer, masterSecretId)
-        val claimInfo = issuer1.issueClaim(credReq, gvtCredentialValues, credOffer, revRegInfo.definition.id)
-        prover.receiveClaim(claimInfo, credReq, credOffer)
+        val credOffer = issuer1.createCredentialOffer(credDef.id)
+        val credReq = prover.createCredentialRequest(prover.did, credOffer, masterSecretId)
+        val credentialInfo = issuer1.issueCredential(credReq, gvtCredentialValues, credOffer, revRegInfo.definition.id)
+        prover.receiveCredential(credentialInfo, credReq, credOffer)
 
         Thread.sleep(3000)
 
@@ -148,7 +148,7 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         assertEquals("Alex", proof.proofData.requestedProof.revealedAttrs["name"]!!.raw)
         assertTrue(IndyUser.verifyProof(proofReq, proof, usedData))
 
-        issuer1.revokeClaim(claimInfo.claim.revocationRegistryId!!, claimInfo.credRevocId!!)
+        issuer1.revokeCredential(credentialInfo.credential.revocationRegistryId!!, credentialInfo.credRevocId!!)
         Thread.sleep(3000)
 
         val proofReqAfterRevocation = IndyUser.createProofRequest(
@@ -165,16 +165,16 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
     @Test
     @Throws(Exception::class)
-    fun `1 issuer 1 prover 1 claim setup works fine`() {
+    fun `1 issuer 1 prover 1 credential setup works fine`() {
         val gvtSchema = issuer1.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
-        val credDef = issuer1.createClaimDefinition(gvtSchema.id, false)
+        val credDef = issuer1.createCredentialDefinition(gvtSchema.id, false)
 
         prover.createMasterSecret(masterSecretId)
 
-        val credOffer = issuer1.createClaimOffer(credDef.id)
-        val credReq = prover.createClaimRequest(prover.did, credOffer, masterSecretId)
-        val claimInfo = issuer1.issueClaim(credReq, gvtCredentialValues, credOffer, null)
-        prover.receiveClaim(claimInfo, credReq, credOffer)
+        val credOffer = issuer1.createCredentialOffer(credDef.id)
+        val credReq = prover.createCredentialRequest(prover.did, credOffer, masterSecretId)
+        val credentialInfo = issuer1.issueCredential(credReq, gvtCredentialValues, credOffer, null)
+        prover.receiveCredential(credentialInfo, credReq, credOffer)
 
         val field_name = CredentialFieldReference("name", gvtSchema.id, credDef.id)
         val field_sex = CredentialFieldReference("sex", gvtSchema.id, credDef.id)
@@ -195,25 +195,25 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
     @Test
     @Throws(Exception::class)
-    fun `2 issuers 1 prover 2 claims setup works fine`() {
+    fun `2 issuers 1 prover 2 credentials setup works fine`() {
         val schema1 = issuer1.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
-        val credDef1 = issuer1.createClaimDefinition(schema1.id, false)
+        val credDef1 = issuer1.createCredentialDefinition(schema1.id, false)
 
         val schema2 = issuer2.createSchema(XYZ_SCHEMA_NAME, SCHEMA_VERSION, XYZ_SCHEMA_ATTRIBUTES)
-        val credDef2 = issuer2.createClaimDefinition(schema2.id, false)
+        val credDef2 = issuer2.createCredentialDefinition(schema2.id, false)
 
         prover.createMasterSecret(masterSecretId)
 
-        val gvtCredOffer = issuer1.createClaimOffer(credDef1.id)
-        val xyzCredOffer = issuer2.createClaimOffer(credDef2.id)
+        val gvtCredOffer = issuer1.createCredentialOffer(credDef1.id)
+        val xyzCredOffer = issuer2.createCredentialOffer(credDef2.id)
 
-        val gvtCredReq = prover.createClaimRequest(prover.did, gvtCredOffer, masterSecretId)
-        val gvtCredential = issuer1.issueClaim(gvtCredReq, gvtCredentialValues, gvtCredOffer, null)
-        prover.receiveClaim(gvtCredential, gvtCredReq, gvtCredOffer)
+        val gvtCredReq = prover.createCredentialRequest(prover.did, gvtCredOffer, masterSecretId)
+        val gvtCredential = issuer1.issueCredential(gvtCredReq, gvtCredentialValues, gvtCredOffer, null)
+        prover.receiveCredential(gvtCredential, gvtCredReq, gvtCredOffer)
 
-        val xyzCredReq = prover.createClaimRequest(prover.did, xyzCredOffer, masterSecretId)
-        val xyzCredential = issuer2.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer, null)
-        prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer)
+        val xyzCredReq = prover.createCredentialRequest(prover.did, xyzCredOffer, masterSecretId)
+        val xyzCredential = issuer2.issueCredential(xyzCredReq, xyzCredentialValues, xyzCredOffer, null)
+        prover.receiveCredential(xyzCredential, xyzCredReq, xyzCredOffer)
 
         val field_name = CredentialFieldReference("name", schema1.id, credDef1.id)
         val field_age = CredentialFieldReference("age", schema1.id, credDef1.id)
@@ -242,25 +242,25 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
     @Test
     @Throws(Exception::class)
-    fun `1 issuer 1 prover 2 claims setup works fine`() {
+    fun `1 issuer 1 prover 2 credentials setup works fine`() {
         val gvtSchema = issuer1.createSchema(GVT_SCHEMA_NAME, SCHEMA_VERSION, GVT_SCHEMA_ATTRIBUTES)
-        val gvtCredDef = issuer1.createClaimDefinition(gvtSchema.id, false)
+        val gvtCredDef = issuer1.createCredentialDefinition(gvtSchema.id, false)
 
         val xyzSchema = issuer1.createSchema(XYZ_SCHEMA_NAME, SCHEMA_VERSION, XYZ_SCHEMA_ATTRIBUTES)
-        val xyzCredDef = issuer1.createClaimDefinition(xyzSchema.id, false)
+        val xyzCredDef = issuer1.createCredentialDefinition(xyzSchema.id, false)
 
         prover.createMasterSecret(masterSecretId)
 
-        val gvtCredOffer = issuer1.createClaimOffer(gvtCredDef.id)
-        val xyzCredOffer = issuer1.createClaimOffer(xyzCredDef.id)
+        val gvtCredOffer = issuer1.createCredentialOffer(gvtCredDef.id)
+        val xyzCredOffer = issuer1.createCredentialOffer(xyzCredDef.id)
 
-        val gvtCredReq = prover.createClaimRequest(prover.did, gvtCredOffer, masterSecretId)
-        val gvtCredential = issuer1.issueClaim(gvtCredReq, gvtCredentialValues, gvtCredOffer, null)
-        prover.receiveClaim(gvtCredential, gvtCredReq, gvtCredOffer)
+        val gvtCredReq = prover.createCredentialRequest(prover.did, gvtCredOffer, masterSecretId)
+        val gvtCredential = issuer1.issueCredential(gvtCredReq, gvtCredentialValues, gvtCredOffer, null)
+        prover.receiveCredential(gvtCredential, gvtCredReq, gvtCredOffer)
 
-        val xyzCredReq = prover.createClaimRequest(prover.did, xyzCredOffer, masterSecretId)
-        val xyzCredential = issuer1.issueClaim(xyzCredReq, xyzCredentialValues, xyzCredOffer, null)
-        prover.receiveClaim(xyzCredential, xyzCredReq, xyzCredOffer)
+        val xyzCredReq = prover.createCredentialRequest(prover.did, xyzCredOffer, masterSecretId)
+        val xyzCredential = issuer1.issueCredential(xyzCredReq, xyzCredentialValues, xyzCredOffer, null)
+        prover.receiveCredential(xyzCredential, xyzCredReq, xyzCredOffer)
 
         val field_name = CredentialFieldReference("name", gvtSchema.id, gvtCredDef.id)
         val field_age = CredentialFieldReference("age", gvtSchema.id, gvtCredDef.id)
