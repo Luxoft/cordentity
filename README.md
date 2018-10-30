@@ -50,9 +50,9 @@ using [CreateSchemaFlow](cordapp/README.md#flows):
                     listOf("NAME", "BORN"))).resultFuture.get()
 
 Ministry creates a [credential definition](cordapp/README.md#indy-terminology) for the shopping scheme
-using [CreateCredentialDefFlow](cordapp/README.md#flows):
+using [CreateCredentialDefinitionFlow](cordapp/README.md#flows):
 
-    val credDefId = ministry.services.startFlow(
+    val credentialDefinitionId = ministry.services.startFlow(
             CreateCredentialDefinitionFlow.Authority(schemaId)).resultFuture.get()
 
 Ministry verifies Alice's legal status and issues her a shopping [credential](cordapp/README.md#indy-terminology)
@@ -68,7 +68,7 @@ using [IssueCredentialFlow](cordapp/README.md#flows):
     ministry.services.startFlow(
             IssueCredentialFlow.Issuer(
                     UUID.randomUUID().toString(),
-                    credDefId,
+                    credentialDefinitionId,
                     credentialProposal,
                     aliceX500)).resultFuture.get()
 
@@ -77,7 +77,7 @@ using [VerifyCredentialFlow](cordapp/README.md#flows):
 
     // Alice.BORN >= currentYear - 18
     val eighteenYearsAgo = LocalDateTime.now().minusYears(18).year
-    val legalAgePredicate = VerifyCredentialFlow.ProofPredicate(schemaId, credDefId, ministryDID, "BORN", eighteenYearsAgo)
+    val legalAgePredicate = VerifyCredentialFlow.ProofPredicate(schemaId, credentialDefinitionId, ministryDID, "BORN", eighteenYearsAgo)
 
     val verified = store.services.startFlow(
             VerifyCredentialFlow.Verifier(
