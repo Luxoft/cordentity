@@ -10,7 +10,7 @@ import java.security.PublicKey
 
 class IndyCredentialDefinitionContract : Contract {
     override fun verify(tx: LedgerTransaction) {
-        val incomingCommands = tx.filterCommands<Command> {true}
+        val incomingCommands = tx.filterCommands<Command> { true }
 
         for (incomingCommand in incomingCommands) {
             val signers = incomingCommand.signers.toSet()

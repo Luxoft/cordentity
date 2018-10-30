@@ -39,10 +39,11 @@ open class CordaTestBase {
      * List of all flows that may be initiated by a message
      * */
     val projectReciverFlows = listOf(
-            AssignPermissionsFlow.Authority::class,
-            CreatePairwiseFlow.Issuer::class,
-            IssueCredentialFlow.Prover::class,
-            VerifyCredentialFlow.Prover::class)
+        AssignPermissionsFlow.Authority::class,
+        CreatePairwiseFlow.Issuer::class,
+        IssueCredentialFlow.Prover::class,
+        VerifyCredentialFlow.Prover::class
+    )
 
     /**
      * The mocked Corda network
@@ -86,7 +87,7 @@ open class CordaTestBase {
 
         parties.add(party)
 
-        for(flow in projectReciverFlows) {
+        for (flow in projectReciverFlows) {
             party.registerInitiatedFlow(flow.java)
         }
 
@@ -119,23 +120,28 @@ open class CordaTestBase {
                 // Watch carefully for these hard-coded values
                 // Now we assume that issuer(indy trustee) is the first created node from SomeNodes
                 return if (name == "Trustee") {
-                    ConfigurationMap(mapOf(
+                    ConfigurationMap(
+                        mapOf(
                             "indyuser.walletName" to name,
                             "indyuser.role" to "trustee",
                             "indyuser.did" to "V4SGRU86Z58d6TV7PBUe6f",
                             "indyuser.seed" to "000000000000000000000000Trustee1",
                             "indyuser.genesisFile" to PoolManager.DEFAULT_GENESIS_FILE
-                    ))
-                } else ConfigurationMap(mapOf(
+                        )
+                    )
+                } else ConfigurationMap(
+                    mapOf(
                         "indyuser.walletName" to name + random.nextLong().absoluteValue,
                         "indyuser.genesisFile" to PoolManager.DEFAULT_GENESIS_FILE
-                ))
+                    )
+                )
             }
         }
 
         net = InternalMockNetwork(
-                cordappPackages = listOf("com.luxoft.blockchainlab.corda.hyperledger.indy"),
-                networkParameters = testNetworkParameters(maxTransactionSize = 10485760 * 5))
+            cordappPackages = listOf("com.luxoft.blockchainlab.corda.hyperledger.indy"),
+            networkParameters = testNetworkParameters(maxTransactionSize = 10485760 * 5)
+        )
     }
 
     @After

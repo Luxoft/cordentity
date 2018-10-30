@@ -7,7 +7,6 @@ import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredential
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredentialDefinition
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndySchema
 import com.luxoft.blockchainlab.corda.hyperledger.indy.service.IndyService
-import com.luxoft.blockchainlab.hyperledger.indy.CredentialRequestInfo
 import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.contracts.StateAndRef
 import net.corda.core.flows.FlowLogic
@@ -16,7 +15,6 @@ import net.corda.core.identity.Party
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.queryBy
 import net.corda.core.node.services.vault.Builder.equal
-import net.corda.core.node.services.vault.GenericQueryCriteria
 import net.corda.core.node.services.vault.QueryCriteria
 
 
@@ -55,8 +53,8 @@ fun FlowLogic<Any>.getIndyCredentialState(id: String): StateAndRef<IndyCredentia
 }
 
 private fun FlowLogic<Any>.getUnconsumedCredentialDefinitionByCriteria(
-        criteria: QueryCriteria.VaultCustomQueryCriteria<CredentialDefinitionSchemaV1.PersistentCredentialDefinition>)
-        : StateAndRef<IndyCredentialDefinition>? {
+    criteria: QueryCriteria.VaultCustomQueryCriteria<CredentialDefinitionSchemaV1.PersistentCredentialDefinition>
+): StateAndRef<IndyCredentialDefinition>? {
     val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
 
     val criteria = generalCriteria.and(criteria)
@@ -66,13 +64,19 @@ private fun FlowLogic<Any>.getUnconsumedCredentialDefinitionByCriteria(
 }
 
 fun FlowLogic<Any>.getCredentialDefinitionById(credentialDefinitionId: String): StateAndRef<IndyCredentialDefinition>? {
-    return getUnconsumedCredentialDefinitionByCriteria(QueryCriteria.VaultCustomQueryCriteria(
-            CredentialDefinitionSchemaV1.PersistentCredentialDefinition::credentialDefId.equal(credentialDefinitionId)))
+    return getUnconsumedCredentialDefinitionByCriteria(
+        QueryCriteria.VaultCustomQueryCriteria(
+            CredentialDefinitionSchemaV1.PersistentCredentialDefinition::credentialDefId.equal(credentialDefinitionId)
+        )
+    )
 }
 
 fun FlowLogic<Any>.getCredentialDefinitionBySchemaId(schemaId: String): StateAndRef<IndyCredentialDefinition>? {
-    return getUnconsumedCredentialDefinitionByCriteria(QueryCriteria.VaultCustomQueryCriteria(
-            CredentialDefinitionSchemaV1.PersistentCredentialDefinition::schemaId.equal(schemaId)))
+    return getUnconsumedCredentialDefinitionByCriteria(
+        QueryCriteria.VaultCustomQueryCriteria(
+            CredentialDefinitionSchemaV1.PersistentCredentialDefinition::schemaId.equal(schemaId)
+        )
+    )
 }
 
 fun FlowLogic<Any>.getSchemaById(schemaId: String): StateAndRef<IndySchema>? {

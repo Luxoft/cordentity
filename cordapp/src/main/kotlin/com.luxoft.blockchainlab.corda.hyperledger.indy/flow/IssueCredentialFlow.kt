@@ -51,10 +51,10 @@ object IssueCredentialFlow {
     @InitiatingFlow
     @StartableByRPC
     open class Issuer(
-            private val identifier: String,
-            private val credentialProposal: String,
-            private val credentialDefinitionId: String,
-            private val proverName: CordaX500Name
+        private val identifier: String,
+        private val credentialProposal: String,
+        private val credentialDefinitionId: String,
+        private val proverName: CordaX500Name
     ) : FlowLogic<Unit>() {
 
         @Suspendable
@@ -65,7 +65,10 @@ object IssueCredentialFlow {
             try {
                 // checking if cred def exists and can produce new credentials
                 val originalCredentialDefIn = getCredentialDefinitionById(credentialDefinitionId)
-                    ?: throw IndyCredentialDefinitionNotFoundException(credentialDefinitionId, "State doesn't exist in Corda vault")
+                    ?: throw IndyCredentialDefinitionNotFoundException(
+                        credentialDefinitionId,
+                        "State doesn't exist in Corda vault"
+                    )
                 val originalCredentialDef = originalCredentialDefIn.state.data
 
                 if (!originalCredentialDef.canProduceCredentials())
@@ -75,31 +78,45 @@ object IssueCredentialFlow {
                 val offer = indyUser().createCredentialOffer(originalCredentialDef.credentialDefId)
 
                 val signers = listOf(ourIdentity.owningKey, prover.owningKey)
-                val newCredentialOut = flowSession.sendAndReceive<CredentialRequestInfo>(offer).unwrap { credentialReq ->
-                    val credential = indyUser().issueCredential(credentialReq, credentialProposal, offer, originalCredentialDef.revRegId)
-                    val credentialOut = IndyCredential(identifier, credentialReq, credential, indyUser().did, listOf(ourIdentity, prover))
-                    StateAndContract(credentialOut, IndyCredentialContract::class.java.name)
-                }
+                val newCredentialOut =
+                    flowSession.sendAndReceive<CredentialRequestInfo>(offer).unwrap { credentialReq ->
+                        val credential = indyUser().issueCredential(
+                            credentialReq,
+                            credentialProposal,
+                            offer,
+                            originalCredentialDef.revRegId
+                        )
+                        val credentialOut = IndyCredential(
+                            identifier,
+                            credentialReq,
+                            credential,
+                            indyUser().did,
+                            listOf(ourIdentity, prover)
+                        )
+                        StateAndContract(credentialOut, IndyCredentialContract::class.java.name)
+                    }
                 val newCredentialCmdType = IndyCredentialContract.Command.Issue()
                 val newCredentialCmd = Command(newCredentialCmdType, signers)
 
                 // consume credential definition
                 val credentialDefinition = originalCredentialDef.requestNewCredential()
-                val credentialDefinitionOut = StateAndContract(credentialDefinition, IndyCredentialDefinitionContract::class.java.name)
+                val credentialDefinitionOut =
+                    StateAndContract(credentialDefinition, IndyCredentialDefinitionContract::class.java.name)
                 val credentialDefinitionCmdType = IndyCredentialDefinitionContract.Command.Consume()
                 val credentialDefinitionCmd = Command(credentialDefinitionCmdType, signers)
 
                 // do stuff
                 val trxBuilder = TransactionBuilder(whoIsNotary()).withItems(
-                        originalCredentialDefIn,
-                        newCredentialOut,
-                        newCredentialCmd,
-                        credentialDefinitionOut,
-                        credentialDefinitionCmd)
+                    originalCredentialDefIn,
+                    newCredentialOut,
+                    newCredentialCmd,
+                    credentialDefinitionOut,
+                    credentialDefinitionCmd
+                )
 
                 trxBuilder.toWireTransaction(serviceHub)
-                        .toLedgerTransaction(serviceHub)
-                        .verify()
+                    .toLedgerTransaction(serviceHub)
+                    .verify()
 
                 val selfSignedTx = serviceHub.signInitialTransaction(trxBuilder, ourIdentity.owningKey)
                 val signedTrx = subFlow(CollectSignaturesFlow(selfSignedTx, listOf(flowSession)))
@@ -138,7 +155,11 @@ object IssueCredentialFlow {
                             when (state) {
                                 is IndyCredential -> {
                                     require(state.credentialRequestInfo == credentialRequestInfo) { "Received incorrect CredentialRequest" }
-                                    indyUser().receiveCredential(state.credentialInfo, state.credentialRequestInfo, offer)
+                                    indyUser().receiveCredential(
+                                        state.credentialInfo,
+                                        state.credentialRequestInfo,
+                                        offer
+                                    )
                                 }
                                 is IndyCredentialDefinition -> logger.info("Got indy credential definition")
                                 else -> throw FlowException("invalid output state. IndyCredential is expected")

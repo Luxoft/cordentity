@@ -14,7 +14,7 @@ buildscript {
 apply plugin: com.palantir.gradle.docker.DockerRunPlugin
 
 
-ext.dockerRunTask = tasks.find {it.name == "dockerRun"}
+ext.dockerRunTask = tasks.find { it.name == "dockerRun" }
 
 def DOCKER_GROUP = dockerRunTask.group
 

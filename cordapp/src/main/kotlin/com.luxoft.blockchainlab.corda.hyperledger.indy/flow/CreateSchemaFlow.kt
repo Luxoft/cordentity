@@ -4,8 +4,6 @@ import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndySchemaContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndySchema
 import com.luxoft.blockchainlab.hyperledger.indy.IndySchemaAlreadyExistsException
-import com.luxoft.blockchainlab.hyperledger.indy.IndySchemaNotFoundException
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -27,16 +25,16 @@ object CreateSchemaFlow {
     @InitiatingFlow
     @StartableByRPC
     class Authority(
-            private val schemaName: String,
-            private val schemaVersion: String,
-            private val schemaAttributes: List<String>
+        private val schemaName: String,
+        private val schemaVersion: String,
+        private val schemaAttributes: List<String>
     ) : FlowLogic<String>() {
 
         @Suspendable
         override fun call(): String {
             try {
                 // check if schema already exists
-                if(indyUser().isSchemaExist(schemaName, schemaVersion))
+                if (indyUser().isSchemaExist(schemaName, schemaVersion))
                     throw IndySchemaAlreadyExistsException(schemaName, schemaVersion)
 
                 // create schema

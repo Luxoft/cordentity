@@ -37,24 +37,29 @@ class IndyCredentialContract : Contract {
         // TODO: should contain 1 input state of type IndyCredential
     }
 
-    private fun verification(tx: LedgerTransaction, signers: Set<PublicKey>, expectedAttrs: List<ExpectedAttr>) = requireThat {
+    private fun verification(tx: LedgerTransaction, signers: Set<PublicKey>, expectedAttrs: List<ExpectedAttr>) =
+        requireThat {
 
-        "No inputs should be consumed when creating the proof." using (tx.inputStates.isEmpty())
-        "Only one Proof should be created per verification session." using (tx.outputStates.size == 1)
+            "No inputs should be consumed when creating the proof." using (tx.inputStates.isEmpty())
+            "Only one Proof should be created per verification session." using (tx.outputStates.size == 1)
 
-        val indyProof = tx.outputsOfType<IndyCredentialProof>().singleOrNull()
+            val indyProof = tx.outputsOfType<IndyCredentialProof>().singleOrNull()
                 ?: throw IllegalArgumentException("Invalid type of output")
 
-        "All of the participants must be signers." using (signers.containsAll(indyProof.participants.map { it.owningKey }))
+            "All of the participants must be signers." using (signers.containsAll(indyProof.participants.map { it.owningKey }))
 
-        // TODO: this is unnecessary, 'cause only the caller VerifyProofFlow is interested in proof validity
-        // TODO: removing this line will make cordentity compatible with sandboxed JVM
-        "IndyCredential should be verified." using (IndyUser.verifyProof(indyProof.proofReq, indyProof.proof, indyProof.usedData))
+            // TODO: this is unnecessary, 'cause only the caller VerifyProofFlow is interested in proof validity
+            // TODO: removing this line will make cordentity compatible with sandboxed JVM
+            "IndyCredential should be verified." using (IndyUser.verifyProof(
+                indyProof.proofReq,
+                indyProof.proof,
+                indyProof.usedData
+            ))
 
-        expectedAttrs.forEach {
-            "Proof provided for invalid value." using indyProof.proof.isAttributeExists(it.value)
+            expectedAttrs.forEach {
+                "Proof provided for invalid value." using indyProof.proof.isAttributeExists(it.value)
+            }
         }
-    }
 
     private fun creation(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {
         // TODO: should contain 1 input and 1 output states of type IndyCredentialDefinition
@@ -65,8 +70,8 @@ class IndyCredentialContract : Contract {
     data class ExpectedAttr(val name: String, val value: String)
 
     interface Command : CommandData {
-        class Issue: TypeOnlyCommandData(), Command
+        class Issue : TypeOnlyCommandData(), Command
         data class Verify(val expectedAttrs: List<ExpectedAttr>) : Command
-        class Revoke: TypeOnlyCommandData(), Command
+        class Revoke : TypeOnlyCommandData(), Command
     }
 }

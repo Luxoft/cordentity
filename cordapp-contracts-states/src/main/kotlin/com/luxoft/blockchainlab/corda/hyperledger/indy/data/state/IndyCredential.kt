@@ -19,19 +19,22 @@ import net.corda.core.schemas.QueryableState
  * @param issuerDid                 did of an entity issued credential
  * @param participants              corda participants
  */
-open class IndyCredential(val id: String,
-                     val credentialRequestInfo: CredentialRequestInfo,
-                     val credentialInfo: CredentialInfo,
-                     val issuerDid: String,
-                     override val participants: List<AbstractParty>): LinearState, QueryableState {
+open class IndyCredential(
+    val id: String,
+    val credentialRequestInfo: CredentialRequestInfo,
+    val credentialInfo: CredentialInfo,
+    val issuerDid: String,
+    override val participants: List<AbstractParty>
+) : LinearState, QueryableState {
 
     override val linearId: UniqueIdentifier = UniqueIdentifier()
 
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
-        return when(schema) {
+        return when (schema) {
             is CredentialSchemaV1 -> CredentialSchemaV1.PersistentCredential(this)
             else -> throw IllegalArgumentException("Unrecognised schema $schema")
         }
     }
+
     override fun supportedSchemas(): Iterable<MappedSchema> = listOf(CredentialSchemaV1)
 }

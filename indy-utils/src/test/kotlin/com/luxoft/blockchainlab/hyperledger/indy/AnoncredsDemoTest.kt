@@ -17,7 +17,8 @@ import org.junit.Assert.assertTrue
 class AnoncredsDemoTest : IndyIntegrationTest() {
     private val masterSecretId = "masterSecretId"
     private val gvtCredentialValues = GVT_CRED_VALUES
-    private val xyzCredentialValues = """{"status":{"raw":"partial","encoded":"51792877103171595686471452153480627530895"},"period":{"raw":"8","encoded":"8"}}"""
+    private val xyzCredentialValues =
+        """{"status":{"raw":"partial","encoded":"51792877103171595686471452153480627530895"},"period":{"raw":"8","encoded":"8"}}"""
 
     private val issuerWalletConfig = SerializationUtils.anyToJSON(WalletConfig("issuerWallet"))
     private val issuer2WalletConfig = SerializationUtils.anyToJSON(WalletConfig("issuer2Wallet"))
@@ -69,7 +70,7 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
 
         // Prover Create and Open Wallet
         Wallet.createWallet(proverWalletConfig, CREDENTIALS).get()
-        proverWallet = Wallet.openWallet(proverWalletConfig , CREDENTIALS).get()
+        proverWallet = Wallet.openWallet(proverWalletConfig, CREDENTIALS).get()
 
         val trusteeDidInfo = createTrusteeDid(issuerWallet)
         issuerDidInfo = createDid(issuerWallet)
@@ -107,12 +108,20 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
     private fun createTrusteeDid(wallet: Wallet) = Did.createAndStoreMyDid(wallet, """{"seed":"$TRUSTEE_SEED"}""").get()
     private fun createDid(wallet: Wallet) = Did.createAndStoreMyDid(wallet, "{}").get()
 
-    private fun linkIssuerToTrustee(trusteeDid: String, issuerWallet: Wallet, issuerDidInfo: DidResults.CreateAndStoreMyDidResult) {
+    private fun linkIssuerToTrustee(
+        trusteeDid: String,
+        issuerWallet: Wallet,
+        issuerDidInfo: DidResults.CreateAndStoreMyDidResult
+    ) {
         val target = IndyUser.IdentityDetails(issuerDidInfo.did, issuerDidInfo.verkey, null, "TRUSTEE")
         LedgerService.addNym(trusteeDid, pool, issuerWallet, target)
     }
 
-    private fun linkProverToIssuer(issuerDid: String, issuerWallet: Wallet, proverDidInfo: DidResults.CreateAndStoreMyDidResult) {
+    private fun linkProverToIssuer(
+        issuerDid: String,
+        issuerWallet: Wallet,
+        proverDidInfo: DidResults.CreateAndStoreMyDidResult
+    ) {
         val target = IndyUser.IdentityDetails(proverDidInfo.did, proverDidInfo.verkey, null, null)
         LedgerService.addNym(issuerDid, pool, issuerWallet, target)
     }
@@ -137,9 +146,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val field_sex = CredentialFieldReference("sex", gvtSchema.id, credDef.id)
         val field_age = CredentialFieldReference("age", gvtSchema.id, credDef.id)
         val proofReq = IndyUser.createProofRequest(
-                attributes = listOf(field_name, field_sex),
-                predicates = listOf(CredentialPredicate(field_age, 18)),
-                nonRevoked = Interval.recent()
+            attributes = listOf(field_name, field_sex),
+            predicates = listOf(CredentialPredicate(field_age, 18)),
+            nonRevoked = Interval.recent()
         )
 
         val proof = prover.createProof(proofReq, masterSecretId)
@@ -152,13 +161,14 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         Thread.sleep(3000)
 
         val proofReqAfterRevocation = IndyUser.createProofRequest(
-                attributes = listOf(field_name, field_sex),
-                predicates = listOf(CredentialPredicate(field_age, 18)),
-                nonRevoked = Interval.recent()
+            attributes = listOf(field_name, field_sex),
+            predicates = listOf(CredentialPredicate(field_age, 18)),
+            nonRevoked = Interval.recent()
         )
         val proofAfterRevocation = prover.createProof(proofReqAfterRevocation, masterSecretId)
 
-        val usedDataAfterRevocation = IndyUser.getDataUsedInProof(DID_MY1, pool, proofReqAfterRevocation, proofAfterRevocation)
+        val usedDataAfterRevocation =
+            IndyUser.getDataUsedInProof(DID_MY1, pool, proofReqAfterRevocation, proofAfterRevocation)
 
         assertFalse(IndyUser.verifyProof(proofReqAfterRevocation, proofAfterRevocation, usedDataAfterRevocation))
     }
@@ -180,9 +190,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val field_sex = CredentialFieldReference("sex", gvtSchema.id, credDef.id)
         val field_age = CredentialFieldReference("age", gvtSchema.id, credDef.id)
         val proofReq = IndyUser.createProofRequest(
-                attributes = listOf(field_name, field_sex),
-                predicates = listOf(CredentialPredicate(field_age, 18)),
-                nonRevoked = null
+            attributes = listOf(field_name, field_sex),
+            predicates = listOf(CredentialPredicate(field_age, 18)),
+            nonRevoked = null
         )
 
         val proof = prover.createProof(proofReq, masterSecretId)
@@ -221,9 +231,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val field_period = CredentialFieldReference("period", schema2.id, credDef2.id)
 
         val proofReq = IndyUser.createProofRequest(
-                attributes = listOf(field_name, field_status),
-                predicates = listOf(CredentialPredicate(field_age, 18), CredentialPredicate(field_period, 5)),
-                nonRevoked = null
+            attributes = listOf(field_name, field_status),
+            predicates = listOf(CredentialPredicate(field_age, 18), CredentialPredicate(field_period, 5)),
+            nonRevoked = null
         )
 
         val proof = prover.createProof(proofReq, masterSecretId)
@@ -268,9 +278,9 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val field_period = CredentialFieldReference("period", xyzSchema.id, xyzCredDef.id)
 
         val proofReq = IndyUser.createProofRequest(
-                attributes = listOf(field_name, field_status),
-                predicates = listOf(CredentialPredicate(field_age, 18), CredentialPredicate(field_period, 5)),
-                nonRevoked = null
+            attributes = listOf(field_name, field_status),
+            predicates = listOf(CredentialPredicate(field_age, 18), CredentialPredicate(field_period, 5)),
+            nonRevoked = null
         )
 
         val proof = prover.createProof(proofReq, masterSecretId)
