@@ -35,25 +35,27 @@ object CreateCredentialDefinitionFlow {
 
                 // create indy stuff
                 val credentialDefinitionObj = indyUser().createCredentialDefinition(schemaId, true)
-                val revocationRegistry = indyUser().createRevocationRegistry(credentialDefinitionObj.id, credentialsLimit)
+                val revocationRegistry =
+                    indyUser().createRevocationRegistry(credentialDefinitionObj.id, credentialsLimit)
 
                 val signers = listOf(ourIdentity.owningKey)
 
                 // create new credential definition state
                 val credentialDefinition = IndyCredentialDefinition(
-                        schemaId,
-                        credentialDefinitionObj.id,
-                        revocationRegistry.definition.id,
-                        credentialsLimit,
-                        listOf(ourIdentity)
+                    schemaId,
+                    credentialDefinitionObj.id,
+                    revocationRegistry.definition.id,
+                    credentialsLimit,
+                    listOf(ourIdentity)
                 )
-                val credentialDefinitionOut = StateAndContract(credentialDefinition, IndyCredentialDefinitionContract::class.java.name)
+                val credentialDefinitionOut =
+                    StateAndContract(credentialDefinition, IndyCredentialDefinitionContract::class.java.name)
                 val credentialDefinitionCmdType = IndyCredentialDefinitionContract.Command.Create()
                 val credentialDefinitionCmd = Command(credentialDefinitionCmdType, signers)
 
                 // consume old schema state
                 val schemaIn = getSchemaById(schemaId)
-                        ?: throw IndySchemaNotFoundException(schemaId, "Corda does't have proper schema in vault")
+                    ?: throw IndySchemaNotFoundException(schemaId, "Corda does't have proper schema in vault")
 
                 val schemaOut = StateAndContract(schemaIn.state.data, IndySchemaContract::class.java.name)
                 val schemaCmdType = IndySchemaContract.Command.Consume()
@@ -61,11 +63,12 @@ object CreateCredentialDefinitionFlow {
 
                 // do stuff
                 val trxBuilder = TransactionBuilder(whoIsNotary()).withItems(
-                        schemaIn,
-                        credentialDefinitionOut,
-                        credentialDefinitionCmd,
-                        schemaOut,
-                        schemaCmd)
+                    schemaIn,
+                    credentialDefinitionOut,
+                    credentialDefinitionCmd,
+                    schemaOut,
+                    schemaCmd
+                )
 
                 trxBuilder.toWireTransaction(serviceHub)
                     .toLedgerTransaction(serviceHub)
@@ -85,18 +88,22 @@ object CreateCredentialDefinitionFlow {
 
         private fun checkNoCredentialDefinitionOnCorda() {
             getSchemaById(schemaId)
-                    ?: throw IndySchemaNotFoundException(schemaId, "Corda does't have proper states")
+                ?: throw IndySchemaNotFoundException(schemaId, "Corda does't have proper states")
 
             if (getCredentialDefinitionBySchemaId(schemaId) != null) {
-                throw IndyCredentialDefinitionAlreadyExistsException(schemaId,
-                        "Credential definition already exist on Corda ledger")
+                throw IndyCredentialDefinitionAlreadyExistsException(
+                    schemaId,
+                    "Credential definition already exist on Corda ledger"
+                )
             }
         }
 
         private fun checkNoCredentialDefinitionOnIndy() {
-            if(indyUser().isCredentialDefinitionExist(schemaId))
-                throw IndyCredentialDefinitionAlreadyExistsException(schemaId,
-                        "Credential definition already exist on Indy ledger")
+            if (indyUser().isCredentialDefinitionExist(schemaId))
+                throw IndyCredentialDefinitionAlreadyExistsException(
+                    schemaId,
+                    "Credential definition already exist on Indy ledger"
+                )
         }
     }
 }

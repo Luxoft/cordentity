@@ -19,7 +19,8 @@ class ReadmeExampleTest : CordaTestBase() {
     private lateinit var alice: StartedNode<MockNode>
     private lateinit var bob: StartedNode<MockNode>
 
-    @Before fun setup() {
+    @Before
+    fun setup() {
         trustee = createPartyNode(CordaX500Name("Trustee", "London", "GB"))
         issuer = createPartyNode(CordaX500Name("Issuer", "London", "GB"))
         alice = createPartyNode(CordaX500Name("Alice", "London", "GB"))
@@ -28,37 +29,40 @@ class ReadmeExampleTest : CordaTestBase() {
         setPermissions(issuer, trustee)
     }
 
-
     @Test
     fun `grocery store example`() {
         val ministry: StartedNode<InternalMockNetwork.MockNode> = issuer
         val alice: StartedNode<*> = alice
         val store: StartedNode<*> = bob
 
-// Each Corda node has a X500 name:
+        // Each Corda node has a X500 name:
 
         val ministryX500 = ministry.info.singleIdentity().name
         val aliceX500 = alice.info.singleIdentity().name
 
-// And each Indy node has a DID, a.k.a Decentralized ID:
+        // And each Indy node has a DID, a.k.a Decentralized ID:
 
         val ministryDID = store.services.startFlow(
-                GetDidFlow.Initiator(ministryX500)).resultFuture.get()
+            GetDidFlow.Initiator(ministryX500)
+        ).resultFuture.get()
 
-// To allow customers and shops to communicate, Ministry issues a shopping scheme:
+        // To allow customers and shops to communicate, Ministry issues a shopping scheme:
 
         val schemaId = ministry.services.startFlow(
-                CreateSchemaFlow.Authority(
-                        "shopping scheme",
-                        "1.0",
-                        listOf("NAME", "BORN"))).resultFuture.get()
+            CreateSchemaFlow.Authority(
+                "shopping scheme",
+                "1.0",
+                listOf("NAME", "BORN")
+            )
+        ).resultFuture.get()
 
-// Ministry creates a credential definition for the shopping scheme:
+        // Ministry creates a credential definition for the shopping scheme:
 
         val credDefId = ministry.services.startFlow(
-                CreateCredentialDefinitionFlow.Authority(schemaId)).resultFuture.get()
+            CreateCredentialDefinitionFlow.Authority(schemaId)
+        ).resultFuture.get()
 
-// Ministry verifies Alice's legal status and issues her a shopping credential:
+        // Ministry verifies Alice's legal status and issues her a shopping credential:
 
         val credentialProposal = """
         {
@@ -68,26 +72,31 @@ class ReadmeExampleTest : CordaTestBase() {
         """
 
         ministry.services.startFlow(
-                IssueCredentialFlow.Issuer(
-                        UUID.randomUUID().toString(),
-                        credentialProposal,
-                        credDefId,
-                        aliceX500)).resultFuture.get()
+            IssueCredentialFlow.Issuer(
+                UUID.randomUUID().toString(),
+                credentialProposal,
+                credDefId,
+                aliceX500
+            )
+        ).resultFuture.get()
 
-// When Alice comes to grocery store, the store asks Alice to verify that she is legally allowed to buy drinks:
+        // When Alice comes to grocery store, the store asks Alice to verify that she is legally allowed to buy drinks:
 
         // Alice.BORN >= currentYear - 18
         val eighteenYearsAgo = LocalDateTime.now().minusYears(18).year
-        val legalAgePredicate = VerifyCredentialFlow.ProofPredicate(schemaId, credDefId, ministryDID, "BORN", eighteenYearsAgo)
+        val legalAgePredicate =
+            VerifyCredentialFlow.ProofPredicate(schemaId, credDefId, ministryDID, "BORN", eighteenYearsAgo)
 
         val verified = store.services.startFlow(
-                VerifyCredentialFlow.Verifier(
-                        UUID.randomUUID().toString(),
-                        emptyList(),
-                        listOf(legalAgePredicate),
-                        aliceX500)).resultFuture.get()
+            VerifyCredentialFlow.Verifier(
+                UUID.randomUUID().toString(),
+                emptyList(),
+                listOf(legalAgePredicate),
+                aliceX500
+            )
+        ).resultFuture.get()
 
-// If the verification succeeds, the store can be sure that Alice's age is above 18.
+        // If the verification succeeds, the store can be sure that Alice's age is above 18.
 
         println("You can buy drinks: $verified")
     }

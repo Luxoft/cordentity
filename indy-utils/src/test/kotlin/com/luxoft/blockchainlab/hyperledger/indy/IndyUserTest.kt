@@ -9,7 +9,6 @@ import org.hyperledger.indy.sdk.wallet.WalletExistsException
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import java.io.File
 
 class IndyUserTest {
 
@@ -47,9 +46,9 @@ class IndyUserTest {
         val utilsId = IndyUser.buildSchemaId(indyUser.did, name, version)
 
         val schemaInfo = Anoncreds.issuerCreateSchema(
-                indyUser.did, name, version, """["attr1"]"""
+            indyUser.did, name, version, """["attr1"]"""
         ).get()
-        assert(utilsId == schemaInfo.schemaId) {"Generated schema ID doesn't match SDK' ID anymore"}
+        assert(utilsId == schemaInfo.schemaId) { "Generated schema ID doesn't match SDK' ID anymore" }
     }
 
     @Test
@@ -66,8 +65,8 @@ class IndyUserTest {
         }"""
 
         val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(
-                wallet, indyUser.did, schemaJson, IndyUser.TAG, IndyUser.SIGNATURE_TYPE, null
+            wallet, indyUser.did, schemaJson, IndyUser.TAG, IndyUser.SIGNATURE_TYPE, null
         ).get()
-        assert(utilsId == credDefInfo.credDefId) {"Generated credDef ID doesn't match SDK' ID anymore"}
+        assert(utilsId == credDefInfo.credDefId) { "Generated credDef ID doesn't match SDK' ID anymore" }
     }
 }

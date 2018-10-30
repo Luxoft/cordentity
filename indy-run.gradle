@@ -9,7 +9,7 @@ def INDY_RUN_GROUP = "indy run"
 dockerRun {
     name indy_pool_docker_name
     image "teamblockchain/indy-pool:$indy_version"
-    ports '9701:9701','9702:9702','9703:9703','9704:9704','9705:9705','9706:9706','9707:9707','9708:9708'
+    ports '9701:9701', '9702:9702', '9703:9703', '9704:9704', '9705:9705', '9706:9706', '9707:9707', '9708:9708'
     daemonize true
     clean true
 }

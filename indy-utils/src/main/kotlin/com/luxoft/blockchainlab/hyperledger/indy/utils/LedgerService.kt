@@ -79,26 +79,25 @@ class LedgerService(private val did: String, private val wallet: Wallet, private
     /**
      * Shortcut to [LedgerService.retrieveCredentialDefinition]
      */
-    fun retrieveCredentialDefinition(id: String)
-            = LedgerService.retrieveCredentialDefinition(did, pool, id)
+    fun retrieveCredentialDefinition(id: String) = LedgerService.retrieveCredentialDefinition(did, pool, id)
 
     /**
      * Shortcut to [LedgerService.retrieveRevocationRegistryDefinition]
      */
-    fun retrieveRevocationRegistryDefinition(id: String)
-            = LedgerService.retrieveRevocationRegistryDefinition(did, pool, id)
+    fun retrieveRevocationRegistryDefinition(id: String) =
+        LedgerService.retrieveRevocationRegistryDefinition(did, pool, id)
 
     /**
      * Shortcut to [LedgerService.retrieveRevocationRegistryEntry]
      */
-    fun retrieveRevocationRegistryEntry(id: String, timestamp: Long)
-            = LedgerService.retrieveRevocationRegistryEntry(did, pool, id, timestamp)
+    fun retrieveRevocationRegistryEntry(id: String, timestamp: Long) =
+        LedgerService.retrieveRevocationRegistryEntry(did, pool, id, timestamp)
 
     /**
      * Shortcut to [LedgerService.retrieveRevocationRegistryDelta]
      */
-    fun retrieveRevocationRegistryDelta(id: String, interval: Interval)
-            = LedgerService.retrieveRevocationRegistryDelta(did, pool, id, interval)
+    fun retrieveRevocationRegistryDelta(id: String, interval: Interval) =
+        LedgerService.retrieveRevocationRegistryDelta(did, pool, id, interval)
 
     /**
      * Shortcut to [LedgerService.addNym]
@@ -121,11 +120,11 @@ class LedgerService(private val did: String, private val wallet: Wallet, private
          */
         fun addNym(did: String, pool: Pool, wallet: Wallet, about: IndyUser.IdentityDetails) {
             val nymRequest = Ledger.buildNymRequest(
-                    did,
-                    about.did,
-                    about.verkey,
-                    about.alias,
-                    about.role
+                did,
+                about.did,
+                about.verkey,
+                about.alias,
+                about.role
             ).get()
 
             Ledger.signAndSubmitRequest(pool, wallet, did, nymRequest).get()
@@ -196,24 +195,25 @@ class LedgerService(private val did: String, private val wallet: Wallet, private
          *
          * @return              revocation registry definition or null if none exists on ledger
          */
-        fun retrieveRevocationRegistryDefinition(did: String, pool: Pool, id: String): RevocationRegistryDefinition? = runBlocking {
-            val result: RevocationRegistryDefinition? = null
+        fun retrieveRevocationRegistryDefinition(did: String, pool: Pool, id: String): RevocationRegistryDefinition? =
+            runBlocking {
+                val result: RevocationRegistryDefinition? = null
 
-            repeat(retryTimes) {
-                try {
-                    val request = Ledger.buildGetRevocRegDefRequest(did, id).get()
-                    val response = Ledger.submitRequest(pool, request).get()
-                    val revRegDefJson = Ledger.parseGetRevocRegDefResponse(response).get().objectJson
+                repeat(retryTimes) {
+                    try {
+                        val request = Ledger.buildGetRevocRegDefRequest(did, id).get()
+                        val response = Ledger.submitRequest(pool, request).get()
+                        val revRegDefJson = Ledger.parseGetRevocRegDefResponse(response).get().objectJson
 
-                    return@runBlocking SerializationUtils.jSONToAny<RevocationRegistryDefinition>(revRegDefJson)
-                } catch (e: Exception) {
-                    logger.debug("Revocation registry definition retrieving failed (id: $id). Retry attempt $it")
-                    delay(delayMs)
+                        return@runBlocking SerializationUtils.jSONToAny<RevocationRegistryDefinition>(revRegDefJson)
+                    } catch (e: Exception) {
+                        logger.debug("Revocation registry definition retrieving failed (id: $id). Retry attempt $it")
+                        delay(delayMs)
+                    }
                 }
-            }
 
-            result
-        }
+                result
+            }
 
         /**
          * Retrieves revocation registry entry from ledger
@@ -227,7 +227,12 @@ class LedgerService(private val did: String, private val wallet: Wallet, private
          *
          * @return              revocation registry entry or null if none exists on ledger
          */
-        fun retrieveRevocationRegistryEntry(did: String, pool: Pool, id: String, timestamp: Long): Pair<Long, RevocationRegistryEntry>? = runBlocking {
+        fun retrieveRevocationRegistryEntry(
+            did: String,
+            pool: Pool,
+            id: String,
+            timestamp: Long
+        ): Pair<Long, RevocationRegistryEntry>? = runBlocking {
             val result: Pair<Long, RevocationRegistryEntry>? = null
 
             repeat(retryTimes) {
@@ -259,12 +264,18 @@ class LedgerService(private val did: String, private val wallet: Wallet, private
          *
          * @return              revocation registry delta or null if none exists on ledger
          */
-        fun retrieveRevocationRegistryDelta(did: String, pool: Pool, id: String, interval: Interval): Pair<Long, RevocationRegistryEntry>? = runBlocking {
+        fun retrieveRevocationRegistryDelta(
+            did: String,
+            pool: Pool,
+            id: String,
+            interval: Interval
+        ): Pair<Long, RevocationRegistryEntry>? = runBlocking {
             val result: Pair<Long, RevocationRegistryEntry>? = null
 
             repeat(retryTimes) {
                 try {
-                    val from = interval.from ?: -1 // according to https://github.com/hyperledger/indy-sdk/blob/master/libindy/src/api/ledger.rs:1623
+                    val from = interval.from
+                        ?: -1 // according to https://github.com/hyperledger/indy-sdk/blob/master/libindy/src/api/ledger.rs:1623
 
                     val request = Ledger.buildGetRevocRegDeltaRequest(did, id, from, interval.to).get()
                     val response = Ledger.submitRequest(pool, request).get()

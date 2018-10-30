@@ -30,7 +30,13 @@ object VerifyCredentialFlow {
      * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaId]
      * */
     @CordaSerializable
-    data class ProofAttribute(val schemaId: String, val credDefId: String, val credDefOwner: String, val field: String, val value: String = "")
+    data class ProofAttribute(
+        val schemaId: String,
+        val credDefId: String,
+        val credDefOwner: String,
+        val field: String,
+        val value: String = ""
+    )
 
     /**
      * A proof of a logical Predicate on an integer Attribute in the form `Attribute >= [value]`
@@ -43,7 +49,13 @@ object VerifyCredentialFlow {
      * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaId]
      * */
     @CordaSerializable
-    data class ProofPredicate(val schemaId: String, val credDefId: String, val credDefOwner: String, val field: String, val value: Int)
+    data class ProofPredicate(
+        val schemaId: String,
+        val credDefId: String,
+        val credDefOwner: String,
+        val field: String,
+        val value: Int
+    )
 
     /**
      * A flow to verify a set of predicates [predicates] on a set of attributes [attributes]
@@ -63,11 +75,11 @@ object VerifyCredentialFlow {
     @InitiatingFlow
     @StartableByRPC
     open class Verifier(
-            private val identifier: String,
-            private val attributes: List<ProofAttribute>,
-            private val predicates: List<ProofPredicate>,
-            private val proverName: CordaX500Name,
-            private val nonRevoked: Interval? = null
+        private val identifier: String,
+        private val attributes: List<ProofAttribute>,
+        private val predicates: List<ProofPredicate>,
+        private val proverName: CordaX500Name,
+        private val nonRevoked: Interval? = null
     ) : FlowLogic<Boolean>() {
 
         @Suspendable
@@ -80,40 +92,47 @@ object VerifyCredentialFlow {
                     CredentialFieldReference(it.field, it.schemaId, it.credDefId)
                 }
 
-                val fieldRefPred =  predicates.map {
+                val fieldRefPred = predicates.map {
                     val fieldRef = CredentialFieldReference(it.field, it.schemaId, it.credDefId)
                     CredentialPredicate(fieldRef, it.value)
                 }
 
                 val proofRequest = IndyUser.createProofRequest(
-                        attributes = fieldRefAttr,
-                        predicates = fieldRefPred,
-                        nonRevoked = nonRevoked
+                    attributes = fieldRefAttr,
+                    predicates = fieldRefPred,
+                    nonRevoked = nonRevoked
                 )
 
                 val verifyCredentialOut = flowSession.sendAndReceive<ProofInfo>(proofRequest).unwrap { proof ->
                     val usedData = indyUser().getDataUsedInProof(proofRequest, proof)
-                    val credentialProofOut = IndyCredentialProof(identifier, proofRequest, proof, usedData, listOf(ourIdentity, prover))
+                    val credentialProofOut =
+                        IndyCredentialProof(identifier, proofRequest, proof, usedData, listOf(ourIdentity, prover))
 
-                    if (!indyUser().verifyProof(credentialProofOut.proofReq, proof, usedData)) throw FlowException("Proof verification failed")
+                    if (!indyUser().verifyProof(
+                            credentialProofOut.proofReq,
+                            proof,
+                            usedData
+                        )
+                    ) throw FlowException("Proof verification failed")
 
                     StateAndContract(credentialProofOut, IndyCredentialContract::class.java.name)
                 }
 
                 val expectedAttrs = attributes
-                        .filter { it.value.isNotEmpty() }
-                        .associateBy({ it.field }, { it.value })
-                        .map { IndyCredentialContract.ExpectedAttr(it.key, it.value) }
+                    .filter { it.value.isNotEmpty() }
+                    .associateBy({ it.field }, { it.value })
+                    .map { IndyCredentialContract.ExpectedAttr(it.key, it.value) }
 
                 val verifyCredentialCmdType = IndyCredentialContract.Command.Verify(expectedAttrs)
-                val verifyCredentialCmd = Command(verifyCredentialCmdType, listOf(ourIdentity.owningKey, prover.owningKey))
+                val verifyCredentialCmd =
+                    Command(verifyCredentialCmdType, listOf(ourIdentity.owningKey, prover.owningKey))
 
                 val trxBuilder = TransactionBuilder(whoIsNotary())
-                        .withItems(verifyCredentialOut, verifyCredentialCmd)
+                    .withItems(verifyCredentialOut, verifyCredentialCmd)
 
                 trxBuilder.toWireTransaction(serviceHub)
-                        .toLedgerTransaction(serviceHub)
-                        .verify()
+                    .toLedgerTransaction(serviceHub)
+                    .verify()
 
                 val selfSignedTx = serviceHub.signInitialTransaction(trxBuilder)
                 val signedTrx = subFlow(CollectSignaturesFlow(selfSignedTx, listOf(flowSession)))
