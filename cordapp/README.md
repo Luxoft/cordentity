@@ -76,15 +76,15 @@ For some networks you can find Genesis files in the [genesis directory](../genes
 
 - [AssignPermissionsFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/AssignPermissionsFlow.kt) - changes permissions of another Corda party
 
-- [CreateClaimDefFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateClaimDefFlow.kt) - creates a credential definition for schema and registers it
+- [CreateCredentialDefinitionFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateCredentialDefinitionFlow.kt) - creates a credential definition for schema and registers it
 
 - [CreateSchemaFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateSchemaFlow.kt) - creates an Indy scheme and registers it
 
 - [GetDidFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/GetDidFlow.kt) -  requests DID of another Corda party
 
-- [IssueClaimFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/IssueClaimFlow.kt) - issues an Indy credential based on a proposal
+- [IssueCredentialFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/IssueCredentialFlow.kt) - issues an Indy credential based on a proposal
 
-- [VerifyClaimFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyClaimFlow.kt) - verifies a set of predicates
+- [VerifyCredentialFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyCredentialFlow.kt) - verifies a set of predicates
 
 ### Utility Flows
 

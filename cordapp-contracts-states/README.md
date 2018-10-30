@@ -5,6 +5,6 @@ Corda contract and state classes for the [indy-cordapp](../cordapp/README.md) pr
 
 ## States
 
-- [IndyClaim](src/main/kotlin/com/luxoft/blockchainlab/corda/hyperledger/indy/data/state/IndyClaim.kt) - A record of an issued Indy claim
+- [IndyCredential](src/main/kotlin/com/luxoft/blockchainlab/corda/hyperledger/indy/data/state/IndyCredential.kt) - A record of an issued Indy credential
 
-- [IndyClaimProof](src/main/kotlin/com/luxoft/blockchainlab/corda/hyperledger/indy/data/state/IndyClaimProof.kt) - A record of an issued Indy proof
+- [IndyCredentialProof](src/main/kotlin/com/luxoft/blockchainlab/corda/hyperledger/indy/data/state/IndyCredentialProof.kt) - A record of an issued Indy proof

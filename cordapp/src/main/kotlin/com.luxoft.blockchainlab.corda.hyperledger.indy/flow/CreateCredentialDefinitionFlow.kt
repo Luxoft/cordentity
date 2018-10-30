@@ -3,7 +3,7 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndyCredentialDefinitionContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndySchemaContract
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimDefinition
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredentialDefinition
 import com.luxoft.blockchainlab.hyperledger.indy.IndyCredentialDefinitionAlreadyExistsException
 import com.luxoft.blockchainlab.hyperledger.indy.IndySchemaNotFoundException
 import net.corda.core.contracts.Command
@@ -15,7 +15,7 @@ import net.corda.core.transactions.TransactionBuilder
 /**
  * Flow to create a credential definition and revocation registry for a schema
  * */
-object CreateClaimDefinitionFlow {
+object CreateCredentialDefinitionFlow {
 
     /**
      * @param schemaId             Id of target schema
@@ -34,13 +34,13 @@ object CreateClaimDefinitionFlow {
                 checkNoCredentialDefinitionOnIndy()
 
                 // create indy stuff
-                val credentialDefinitionObj = indyUser().createClaimDefinition(schemaId, true)
+                val credentialDefinitionObj = indyUser().createCredentialDefinition(schemaId, true)
                 val revocationRegistry = indyUser().createRevocationRegistry(credentialDefinitionObj.id, credentialsLimit)
 
                 val signers = listOf(ourIdentity.owningKey)
 
                 // create new credential definition state
-                val credentialDefinition = IndyClaimDefinition(
+                val credentialDefinition = IndyCredentialDefinition(
                         schemaId,
                         credentialDefinitionObj.id,
                         revocationRegistry.definition.id,
@@ -75,7 +75,7 @@ object CreateClaimDefinitionFlow {
 
                 subFlow(FinalityFlow(selfSignedTx))
 
-                return credentialDefinition.claimDefId
+                return credentialDefinition.credentialDefId
 
             } catch (t: Throwable) {
                 logger.error("New credential definition has been failed", t)

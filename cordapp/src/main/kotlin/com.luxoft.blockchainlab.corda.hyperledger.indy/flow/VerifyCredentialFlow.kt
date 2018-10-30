@@ -2,7 +2,7 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndyCredentialContract
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyClaimProof
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredentialProof
 import com.luxoft.blockchainlab.hyperledger.indy.*
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
@@ -17,7 +17,7 @@ import net.corda.core.utilities.unwrap
 /**
  * Flows to verify predicates on attributes
  * */
-object VerifyClaimFlow {
+object VerifyCredentialFlow {
 
     /**
      * A proof of a string Attribute with an optional check against [value]
@@ -77,12 +77,12 @@ object VerifyClaimFlow {
                 val flowSession: FlowSession = initiateFlow(prover)
 
                 val fieldRefAttr = attributes.map {
-                    CredFieldRef(it.field, it.schemaId, it.credDefId)
+                    CredentialFieldReference(it.field, it.schemaId, it.credDefId)
                 }
 
                 val fieldRefPred =  predicates.map {
-                    val fieldRef = CredFieldRef(it.field, it.schemaId, it.credDefId)
-                    CredPredicate(fieldRef, it.value)
+                    val fieldRef = CredentialFieldReference(it.field, it.schemaId, it.credDefId)
+                    CredentialPredicate(fieldRef, it.value)
                 }
 
                 val proofRequest = IndyUser.createProofRequest(
@@ -91,13 +91,13 @@ object VerifyClaimFlow {
                         nonRevoked = nonRevoked
                 )
 
-                val verifyClaimOut = flowSession.sendAndReceive<ProofInfo>(proofRequest).unwrap { proof ->
+                val verifyCredentialOut = flowSession.sendAndReceive<ProofInfo>(proofRequest).unwrap { proof ->
                     val usedData = indyUser().getDataUsedInProof(proofRequest, proof)
-                    val claimProofOut = IndyClaimProof(identifier, proofRequest, proof, usedData, listOf(ourIdentity, prover))
+                    val credentialProofOut = IndyCredentialProof(identifier, proofRequest, proof, usedData, listOf(ourIdentity, prover))
 
-                    if (!indyUser().verifyProof(claimProofOut.proofReq, proof, usedData)) throw FlowException("Proof verification failed")
+                    if (!indyUser().verifyProof(credentialProofOut.proofReq, proof, usedData)) throw FlowException("Proof verification failed")
 
-                    StateAndContract(claimProofOut, IndyCredentialContract::class.java.name)
+                    StateAndContract(credentialProofOut, IndyCredentialContract::class.java.name)
                 }
 
                 val expectedAttrs = attributes
@@ -105,11 +105,11 @@ object VerifyClaimFlow {
                         .associateBy({ it.field }, { it.value })
                         .map { IndyCredentialContract.ExpectedAttr(it.key, it.value) }
 
-                val verifyClaimCmdType = IndyCredentialContract.Command.Verify(expectedAttrs)
-                val verifyClaimCmd = Command(verifyClaimCmdType, listOf(ourIdentity.owningKey, prover.owningKey))
+                val verifyCredentialCmdType = IndyCredentialContract.Command.Verify(expectedAttrs)
+                val verifyCredentialCmd = Command(verifyCredentialCmdType, listOf(ourIdentity.owningKey, prover.owningKey))
 
                 val trxBuilder = TransactionBuilder(whoIsNotary())
-                        .withItems(verifyClaimOut, verifyClaimCmd)
+                        .withItems(verifyCredentialOut, verifyCredentialCmd)
 
                 trxBuilder.toWireTransaction(serviceHub)
                         .toLedgerTransaction(serviceHub)
@@ -130,7 +130,7 @@ object VerifyClaimFlow {
         }
     }
 
-    @InitiatedBy(VerifyClaimFlow.Verifier::class)
+    @InitiatedBy(VerifyCredentialFlow.Verifier::class)
     open class Prover(private val flowSession: FlowSession) : FlowLogic<Unit>() {
         @Suspendable
         override fun call() {

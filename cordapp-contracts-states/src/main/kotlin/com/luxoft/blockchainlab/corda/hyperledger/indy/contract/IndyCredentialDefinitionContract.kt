@@ -26,19 +26,19 @@ class IndyCredentialDefinitionContract : Contract {
     }
 
     private fun upgrade(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {
-        // TODO: should contain 1 input and 1 output states of type IndyClaimDefinition (different)
+        // TODO: should contain 1 input and 1 output states of type IndyCredentialDefinition (different)
         // TODO: should contain 1 input and 1 output states of type IndySchema (similar)
-        // TODO: input state of type IndyClaimDefinition should have currentCredNumber == maxCredNumber
+        // TODO: input state of type IndyCredentialDefinition should have currentCredNumber == maxCredNumber
     }
 
     private fun creation(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {
         // TODO: should contain 1 input and 1 output states of type IndySchema (similar)
-        // TODO: should contain 1 output state of type IndyClaimDefinition
-        // TODO: state of type IndyClaimDefinition should have currentCredNumber == 0 and maxCredNumber > 0
+        // TODO: should contain 1 output state of type IndyCredentialDefinition
+        // TODO: state of type IndyCredentialDefinition should have currentCredNumber == 0 and maxCredNumber > 0
     }
 
     private fun consummation(tx: LedgerTransaction, signers: Set<PublicKey>) = requireThat {
-        // TODO: should contain 1 input and 1 output states of type IndyClaimDefinition (different)
+        // TODO: should contain 1 input and 1 output states of type IndyCredentialDefinition (different)
         // TODO: input and output state should be similar except output.currentCredNumber - input.currentCredNumber == 1
     }
 

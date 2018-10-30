@@ -3,7 +3,6 @@ package com.luxoft.blockchainlab.hyperledger.indy
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.luxoft.blockchainlab.hyperledger.indy.utils.EnvironmentUtils.getIndyHomePath
 import com.luxoft.blockchainlab.hyperledger.indy.utils.LedgerService
-import com.luxoft.blockchainlab.hyperledger.indy.utils.PoolManager
 import com.luxoft.blockchainlab.hyperledger.indy.utils.SerializationUtils
 import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
 import net.corda.core.serialization.CordaSerializable
@@ -40,15 +39,15 @@ open class IndyUser {
 
     companion object {
         const val SIGNATURE_TYPE = "CL"
-        const val REV_REG_TYPE = "CL_ACCUM"
+        const val REVOCATION_REGISTRY_TYPE = "CL_ACCUM"
         const val TAG = "TAG_1"
-        const val REV_TAG = "REV_TAG_1"
+        const val REVOCATION_TAG = "REV_TAG_1"
         private const val ISSUANCE_ON_DEMAND = "ISSUANCE_ON_DEMAND"
         private const val EMPTY_OBJECT = "{}"
 
         fun buildSchemaId(did: String, name: String, version: String): String = "$did:2:$name:$version"
         fun buildCredentialDefinitionId(did: String, schemaSeqNo: Int): String = "$did:3:$SIGNATURE_TYPE:$schemaSeqNo:$TAG"
-        fun buildRevocationRegistryDefinitionId(did: String, credDefId: String): String = "$did:4:$credDefId:$REV_REG_TYPE:$REV_TAG"
+        fun buildRevocationRegistryDefinitionId(did: String, credDefId: String): String = "$did:4:$credDefId:$REVOCATION_REGISTRY_TYPE:$REVOCATION_TAG"
 
         fun getTailsConfig() = """{"base_dir":"${getIndyHomePath("tails")}","uri_pattern":""}"""
                 .replace('\\', '/')
@@ -69,7 +68,7 @@ open class IndyUser {
             val proofJson = SerializationUtils.anyToJSON(proof.proofData)
 
             return Anoncreds.verifierVerifyProof(
-                    proofRequestJson, proofJson, usedData.schemas, usedData.claimDefs, usedData.revRegDefs, usedData.revRegs
+                    proofRequestJson, proofJson, usedData.schemas, usedData.credentialDefinitions, usedData.revocationRegistryDefinitions, usedData.revocationRegistries
             ).get()
         }
 
@@ -94,19 +93,19 @@ open class IndyUser {
                     .associate { it.id to it }
             val usedSchemasJson = SerializationUtils.anyToJSON(usedSchemas)
 
-            val usedClaimDefs = proof.proofData.identifiers
-                    .map { it.credDefId }
+            val usedCredentialDefs = proof.proofData.identifiers
+                    .map { it.credentialDefinitionId }
                     .distinct()
                     .map {
                         LedgerService.retrieveCredentialDefinition(did, pool, it)
                                 ?: throw RuntimeException("Credential definition $it doesn't exist in ledger")
                     }
                     .associate { it.id to it }
-            val usedClaimDefsJson = SerializationUtils.anyToJSON(usedClaimDefs)
+            val usedCredentialDefsJson = SerializationUtils.anyToJSON(usedCredentialDefs)
 
             val (revRegDefsJson, revRegDeltasJson) = if (proofRequest.nonRevoked != null) {
                 val revRegDefs = proof.proofData.identifiers
-                        .map { it.revRegId!! }
+                        .map { it.revocationRegistryId!! }
                         .distinct()
                         .map {
                             LedgerService.retrieveRevocationRegistryDefinition(did, pool, it)
@@ -115,7 +114,7 @@ open class IndyUser {
                         .associate { it.id to it }
 
                 val revRegDeltas = proof.proofData.identifiers
-                        .map { Pair(it.revRegId!!, it.timestamp!!) }
+                        .map { Pair(it.revocationRegistryId!!, it.timestamp!!) }
                         .distinct()
                         .associate { (revRegId, timestamp) ->
                             val response = LedgerService.retrieveRevocationRegistryEntry(did, pool, revRegId, timestamp)
@@ -131,7 +130,7 @@ open class IndyUser {
                 Pair(SerializationUtils.anyToJSON(revRegDefs), SerializationUtils.anyToJSON(revRegDeltas))
             } else Pair(EMPTY_OBJECT, EMPTY_OBJECT)
 
-            return DataUsedInProofJson(usedSchemasJson, usedClaimDefsJson, revRegDefsJson, revRegDeltasJson)
+            return DataUsedInProofJson(usedSchemasJson, usedCredentialDefsJson, revRegDefsJson, revRegDeltasJson)
         }
 
         /**
@@ -150,15 +149,15 @@ open class IndyUser {
                 version: String = "0.1",
                 name: String = "proof_req_$version",
                 nonce: String = "123432421212",
-                attributes: List<CredFieldRef>,
-                predicates: List<CredPredicate>,
+                attributes: List<CredentialFieldReference>,
+                predicates: List<CredentialPredicate>,
                 nonRevoked: Interval? = null
         ): ProofRequest {
 
             val requestedAttributes = attributes
                     .withIndex()
                     .associate { attr ->
-                        attr.value.fieldName to ClaimFieldReference(
+                        attr.value.fieldName to CredentialAttributeReference(
                                 attr.value.fieldName,
                                 attr.value.schemaId
                         )
@@ -167,11 +166,11 @@ open class IndyUser {
             val requestedPredicates = predicates
                     .withIndex()
                     .associate { predicate ->
-                        predicate.value.fieldRef.fieldName to ClaimPredicateReference(
-                                predicate.value.fieldRef.fieldName,
+                        predicate.value.fieldReference.fieldName to CredentialPredicateReference(
+                                predicate.value.fieldReference.fieldName,
                                 predicate.value.type,
                                 predicate.value.value,
-                                predicate.value.fieldRef.schemaId
+                                predicate.value.fieldReference.schemaId
                         )
                     }
 
@@ -303,11 +302,11 @@ open class IndyUser {
     /**
      * Creates new schema and stores it to ledger if not exists, else restores schema from ledger
      *
-     * @param name              new schema name
-     * @param version           schema version (???)
-     * @param attributes        schema attributes
+     * @param name                      new schema name
+     * @param version                   schema version (???)
+     * @param attributes                schema attributes
      *
-     * @return                  created schema
+     * @return                          created schema
      */
     fun createSchema(name: String, version: String, attributes: List<String>): Schema {
         val attrStr = attributes.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
@@ -327,15 +326,15 @@ open class IndyUser {
     }
 
     /**
-     * Creates claim definition and stores it to ledger if not exists, else restores claim definition from ledger
+     * Creates credential definition and stores it to ledger if not exists, else restores credential definition from ledger
      *
-     * @param schemaId              id of schema to create claim definition for
-     * @param enableRevocation      whether enable or disable revocation for this credential definition
-     *                              (hint) turn this on by default, but just don't revoke claims
+     * @param schemaId                  id of schema to create credential definition for
+     * @param enableRevocation          whether enable or disable revocation for this credential definition
+     *                                  (hint) turn this on by default, but just don't revoke credentials
      *
-     * @return                      created credential definition
+     * @return                          created credential definition
      */
-    fun createClaimDefinition(schemaId: String, enableRevocation: Boolean): CredentialDefinition {
+    fun createCredentialDefinition(schemaId: String, enableRevocation: Boolean): CredentialDefinition {
         val schema = ledgerService.retrieveSchema(schemaId)
                 ?: throw IndySchemaNotFoundException(schemaId, "Create credential definition has been failed")
         val schemaJson = SerializationUtils.anyToJSON(schema)
@@ -359,34 +358,34 @@ open class IndyUser {
     }
 
     /**
-     * Creates revocation registry for claim definition if there's no one in ledger
-     * (usable only for those claim definition for which enableRevocation = true)
+     * Creates revocation registry for credential definition if there's no one in ledger
+     * (usable only for those credential definition for which enableRevocation = true)
      *
-     * @param credDefId                 claim definition id
-     * @param maxCredentialNumber       maximum number of claims which can be issued for this claim definition
+     * @param credentialDefinitionId    credential definition id
+     * @param maxCredentialNumber       maximum number of credentials which can be issued for this credential definition
      *                                  (example) driver agency can produce only 1000 driver licences per year
      *
      * @return                          created
      */
-    fun createRevocationRegistry(credDefId: String, maxCredentialNumber: Int = 5): RevocationRegistryInfo {
+    fun createRevocationRegistry(credentialDefinitionId: String, maxCredentialNumber: Int = 5): RevocationRegistryInfo {
         val revRegDefConfig = RevocationRegistryConfig(ISSUANCE_ON_DEMAND, maxCredentialNumber)
         val revRegDefConfigJson = SerializationUtils.anyToJSON(revRegDefConfig)
         val tailsWriter = getTailsHandler().writer
 
-        val revRegId = buildRevocationRegistryDefinitionId(did, credDefId)
+        val revRegId = buildRevocationRegistryDefinitionId(did, credentialDefinitionId)
         val definitionFromLedger = ledgerService.retrieveRevocationRegistryDefinition(revRegId)
 
         if (definitionFromLedger == null) {
             val createRevRegResult =
                     Anoncreds.issuerCreateAndStoreRevocReg(
-                            wallet, did, null, REV_TAG, credDefId, revRegDefConfigJson, tailsWriter
+                            wallet, did, null, REVOCATION_TAG, credentialDefinitionId, revRegDefConfigJson, tailsWriter
                     ).get()
 
             val definition = SerializationUtils.jSONToAny<RevocationRegistryDefinition>(createRevRegResult.revRegDefJson)
             val entry = SerializationUtils.jSONToAny<RevocationRegistryEntry>(createRevRegResult.revRegEntryJson)
 
             ledgerService.storeRevocationRegistryDefinition(definition)
-            ledgerService.storeRevocationRegistryEntry(entry, definition.id, definition.revDefType)
+            ledgerService.storeRevocationRegistryEntry(entry, definition.id, definition.revocationRegistryDefinitionType)
 
             return RevocationRegistryInfo(definition, entry)
         }
@@ -398,124 +397,124 @@ open class IndyUser {
     }
 
     /**
-     * Creates claim offer
+     * Creates credential offer
      *
-     * @param credDefId             claim definition id
+     * @param credentialDefinitionId    credential definition id
      *
-     * @return                      created claim offer
+     * @return                          created credential offer
      */
-    fun createClaimOffer(credDefId: String): ClaimOffer {
-        val credOfferJson = Anoncreds.issuerCreateCredentialOffer(wallet, credDefId).get()
+    fun createCredentialOffer(credentialDefinitionId: String): CredentialOffer {
+        val credOfferJson = Anoncreds.issuerCreateCredentialOffer(wallet, credentialDefinitionId).get()
 
         return SerializationUtils.jSONToAny(credOfferJson)
     }
 
     /**
-     * Creates claim request
+     * Creates credential request
      *
-     * @param proverDid             prover's did
-     * @param offer                 claim offer
-     * @param masterSecretId        <optional> master secret id
+     * @param proverDid                 prover's did
+     * @param offer                     credential offer
+     * @param masterSecretId            <optional> master secret id
      *
-     * @return                      claim request and all reliable data
+     * @return                          credential request and all reliable data
      */
-    fun createClaimRequest(proverDid: String, offer: ClaimOffer, masterSecretId: String = defaultMasterSecretId): ClaimRequestInfo {
-        val credDef = ledgerService.retrieveCredentialDefinition(offer.credDefId)
-                ?: throw IndyCredentialDefinitionNotFoundException(offer.credDefId, "Create credential request has been failed")
+    fun createCredentialRequest(proverDid: String, offer: CredentialOffer, masterSecretId: String = defaultMasterSecretId): CredentialRequestInfo {
+        val credDef = ledgerService.retrieveCredentialDefinition(offer.credentialDefinitionId)
+                ?: throw IndyCredentialDefinitionNotFoundException(offer.credentialDefinitionId, "Create credential request has been failed")
 
-        val claimOfferJson = SerializationUtils.anyToJSON(offer)
+        val credentialOfferJson = SerializationUtils.anyToJSON(offer)
         val credDefJson = SerializationUtils.anyToJSON(credDef)
 
         createMasterSecret(masterSecretId)
 
         val credReq = Anoncreds.proverCreateCredentialReq(
-                wallet, proverDid, claimOfferJson, credDefJson, masterSecretId
+                wallet, proverDid, credentialOfferJson, credDefJson, masterSecretId
         ).get()
 
-        val claimRequest = SerializationUtils.jSONToAny<ClaimRequest>(credReq.credentialRequestJson)
-        val claimRequestMetadata = SerializationUtils.jSONToAny<ClaimRequestMetadata>(credReq.credentialRequestMetadataJson)
+        val credentialRequest = SerializationUtils.jSONToAny<CredentialRequest>(credReq.credentialRequestJson)
+        val credentialRequestMetadata = SerializationUtils.jSONToAny<CredentialRequestMetadata>(credReq.credentialRequestMetadataJson)
 
-        return ClaimRequestInfo(claimRequest, claimRequestMetadata)
+        return CredentialRequestInfo(credentialRequest, credentialRequestMetadata)
     }
 
     /**
-     * Issues claim by claim request. If revocation is enabled it will hold one of [maxCredentialNumber].
+     * Issues credential by credential request. If revocation is enabled it will hold one of [maxCredentialNumber].
      *
-     * @param claimReq              claim request and all reliable info
-     * @param proposal              claim proposal
-     * @param offer                 claim offer
-     * @param revRegId              <optional> revocation registry definition ID
+     * @param credentialRequest         credential request and all reliable info
+     * @param proposal                  credential proposal
+     * @param offer                     credential offer
+     * @param revocationRegistryId      <optional> revocation registry definition ID
      *
-     * @return                      claim and all reliable info
+     * @return                          credential and all reliable info
      */
-    fun issueClaim(claimReq: ClaimRequestInfo, proposal: String, offer: ClaimOffer, revRegId: String?): ClaimInfo {
-        val claimRequestJson = SerializationUtils.anyToJSON(claimReq.request)
-        val claimOfferJson = SerializationUtils.anyToJSON(offer)
+    fun issueCredential(credentialRequest: CredentialRequestInfo, proposal: String, offer: CredentialOffer, revocationRegistryId: String?): CredentialInfo {
+        val credentialRequestJson = SerializationUtils.anyToJSON(credentialRequest.request)
+        val credentialOfferJson = SerializationUtils.anyToJSON(offer)
         val tailsReaderHandle = getTailsHandler().reader.blobStorageReaderHandle
 
-        val createClaimResult = Anoncreds.issuerCreateCredential(
+        val createCredentialResult = Anoncreds.issuerCreateCredential(
                 wallet,
-                claimOfferJson,
-                claimRequestJson,
+                credentialOfferJson,
+                credentialRequestJson,
                 proposal,
-                revRegId,
+                revocationRegistryId,
                 tailsReaderHandle
         ).get()
 
-        val claim = SerializationUtils.jSONToAny<Claim>(createClaimResult.credentialJson)
+        val credential = SerializationUtils.jSONToAny<Credential>(createCredentialResult.credentialJson)
 
-        if (revRegId != null) {
-            val revocationRegistryDefinition = ledgerService.retrieveRevocationRegistryDefinition(revRegId)
-                    ?: throw IndyRevRegNotFoundException(revRegId, "Issue credential has been failed")
+        if (revocationRegistryId != null) {
+            val revocationRegistryDefinition = ledgerService.retrieveRevocationRegistryDefinition(revocationRegistryId)
+                    ?: throw IndyRevRegNotFoundException(revocationRegistryId, "Issue credential has been failed")
 
-            val revRegDelta = SerializationUtils.jSONToAny<RevocationRegistryEntry>(createClaimResult.revocRegDeltaJson)
+            val revRegDelta = SerializationUtils.jSONToAny<RevocationRegistryEntry>(createCredentialResult.revocRegDeltaJson)
 
-            ledgerService.storeRevocationRegistryEntry(revRegDelta, revRegId, revocationRegistryDefinition.revDefType)
+            ledgerService.storeRevocationRegistryEntry(revRegDelta, revocationRegistryId, revocationRegistryDefinition.revocationRegistryDefinitionType)
         }
 
-        return ClaimInfo(claim, createClaimResult.revocId, createClaimResult.revocRegDeltaJson)
+        return CredentialInfo(credential, createCredentialResult.revocId, createCredentialResult.revocRegDeltaJson)
     }
 
     /**
-     * Revokes previously issued claim
+     * Revokes previously issued credential
      *
-     * @param revRegId              revocation registry definition id
-     * @param credRevId             revocation registry claim index
+     * @param revocationRegistryId      revocation registry definition id
+     * @param credentialRevocationId    revocation registry credential index
      */
-    fun revokeClaim(revRegId: String, credRevId: String) {
+    fun revokeCredential(revocationRegistryId: String, credentialRevocationId: String) {
         val tailsReaderHandle = getTailsHandler().reader.blobStorageReaderHandle
-        val revRegDeltaJson = Anoncreds.issuerRevokeCredential(wallet, tailsReaderHandle, revRegId, credRevId).get()
+        val revRegDeltaJson = Anoncreds.issuerRevokeCredential(wallet, tailsReaderHandle, revocationRegistryId, credentialRevocationId).get()
         val revRegDelta = SerializationUtils.jSONToAny<RevocationRegistryEntry>(revRegDeltaJson)
-        val revRegDef = ledgerService.retrieveRevocationRegistryDefinition(revRegId)
-                ?: throw IndyRevRegNotFoundException(revRegId, "Revoke credential has been failed")
+        val revRegDef = ledgerService.retrieveRevocationRegistryDefinition(revocationRegistryId)
+                ?: throw IndyRevRegNotFoundException(revocationRegistryId, "Revoke credential has been failed")
 
-        ledgerService.storeRevocationRegistryEntry(revRegDelta, revRegId, revRegDef.revDefType)
+        ledgerService.storeRevocationRegistryEntry(revRegDelta, revocationRegistryId, revRegDef.revocationRegistryDefinitionType)
     }
 
     /**
-     * Stores claim in prover's wallet
+     * Stores credential in prover's wallet
      *
-     * @param claimInfo             claim and all reliable data
-     * @param claimReq              claim request and all reliable data
-     * @param offer                 claim offer
+     * @param credentialInfo            credential and all reliable data
+     * @param credentialRequest         credential request and all reliable data
+     * @param offer                     credential offer
      */
-    fun receiveClaim(claimInfo: ClaimInfo, claimReq: ClaimRequestInfo, offer: ClaimOffer) {
-        val revRegDefJson = if (claimInfo.claim.revRegId != null) {
-            val revRegDef = ledgerService.retrieveRevocationRegistryDefinition(claimInfo.claim.revRegId)
-                    ?: throw IndyRevRegNotFoundException(claimInfo.claim.revRegId, "Receive credential has been failed")
+    fun receiveCredential(credentialInfo: CredentialInfo, credentialRequest: CredentialRequestInfo, offer: CredentialOffer) {
+        val revRegDefJson = if (credentialInfo.credential.revocationRegistryId != null) {
+            val revRegDef = ledgerService.retrieveRevocationRegistryDefinition(credentialInfo.credential.revocationRegistryId)
+                    ?: throw IndyRevRegNotFoundException(credentialInfo.credential.revocationRegistryId, "Receive credential has been failed")
 
             SerializationUtils.anyToJSON(revRegDef)
         } else null
 
-        val credDef = ledgerService.retrieveCredentialDefinition(offer.credDefId)
-                ?: throw IndyCredentialDefinitionNotFoundException(offer.credDefId, "Receive credential has been failed")
+        val credDef = ledgerService.retrieveCredentialDefinition(offer.credentialDefinitionId)
+                ?: throw IndyCredentialDefinitionNotFoundException(offer.credentialDefinitionId, "Receive credential has been failed")
 
-        val claimJson = SerializationUtils.anyToJSON(claimInfo.claim)
-        val claimRequestMetadataJson = SerializationUtils.anyToJSON(claimReq.metadata)
+        val credentialJson = SerializationUtils.anyToJSON(credentialInfo.credential)
+        val credentialRequestMetadataJson = SerializationUtils.anyToJSON(credentialRequest.metadata)
         val credDefJson = SerializationUtils.anyToJSON(credDef)
 
         Anoncreds.proverStoreCredential(
-                wallet, null, claimRequestMetadataJson, claimJson, credDefJson, revRegDefJson
+                wallet, null, credentialRequestMetadataJson, credentialJson, credDefJson, revRegDefJson
         ).get()
     }
 
@@ -530,29 +529,29 @@ open class IndyUser {
     fun createProof(proofRequest: ProofRequest, masterSecretId: String = defaultMasterSecretId): ProofInfo {
         val proofRequestJson = SerializationUtils.anyToJSON(proofRequest)
         val proverGetCredsForProofReq = Anoncreds.proverGetCredentialsForProofReq(wallet, proofRequestJson).get()
-        val requiredClaimsForProof = SerializationUtils.jSONToAny<ProofRequestCredentials>(proverGetCredsForProofReq)
+        val requiredCredentialsForProof = SerializationUtils.jSONToAny<ProofRequestCredentials>(proverGetCredsForProofReq)
 
-        val requiredAttributes = requiredClaimsForProof.attrs.values.flatten()
+        val requiredAttributes = requiredCredentialsForProof.attributes.values.flatten()
         val proofRequestAttributes = proofRequest.requestedAttributes
         val attrProofData = parseProofData(proofRequestAttributes, requiredAttributes, proofRequest.nonRevoked)
 
-        val requiredPredicates = requiredClaimsForProof.predicates.values.flatten()
+        val requiredPredicates = requiredCredentialsForProof.predicates.values.flatten()
         val proofRequestPredicates = proofRequest.requestedPredicates
         val predProofData = parseProofData(proofRequestPredicates, requiredPredicates, proofRequest.nonRevoked)
 
         val requestedAttributes = mutableMapOf<String, RequestedAttributeInfo>()
         attrProofData
                 .forEach { proofData ->
-                    proofData.referentClaims.forEach { claim ->
-                        requestedAttributes[claim.key] = RequestedAttributeInfo(claim.claimUuid, true, proofData.revState?.timestamp)
+                    proofData.referentCredentials.forEach { credential ->
+                        requestedAttributes[credential.key] = RequestedAttributeInfo(credential.credentialUUID, true, proofData.revState?.timestamp)
                     }
                 }
 
         val requestedPredicates = mutableMapOf<String, RequestedPredicateInfo>()
         predProofData
                 .forEach { proofData ->
-                    proofData.referentClaims.forEach { claim ->
-                        requestedPredicates[claim.key] = RequestedPredicateInfo(claim.claimUuid, proofData.revState?.timestamp)
+                    proofData.referentCredentials.forEach { credential ->
+                        requestedPredicates[credential.key] = RequestedPredicateInfo(credential.credentialUUID, proofData.revState?.timestamp)
                     }
                 }
 
@@ -566,7 +565,7 @@ open class IndyUser {
                             ?: throw IndySchemaNotFoundException(it, "Create proof has been failed")
                 }
 
-        val allClaimDefs = (attrProofData + predProofData)
+        val allCredentialDefs = (attrProofData + predProofData)
                 .map { it.credDefId }
                 .distinct()
                 .map {
@@ -580,19 +579,19 @@ open class IndyUser {
                 }
 
         val usedSchemas = allSchemas.associate { it.id to it }
-        val usedClaimDefs = allClaimDefs.associate { it.id to it }
+        val usedCredentialDefs = allCredentialDefs.associate { it.id to it }
         val usedRevocationStates = allRevStates
                 .filter { it != null }
                 .associate {
                     val stateByTimestamp = hashMapOf<Long, RevocationState>()
                     stateByTimestamp[it!!.timestamp] = it
 
-                    it.revRegId!! to stateByTimestamp
+                    it.revocationRegistryId!! to stateByTimestamp
                 }
 
         val requestedCredentialsJson = SerializationUtils.anyToJSON(requestedCredentials)
         val usedSchemasJson = SerializationUtils.anyToJSON(usedSchemas)
-        val usedClaimDefsJson = SerializationUtils.anyToJSON(usedClaimDefs)
+        val usedCredentialDefsJson = SerializationUtils.anyToJSON(usedCredentialDefs)
         val usedRevStatesJson = SerializationUtils.anyToJSON(usedRevocationStates)
 
         val proverProof = Anoncreds.proverCreateProof(
@@ -601,7 +600,7 @@ open class IndyUser {
                 requestedCredentialsJson,
                 masterSecretId,
                 usedSchemasJson,
-                usedClaimDefsJson,
+                usedCredentialDefsJson,
                 usedRevStatesJson
         ).get()
 
@@ -623,19 +622,19 @@ open class IndyUser {
     /**
      * Retrieves schema from ledger
      *
-     * @param schemaId          schema id
+     * @param id                schema id
      *
      * @return                  schema or null if schema doesn't exist in ledger
      */
-    fun retrieveSchemaById(schemaId: String) = ledgerService.retrieveSchema(schemaId)
+    fun retrieveSchemaById(id: String) = ledgerService.retrieveSchema(id)
 
     /**
      * Retrieves schema from ledger
      *
-     * @param name          schema name
-     * @param version       schema version
+     * @param name              schema name
+     * @param version           schema version
      *
-     * @return              schema or null if schema doesn't exist in ledger
+     * @return                  schema or null if schema doesn't exist in ledger
      */
     fun retrieveSchema(name: String, version: String): Schema? {
         val schemaId = IndyUser.buildSchemaId(did, name, version)
@@ -645,46 +644,46 @@ open class IndyUser {
     /**
      * Check if schema exist on ledger
      *
-     * @param name          schema name
-     * @param version       schema version
+     * @param name              schema name
+     * @param version           schema version
      *
-     * @return              true if exist otherwise false
+     * @return                  true if exist otherwise false
      */
     fun isSchemaExist(name: String, version: String): Boolean {
         return (null != retrieveSchema(name, version))
     }
 
     /**
-     * Retrieves claim definition from ledger by schema Id
+     * Retrieves credential definition from ledger by schema Id
      *
-     * @param schemaId        schema id
+     * @param id                schema id
      *
-     * @return                claim definition or null if it doesn't exist in ledger
+     * @return                  credential definition or null if it doesn't exist in ledger
      */
-    fun retrieveCredentialDefinitionBySchemaId(schemaId: String): CredentialDefinition? {
-        val schema = retrieveSchemaById(schemaId)
-                ?: throw IndySchemaNotFoundException(schemaId, "Indy ledger does't have proper states")
+    fun retrieveCredentialDefinitionBySchemaId(id: String): CredentialDefinition? {
+        val schema = retrieveSchemaById(id)
+                ?: throw IndySchemaNotFoundException(id, "Indy ledger does't have proper states")
 
         val credentialDefinitionId = IndyUser.buildCredentialDefinitionId(did, schema.seqNo!!)
         return ledgerService.retrieveCredentialDefinition(credentialDefinitionId)
     }
 
     /**
-     * Retrieves claim definition from ledger
+     * Retrieves credential definition from ledger
      *
-     * @param claimDefId        claim definition id
+     * @param id                credential definition id
      *
-     * @return                  claim definition or null if it doesn't exist in ledger
+     * @return                  credential definition or null if it doesn't exist in ledger
      */
-    fun retrieveCredentialDefinitionById(credentialDefinitionId: String) =
-            ledgerService.retrieveCredentialDefinition(credentialDefinitionId)
+    fun retrieveCredentialDefinitionById(id: String) =
+            ledgerService.retrieveCredentialDefinition(id)
 
     /**
      * Check if credential definition exist on ledger
      *
-     * @param schemaId      schema id
+     * @param schemaId          schema id
      *
-     * @return              true if exist otherwise false
+     * @return                  true if exist otherwise false
      */
     fun isCredentialDefinitionExist(schemaId: String): Boolean {
         return (retrieveCredentialDefinitionBySchemaId(schemaId) != null)
@@ -693,36 +692,36 @@ open class IndyUser {
     /**
      * Retrieves revocation registry entry from ledger
      *
-     * @param revRegId          revocation registry definition id
+     * @param id                revocation registry definition id
      * @param timestamp         time moment of revocation registry state
      *
      * @return                  revocation registry entry or null if it doesn't exist in ledger
      */
-    fun retrieveRevocationRegistryEntry(revRegId: String, timestamp: Long) = ledgerService.retrieveRevocationRegistryEntry(revRegId, timestamp)
+    fun retrieveRevocationRegistryEntry(id: String, timestamp: Long) = ledgerService.retrieveRevocationRegistryEntry(id, timestamp)
 
     /**
      * Same as [retrieveRevocationRegistryEntry] but finds any non-revoked state in [interval]
      *
-     * @param revRegId          revocation registry definition id
-     * @param interval          time interval of claim non-revocation
+     * @param id                revocation registry definition id
+     * @param interval          time interval of credential non-revocation
      *
      * @return                  revocation registry delta or null if it doesn't exist in ledger
      */
-    fun retrieveRevocationRegistryDelta(revRegId: String, interval: Interval) = ledgerService.retrieveRevocationRegistryDelta(revRegId, interval)
+    fun retrieveRevocationRegistryDelta(id: String, interval: Interval) = ledgerService.retrieveRevocationRegistryDelta(id, interval)
 
     /**
      * Retrieves revocation registry definition from ledger
      *
-     * @param revRegId          revocation registry definition id
+     * @param id                revocation registry definition id
      *
      * @return                  revocation registry definition or null if it doesn't exist in ledger
      */
-    fun retrieveRevocationRegistryDefinition(revRegId: String) = ledgerService.retrieveRevocationRegistryDefinition(revRegId)
+    fun retrieveRevocationRegistryDefinition(id: String) = ledgerService.retrieveRevocationRegistryDefinition(id)
 
     private data class ProofDataEntry(
             val schemaId: String,
             val credDefId: String,
-            val referentClaims: List<ReferentClaim>,
+            val referentCredentials: List<ReferentCredential>,
             val revState: RevocationState?
     )
 
@@ -741,30 +740,30 @@ open class IndyUser {
     }
 
     private fun parseProofData(
-            collectionFromRequest: Map<String, AbstractClaimReference>,
-            collectionFromCreds: List<ClaimReferenceInfo>,
+            collectionFromRequest: Map<String, AbstractCredentialReference>,
+            collectionFromCreds: List<CredentialReferenceInfo>,
             nonRevoked: Interval?
     ): List<ProofDataEntry> {
 
         return collectionFromCreds.map { attribute ->
-            val schemaId = attribute.credInfo.schemaId
-            val credDefId = attribute.credInfo.credDefId
+            val schemaId = attribute.credentialInfo.schemaId
+            val credDefId = attribute.credentialInfo.credentialDefinitionId
 
             val keys = collectionFromRequest.entries
-                    .filter { it.value.schemaId == attribute.credInfo.schemaId }
+                    .filter { it.value.schemaId == attribute.credentialInfo.schemaId }
                     .map { it.key }
-            val reference = attribute.credInfo.referent
-            val referentClaims = keys.map { ReferentClaim(it, reference) }
+            val reference = attribute.credentialInfo.referent
+            val referentCredentials = keys.map { ReferentCredential(it, reference) }
 
-            val credRevId = attribute.credInfo.credRevId
-            val revRegId = attribute.credInfo.revRegId
+            val credRevId = attribute.credentialInfo.credentialRevocationId
+            val revRegId = attribute.credentialInfo.revocationRegistryId
 
             if (nonRevoked == null || credRevId == null || revRegId == null) {
-                return@map ProofDataEntry(schemaId, credDefId, referentClaims, null)
+                return@map ProofDataEntry(schemaId, credDefId, referentCredentials, null)
             }
 
             val revState = getRevocationState(credRevId, revRegId, nonRevoked)
-            return@map ProofDataEntry(schemaId, credDefId, referentClaims, revState)
+            return@map ProofDataEntry(schemaId, credDefId, referentCredentials, revState)
         }
 
     }
@@ -786,7 +785,7 @@ open class IndyUser {
         ).get()
 
         val revState = SerializationUtils.jSONToAny<RevocationState>(revStateJson)
-        revState.revRegId = revRegDefId
+        revState.revocationRegistryId = revRegDefId
 
         return revState
     }

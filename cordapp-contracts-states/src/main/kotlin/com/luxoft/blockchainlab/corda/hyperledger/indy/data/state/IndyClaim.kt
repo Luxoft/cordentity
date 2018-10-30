@@ -1,8 +1,8 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.data.state
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.ClaimSchemaV1
-import com.luxoft.blockchainlab.hyperledger.indy.ClaimInfo
-import com.luxoft.blockchainlab.hyperledger.indy.ClaimRequestInfo
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.CredentialSchemaV1
+import com.luxoft.blockchainlab.hyperledger.indy.CredentialInfo
+import com.luxoft.blockchainlab.hyperledger.indy.CredentialRequestInfo
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.AbstractParty
@@ -11,17 +11,17 @@ import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
 
 /**
- * A Corda record of an Indy Credential [claim] issued on request [claimReq]
+ * A Corda record of an Indy Credential [credential] issued on request [credentialRequest]
  *
- * @param id                claim persistent id
- * @param claimRequestInfo  indy claim request
- * @param claimInfo         indy claim
- * @param issuerDid         did of an entity issued claim
- * @param participants      corda participants
+ * @param id                        credential persistent id
+ * @param credentialRequestInfo     indy credential request
+ * @param credentialInfo            indy credential
+ * @param issuerDid                 did of an entity issued credential
+ * @param participants              corda participants
  */
-open class IndyClaim(val id: String,
-                     val claimRequestInfo: ClaimRequestInfo,
-                     val claimInfo: ClaimInfo,
+open class IndyCredential(val id: String,
+                     val credentialRequestInfo: CredentialRequestInfo,
+                     val credentialInfo: CredentialInfo,
                      val issuerDid: String,
                      override val participants: List<AbstractParty>): LinearState, QueryableState {
 
@@ -29,9 +29,9 @@ open class IndyClaim(val id: String,
 
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
         return when(schema) {
-            is ClaimSchemaV1 -> ClaimSchemaV1.PersistentClaim(this)
+            is CredentialSchemaV1 -> CredentialSchemaV1.PersistentCredential(this)
             else -> throw IllegalArgumentException("Unrecognised schema $schema")
         }
     }
-    override fun supportedSchemas(): Iterable<MappedSchema> = listOf(ClaimSchemaV1)
+    override fun supportedSchemas(): Iterable<MappedSchema> = listOf(CredentialSchemaV1)
 }

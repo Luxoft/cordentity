@@ -50,13 +50,13 @@ using [CreateSchemaFlow](cordapp/README.md#flows):
                     listOf("NAME", "BORN"))).resultFuture.get()
 
 Ministry creates a [credential definition](cordapp/README.md#indy-terminology) for the shopping scheme
-using [CreateClaimDefFlow](cordapp/README.md#flows):
+using [CreateCredentialDefinitionFlow](cordapp/README.md#flows):
 
-    val credDefId = ministry.services.startFlow(
-            CreateClaimDefFlow.Authority(schemaId)).resultFuture.get()
+    val credentialDefinitionId = ministry.services.startFlow(
+            CreateCredentialDefinitionFlow.Authority(schemaId)).resultFuture.get()
 
 Ministry verifies Alice's legal status and issues her a shopping [credential](cordapp/README.md#indy-terminology)
-using [IssueClaimFlow](cordapp/README.md#flows):
+using [IssueCredentialFlow](cordapp/README.md#flows):
 
     val credentialProposal = """
         {
@@ -66,21 +66,21 @@ using [IssueClaimFlow](cordapp/README.md#flows):
         """
 
     ministry.services.startFlow(
-            IssueClaimFlow.Issuer(
+            IssueCredentialFlow.Issuer(
                     UUID.randomUUID().toString(),
-                    credDefId,
+                    credentialDefinitionId,
                     credentialProposal,
                     aliceX500)).resultFuture.get()
 
 When Alice comes to grocery store, the store asks Alice to verify that she is legally allowed to buy drinks
-using [VerifyClaimFlow](cordapp/README.md#flows):
+using [VerifyCredentialFlow](cordapp/README.md#flows):
 
     // Alice.BORN >= currentYear - 18
     val eighteenYearsAgo = LocalDateTime.now().minusYears(18).year
-    val legalAgePredicate = VerifyClaimFlow.ProofPredicate(schemaId, credDefId, ministryDID, "BORN", eighteenYearsAgo)
+    val legalAgePredicate = VerifyCredentialFlow.ProofPredicate(schemaId, credentialDefinitionId, ministryDID, "BORN", eighteenYearsAgo)
 
     val verified = store.services.startFlow(
-            VerifyClaimFlow.Verifier(
+            VerifyCredentialFlow.Verifier(
                     UUID.randomUUID().toString(),
                     emptyList(),
                     listOf(legalAgePredicate),
