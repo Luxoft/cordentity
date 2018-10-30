@@ -21,17 +21,19 @@ import net.corda.core.schemas.QueryableState
  * @param participants      list of corda participants
  * @param linearId          corda id
  */
-open class IndyCredentialProof(val id: String,
-                          val proofReq: ProofRequest,
-                          val proof: ProofInfo,
-                          val usedData: DataUsedInProofJson,
-                          override val participants: List<AbstractParty>,
-                          override val linearId: UniqueIdentifier = UniqueIdentifier()): QueryableState, LinearState {
+open class IndyCredentialProof(
+    val id: String,
+    val proofReq: ProofRequest,
+    val proof: ProofInfo,
+    val usedData: DataUsedInProofJson,
+    override val participants: List<AbstractParty>,
+    override val linearId: UniqueIdentifier = UniqueIdentifier()
+) : QueryableState, LinearState {
 
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
-        return when(schema) {
+        return when (schema) {
             is CredentialProofSchemaV1 -> CredentialProofSchemaV1.PersistentProof(this)
-            else ->  throw IllegalArgumentException("Unrecognised schema $schema")
+            else -> throw IllegalArgumentException("Unrecognised schema $schema")
         }
     }
 

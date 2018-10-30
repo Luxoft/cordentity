@@ -11,17 +11,18 @@ import javax.persistence.Table
 object CredentialProofSchema
 
 object CredentialProofSchemaV1 : MappedSchema(
-        version = 1,
-        schemaFamily = CredentialProofSchema.javaClass,
-        mappedTypes = listOf(PersistentProof::class.java)) {
+    version = 1,
+    schemaFamily = CredentialProofSchema.javaClass,
+    mappedTypes = listOf(PersistentProof::class.java)
+) {
 
     @Entity
     @Table(name = "proofs")
     class PersistentProof(
-            @Column(name = "id")
-            val id: String
+        @Column(name = "id")
+        val id: String
     ) : PersistentState() {
-        constructor(indyProof: IndyCredentialProof): this(indyProof.id)
-        constructor(): this("")
+        constructor(indyProof: IndyCredentialProof) : this(indyProof.id)
+        constructor() : this("")
     }
 }
