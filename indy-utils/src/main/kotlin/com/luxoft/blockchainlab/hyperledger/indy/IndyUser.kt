@@ -1,6 +1,10 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.luxoft.blockchainlab.hyperledger.indy.roles.IndyIssuer
+import com.luxoft.blockchainlab.hyperledger.indy.roles.IndyProver
+import com.luxoft.blockchainlab.hyperledger.indy.roles.IndyTrustee
+import com.luxoft.blockchainlab.hyperledger.indy.roles.IndyVerifier
 import com.luxoft.blockchainlab.hyperledger.indy.utils.EnvironmentUtils.getIndyHomePath
 import com.luxoft.blockchainlab.hyperledger.indy.utils.LedgerService
 import com.luxoft.blockchainlab.hyperledger.indy.utils.SerializationUtils
@@ -162,7 +166,7 @@ open class IndyUser : IndyIssuer, IndyProver, IndyTrustee {
 
     private val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
 
-    override val defaultMasterSecretId = "master"
+    @Deprecated("Was used in development purpose") val defaultMasterSecretId = "master"
     override val did: String
 
     val verkey: String

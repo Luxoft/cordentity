@@ -98,9 +98,12 @@ object VerifyCredentialFlow {
                 }
 
                 val proofRequest = IndyUser.createProofRequest(
-                    attributes = fieldRefAttr,
-                    predicates = fieldRefPred,
-                    nonRevoked = nonRevoked
+                    "0.1",
+                    "proof_req_0.1",
+                    "123432421212",
+                    fieldRefAttr,
+                    fieldRefPred,
+                    nonRevoked
                 )
 
                 val verifyCredentialOut = flowSession.sendAndReceive<ProofInfo>(proofRequest).unwrap { proof ->
