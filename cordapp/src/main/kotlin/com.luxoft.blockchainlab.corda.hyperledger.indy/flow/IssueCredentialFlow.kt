@@ -142,7 +142,7 @@ object IssueCredentialFlow {
                 val offer = flowSession.receive<CredentialOffer>().unwrap { offer -> offer }
                 val sessionDid = subFlow(CreatePairwiseFlow.Prover(issuer))
 
-                val credentialRequestInfo = indyUser().createCredentialRequest(sessionDid, offer)
+                val credentialRequestInfo = indyUser().createCredentialRequest(sessionDid, offer, indyUser().defaultMasterSecretId)
                 flowSession.send(credentialRequestInfo)
 
                 val flow = object : SignTransactionFlow(flowSession) {

@@ -1,6 +1,10 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.luxoft.blockchainlab.hyperledger.indy.roles.IndyIssuer
+import com.luxoft.blockchainlab.hyperledger.indy.roles.IndyProver
+import com.luxoft.blockchainlab.hyperledger.indy.roles.IndyTrustee
+import com.luxoft.blockchainlab.hyperledger.indy.roles.IndyVerifier
 import com.luxoft.blockchainlab.hyperledger.indy.utils.EnvironmentUtils.getIndyHomePath
 import com.luxoft.blockchainlab.hyperledger.indy.utils.LedgerService
 import com.luxoft.blockchainlab.hyperledger.indy.utils.SerializationUtils
@@ -24,7 +28,7 @@ import java.util.concurrent.ExecutionException
  *
  * Create one instance per each server node that deals with Indy Ledger.
  */
-open class IndyUser {
+open class IndyUser : IndyIssuer, IndyProver, IndyTrustee {
 
     @CordaSerializable
     data class IdentityDetails(
@@ -37,7 +41,7 @@ open class IndyUser {
         fun getIdentityRecord() = """{"did":"$did","verkey":"$verkey"}"""
     }
 
-    companion object {
+    companion object : IndyVerifier {
         const val SIGNATURE_TYPE = "CL"
         const val REVOCATION_REGISTRY_TYPE = "CL_ACCUM"
         const val TAG = "TAG_1"
@@ -57,16 +61,7 @@ open class IndyUser {
 
         fun getCredentialDefinitionConfig() = """{"support_revocation":true}"""
 
-        /**
-         * Verifies proof produced by prover
-         *
-         * @param proofReq          proof request used by prover to create proof
-         * @param proof             proof created by prover
-         * @param usedData          some data from ledger needed to verify proof
-         *
-         * @return true/false       does proof valid?
-         */
-        fun verifyProof(proofReq: ProofRequest, proof: ProofInfo, usedData: DataUsedInProofJson): Boolean {
+        override fun verifyProof(proofReq: ProofRequest, proof: ProofInfo, usedData: DataUsedInProofJson): Boolean {
             val proofRequestJson = SerializationUtils.anyToJSON(proofReq)
             val proofJson = SerializationUtils.anyToJSON(proof.proofData)
 
@@ -80,17 +75,7 @@ open class IndyUser {
             ).get()
         }
 
-        /**
-         * Gets from ledger all data needed to verify proof
-         *
-         * @param did               verifier did
-         * @param pool              ledger pool object
-         * @param proofRequest      proof request used by prover to create proof
-         * @param proof             proof created by prover
-         *
-         * @return                  used data in json wrapped in object
-         */
-        fun getDataUsedInProof(
+        override fun getDataUsedInProof(
             did: String,
             pool: Pool,
             proofRequest: ProofRequest,
@@ -146,25 +131,12 @@ open class IndyUser {
             return DataUsedInProofJson(usedSchemasJson, usedCredentialDefsJson, revRegDefsJson, revRegDeltasJson)
         }
 
-        /**
-         * Creates proof request
-         *
-         * @param version           (???)
-         * @param name              name of this proof request
-         * @param nonce             some random number to distinguish identical proof requests
-         * @param attributes        attributes which prover needs to reveal
-         * @param predicates        predicates which prover should answer
-         * @param nonRevoked        <optional> time interval of [attributes] and [predicates] non-revocation
-         *
-         * @return                  proof request
-         */
-        fun createProofRequest(
-            version: String = "0.1",
-            name: String = "proof_req_$version",
-            nonce: String = "123432421212",
+        override fun createProofRequest(
+            version: String,
+            name: String,
             attributes: List<CredentialFieldReference>,
             predicates: List<CredentialPredicate>,
-            nonRevoked: Interval? = null
+            nonRevoked: Interval?
         ): ProofRequest {
 
             val requestedAttributes = attributes
@@ -187,14 +159,17 @@ open class IndyUser {
                     )
                 }
 
+            val nonce = "123123123123"
+
             return ProofRequest(version, name, nonce, requestedAttributes, requestedPredicates, nonRevoked)
         }
     }
 
     private val logger = LoggerFactory.getLogger(IndyUser::class.java.name)
 
-    val defaultMasterSecretId = "master"
-    val did: String
+    @Deprecated("Was used in development purpose") val defaultMasterSecretId = "master"
+    override val did: String
+
     val verkey: String
 
     protected val wallet: Wallet
@@ -234,55 +209,24 @@ open class IndyUser {
         ledgerService = LedgerService(this.did, this.wallet, this.pool)
     }
 
-    /**
-     * Closes wallet of this indy user
-     */
-    fun close() {
+    override fun close() {
         wallet.closeWallet().get()
     }
 
-    /**
-     * Gets identity details by did
-     *
-     * @param did           target did
-     *
-     * @return              identity details
-     */
-    fun getIdentity(did: String): IdentityDetails {
+    override fun getIdentity(did: String): IdentityDetails {
         return IdentityDetails(did, Did.keyForDid(pool, wallet, did).get(), null, null)
     }
 
-    /**
-     * Gets identity details of this indy user
-     */
-    fun getIdentity() = getIdentity(did)
-
-    /**
-     * Adds provided identity to whitelist
-     *
-     * @param identityDetails
-     */
-    fun addKnownIdentities(identityDetails: IdentityDetails) {
+    override fun addKnownIdentities(identityDetails: IdentityDetails) {
         Did.storeTheirDid(wallet, identityDetails.getIdentityRecord()).get()
     }
 
-    /**
-     * (for trustee)
-     * Shares rights to write to ledger with provided identity
-     *
-     * @param identityDetails
-     */
-    fun setPermissionsFor(identityDetails: IdentityDetails) {
+    override fun setPermissionsFor(identityDetails: IdentityDetails) {
         addKnownIdentities(identityDetails)
         ledgerService.addNym(identityDetails)
     }
 
-    /**
-     * Creates master secret by it's id
-     *
-     * @param masterSecretId
-     */
-    fun createMasterSecret(masterSecretId: String) {
+    override fun createMasterSecret(masterSecretId: String) {
         try {
             Anoncreds.proverCreateMasterSecret(wallet, masterSecretId).get()
         } catch (e: ExecutionException) {
@@ -292,14 +236,7 @@ open class IndyUser {
         }
     }
 
-    /**
-     * Creates temporary did which can be used by identity to perform some any operations
-     *
-     * @param identityRecord            identity details
-     *
-     * @return                          newly created did
-     */
-    fun createSessionDid(identityRecord: IdentityDetails): String {
+    override fun createSessionDid(identityRecord: IdentityDetails): String {
         if (!Pairwise.isPairwiseExists(wallet, identityRecord.did).get()) {
             addKnownIdentities(identityRecord)
             val sessionDid = Did.createAndStoreMyDid(wallet, EMPTY_OBJECT).get().did
@@ -312,16 +249,7 @@ open class IndyUser {
         return pairwise.myDid
     }
 
-    /**
-     * Creates new schema and stores it to ledger if not exists, else restores schema from ledger
-     *
-     * @param name                      new schema name
-     * @param version                   schema version (???)
-     * @param attributes                schema attributes
-     *
-     * @return                          created schema
-     */
-    fun createSchema(name: String, version: String, attributes: List<String>): Schema {
+    override fun createSchema(name: String, version: String, attributes: List<String>): Schema {
         val attrStr = attributes.joinToString(prefix = "[", postfix = "]") { "\"$it\"" }
 
         val schemaId = buildSchemaId(did, name, version)
@@ -338,16 +266,7 @@ open class IndyUser {
         } else schemaFromLedger
     }
 
-    /**
-     * Creates credential definition and stores it to ledger if not exists, else restores credential definition from ledger
-     *
-     * @param schemaId                  id of schema to create credential definition for
-     * @param enableRevocation          whether enable or disable revocation for this credential definition
-     *                                  (hint) turn this on by default, but just don't revoke credentials
-     *
-     * @return                          created credential definition
-     */
-    fun createCredentialDefinition(schemaId: String, enableRevocation: Boolean): CredentialDefinition {
+    override fun createCredentialDefinition(schemaId: String, enableRevocation: Boolean): CredentialDefinition {
         val schema = ledgerService.retrieveSchema(schemaId)
             ?: throw IndySchemaNotFoundException(schemaId, "Create credential definition has been failed")
         val schemaJson = SerializationUtils.anyToJSON(schema)
@@ -370,17 +289,7 @@ open class IndyUser {
         } else credDefFromLedger
     }
 
-    /**
-     * Creates revocation registry for credential definition if there's no one in ledger
-     * (usable only for those credential definition for which enableRevocation = true)
-     *
-     * @param credentialDefinitionId    credential definition id
-     * @param maxCredentialNumber       maximum number of credentials which can be issued for this credential definition
-     *                                  (example) driver agency can produce only 1000 driver licences per year
-     *
-     * @return                          created
-     */
-    fun createRevocationRegistry(credentialDefinitionId: String, maxCredentialNumber: Int = 5): RevocationRegistryInfo {
+    override fun createRevocationRegistry(credentialDefinitionId: String, maxCredentialNumber: Int): RevocationRegistryInfo {
         val revRegDefConfig = RevocationRegistryConfig(ISSUANCE_ON_DEMAND, maxCredentialNumber)
         val revRegDefConfigJson = SerializationUtils.anyToJSON(revRegDefConfig)
         val tailsWriter = getTailsHandler().writer
@@ -421,25 +330,16 @@ open class IndyUser {
      *
      * @return                          created credential offer
      */
-    fun createCredentialOffer(credentialDefinitionId: String): CredentialOffer {
+    override fun createCredentialOffer(credentialDefinitionId: String): CredentialOffer {
         val credOfferJson = Anoncreds.issuerCreateCredentialOffer(wallet, credentialDefinitionId).get()
 
         return SerializationUtils.jSONToAny(credOfferJson)
     }
 
-    /**
-     * Creates credential request
-     *
-     * @param proverDid                 prover's did
-     * @param offer                     credential offer
-     * @param masterSecretId            <optional> master secret id
-     *
-     * @return                          credential request and all reliable data
-     */
-    fun createCredentialRequest(
+    override fun createCredentialRequest(
         proverDid: String,
         offer: CredentialOffer,
-        masterSecretId: String = defaultMasterSecretId
+        masterSecretId: String
     ): CredentialRequestInfo {
         val credDef = ledgerService.retrieveCredentialDefinition(offer.credentialDefinitionId)
             ?: throw IndyCredentialDefinitionNotFoundException(
@@ -463,17 +363,7 @@ open class IndyUser {
         return CredentialRequestInfo(credentialRequest, credentialRequestMetadata)
     }
 
-    /**
-     * Issues credential by credential request. If revocation is enabled it will hold one of [maxCredentialNumber].
-     *
-     * @param credentialRequest         credential request and all reliable info
-     * @param proposal                  credential proposal
-     * @param offer                     credential offer
-     * @param revocationRegistryId      <optional> revocation registry definition ID
-     *
-     * @return                          credential and all reliable info
-     */
-    fun issueCredential(
+    override fun issueCredential(
         credentialRequest: CredentialRequestInfo,
         proposal: String,
         offer: CredentialOffer,
@@ -511,13 +401,7 @@ open class IndyUser {
         return CredentialInfo(credential, createCredentialResult.revocId, createCredentialResult.revocRegDeltaJson)
     }
 
-    /**
-     * Revokes previously issued credential
-     *
-     * @param revocationRegistryId      revocation registry definition id
-     * @param credentialRevocationId    revocation registry credential index
-     */
-    fun revokeCredential(revocationRegistryId: String, credentialRevocationId: String) {
+    override fun revokeCredential(revocationRegistryId: String, credentialRevocationId: String) {
         val tailsReaderHandle = getTailsHandler().reader.blobStorageReaderHandle
         val revRegDeltaJson =
             Anoncreds.issuerRevokeCredential(wallet, tailsReaderHandle, revocationRegistryId, credentialRevocationId)
@@ -533,14 +417,7 @@ open class IndyUser {
         )
     }
 
-    /**
-     * Stores credential in prover's wallet
-     *
-     * @param credentialInfo            credential and all reliable data
-     * @param credentialRequest         credential request and all reliable data
-     * @param offer                     credential offer
-     */
-    fun receiveCredential(
+    override fun receiveCredential(
         credentialInfo: CredentialInfo,
         credentialRequest: CredentialRequestInfo,
         offer: CredentialOffer
@@ -571,15 +448,7 @@ open class IndyUser {
         ).get()
     }
 
-    /**
-     * Creates proof for provided proof request
-     *
-     * @param proofRequest              proof request created by verifier
-     * @param masterSecretId            <optional> master secret id
-     *
-     * @return                          proof and all reliable data
-     */
-    fun createProof(proofRequest: ProofRequest, masterSecretId: String = defaultMasterSecretId): ProofInfo {
+    override fun createProof(proofRequest: ProofRequest, masterSecretId: String): ProofInfo {
         val proofRequestJson = SerializationUtils.anyToJSON(proofRequest)
         val proverGetCredsForProofReq = Anoncreds.proverGetCredentialsForProofReq(wallet, proofRequestJson).get()
         val requiredCredentialsForProof =
@@ -674,8 +543,8 @@ open class IndyUser {
     /**
      * Shortcut to [IndyUser.verifyProof]
      */
-    fun verifyProof(proofRequest: ProofRequest, proof: ProofInfo, usedData: DataUsedInProofJson) =
-        IndyUser.verifyProof(proofRequest, proof, usedData)
+    fun verifyProof(proofReq: ProofRequest, proof: ProofInfo, usedData: DataUsedInProofJson) =
+        IndyUser.verifyProof(proofReq, proof, usedData)
 
     /**
      * Retrieves schema from ledger

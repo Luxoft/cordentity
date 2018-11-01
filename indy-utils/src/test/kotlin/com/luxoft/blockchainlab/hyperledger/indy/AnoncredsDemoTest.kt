@@ -146,6 +146,8 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val field_sex = CredentialFieldReference("sex", gvtSchema.id, credDef.id)
         val field_age = CredentialFieldReference("age", gvtSchema.id, credDef.id)
         val proofReq = IndyUser.createProofRequest(
+            version = "0.1",
+            name = "proof_req_0.1",
             attributes = listOf(field_name, field_sex),
             predicates = listOf(CredentialPredicate(field_age, 18)),
             nonRevoked = Interval.recent()
@@ -161,6 +163,8 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         Thread.sleep(3000)
 
         val proofReqAfterRevocation = IndyUser.createProofRequest(
+            version = "0.1",
+            name = "proof_req_0.1",
             attributes = listOf(field_name, field_sex),
             predicates = listOf(CredentialPredicate(field_age, 18)),
             nonRevoked = Interval.recent()
@@ -190,6 +194,8 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val field_sex = CredentialFieldReference("sex", gvtSchema.id, credDef.id)
         val field_age = CredentialFieldReference("age", gvtSchema.id, credDef.id)
         val proofReq = IndyUser.createProofRequest(
+            version = "0.1",
+            name = "proof_req_0.1",
             attributes = listOf(field_name, field_sex),
             predicates = listOf(CredentialPredicate(field_age, 18)),
             nonRevoked = null
@@ -231,6 +237,8 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val field_period = CredentialFieldReference("period", schema2.id, credDef2.id)
 
         val proofReq = IndyUser.createProofRequest(
+            version = "0.1",
+            name = "proof_req_0.1",
             attributes = listOf(field_name, field_status),
             predicates = listOf(CredentialPredicate(field_age, 18), CredentialPredicate(field_period, 5)),
             nonRevoked = null
@@ -278,6 +286,8 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val field_period = CredentialFieldReference("period", xyzSchema.id, xyzCredDef.id)
 
         val proofReq = IndyUser.createProofRequest(
+            version = "0.1",
+            name = "proof_req_0.1",
             attributes = listOf(field_name, field_status),
             predicates = listOf(CredentialPredicate(field_age, 18), CredentialPredicate(field_period, 5)),
             nonRevoked = null
