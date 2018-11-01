@@ -113,7 +113,7 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         issuerWallet: Wallet,
         issuerDidInfo: DidResults.CreateAndStoreMyDidResult
     ) {
-        val target = IndyUser.IdentityDetails(issuerDidInfo.did, issuerDidInfo.verkey, null, "TRUSTEE")
+        val target = IdentityDetails(issuerDidInfo.did, issuerDidInfo.verkey, null, "TRUSTEE")
         LedgerService.addNym(trusteeDid, pool, issuerWallet, target)
     }
 
@@ -122,7 +122,7 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         issuerWallet: Wallet,
         proverDidInfo: DidResults.CreateAndStoreMyDidResult
     ) {
-        val target = IndyUser.IdentityDetails(proverDidInfo.did, proverDidInfo.verkey, null, null)
+        val target = IdentityDetails(proverDidInfo.did, proverDidInfo.verkey, null, null)
         LedgerService.addNym(issuerDid, pool, issuerWallet, target)
     }
 

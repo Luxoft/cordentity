@@ -1,7 +1,7 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
+import com.luxoft.blockchainlab.hyperledger.indy.IdentityDetails
 import net.corda.core.flows.*
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
@@ -68,7 +68,7 @@ object AssignPermissionsFlow {
                 flowSession.receive(IndyPermissionsRequest::class.java).unwrap { indyPermissions ->
                     // FIXME: parameters `role` and `alias` are mixed up
                     indyUser().setPermissionsFor(
-                        IndyUser.IdentityDetails(
+                        IdentityDetails(
                             indyPermissions.did,
                             indyPermissions.verkey,
                             indyPermissions.role,

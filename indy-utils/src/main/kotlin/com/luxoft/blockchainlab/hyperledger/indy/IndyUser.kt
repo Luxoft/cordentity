@@ -1,6 +1,5 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.luxoft.blockchainlab.hyperledger.indy.roles.IndyIssuer
 import com.luxoft.blockchainlab.hyperledger.indy.roles.IndyProver
 import com.luxoft.blockchainlab.hyperledger.indy.roles.IndyTrustee
@@ -9,7 +8,6 @@ import com.luxoft.blockchainlab.hyperledger.indy.utils.EnvironmentUtils.getIndyH
 import com.luxoft.blockchainlab.hyperledger.indy.utils.LedgerService
 import com.luxoft.blockchainlab.hyperledger.indy.utils.SerializationUtils
 import com.luxoft.blockchainlab.hyperledger.indy.utils.getRootCause
-import net.corda.core.serialization.CordaSerializable
 import org.hyperledger.indy.sdk.anoncreds.Anoncreds
 import org.hyperledger.indy.sdk.anoncreds.DuplicateMasterSecretNameException
 import org.hyperledger.indy.sdk.blob_storage.BlobStorageReader
@@ -29,17 +27,6 @@ import java.util.concurrent.ExecutionException
  * Create one instance per each server node that deals with Indy Ledger.
  */
 open class IndyUser : IndyIssuer, IndyProver, IndyTrustee {
-
-    @CordaSerializable
-    data class IdentityDetails(
-        val did: String,
-        val verkey: String,
-        @JsonIgnore val alias: String?,
-        @JsonIgnore val role: String?
-    ) {
-        @JsonIgnore
-        fun getIdentityRecord() = """{"did":"$did","verkey":"$verkey"}"""
-    }
 
     companion object : IndyVerifier {
         const val SIGNATURE_TYPE = "CL"

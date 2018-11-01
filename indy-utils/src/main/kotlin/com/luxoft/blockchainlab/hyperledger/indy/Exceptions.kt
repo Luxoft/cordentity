@@ -1,6 +1,5 @@
 package com.luxoft.blockchainlab.hyperledger.indy
 
-import net.corda.core.flows.FlowException
 
 class IndyCredentialDefinitionAlreadyExistsException(schemaId: String, msg: String) :
     IllegalArgumentException("Credential definition for schema: $schemaId is already exists")
@@ -21,4 +20,4 @@ class IndyRevDeltaNotFoundException(id: String, msg: String) :
     IllegalArgumentException("Revocation registry delta $id for definition doesn't exist in ledger. $msg")
 
 class IndyCredentialDefinitionNotFoundException(id: String, msg: String) :
-    FlowException("There is no credential definition with id: $id. $msg")
+    IllegalArgumentException("There is no credential definition with id: $id. $msg")
