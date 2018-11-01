@@ -38,7 +38,6 @@ interface IndyVerifier {
      *
      * @param version           (???)
      * @param name              name of this proof request
-     * @param nonce             some random number to distinguish identical proof requests
      * @param attributes        attributes which prover needs to reveal
      * @param predicates        predicates which prover should answer
      * @param nonRevoked        <optional> time interval of [attributes] and [predicates] non-revocation
@@ -48,7 +47,6 @@ interface IndyVerifier {
     fun createProofRequest(
         version: String,
         name: String,
-        nonce: String,
         attributes: List<CredentialFieldReference>,
         predicates: List<CredentialPredicate>,
         nonRevoked: Interval? = null

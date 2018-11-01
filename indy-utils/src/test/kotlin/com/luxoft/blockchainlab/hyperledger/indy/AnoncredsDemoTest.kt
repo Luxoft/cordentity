@@ -148,7 +148,6 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val proofReq = IndyUser.createProofRequest(
             version = "0.1",
             name = "proof_req_0.1",
-            nonce = "123432421212",
             attributes = listOf(field_name, field_sex),
             predicates = listOf(CredentialPredicate(field_age, 18)),
             nonRevoked = Interval.recent()
@@ -166,7 +165,6 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val proofReqAfterRevocation = IndyUser.createProofRequest(
             version = "0.1",
             name = "proof_req_0.1",
-            nonce = "123432421212",
             attributes = listOf(field_name, field_sex),
             predicates = listOf(CredentialPredicate(field_age, 18)),
             nonRevoked = Interval.recent()
@@ -198,7 +196,6 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val proofReq = IndyUser.createProofRequest(
             version = "0.1",
             name = "proof_req_0.1",
-            nonce = "123432421212",
             attributes = listOf(field_name, field_sex),
             predicates = listOf(CredentialPredicate(field_age, 18)),
             nonRevoked = null
@@ -242,7 +239,6 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val proofReq = IndyUser.createProofRequest(
             version = "0.1",
             name = "proof_req_0.1",
-            nonce = "123432421212",
             attributes = listOf(field_name, field_status),
             predicates = listOf(CredentialPredicate(field_age, 18), CredentialPredicate(field_period, 5)),
             nonRevoked = null
@@ -292,7 +288,6 @@ class AnoncredsDemoTest : IndyIntegrationTest() {
         val proofReq = IndyUser.createProofRequest(
             version = "0.1",
             name = "proof_req_0.1",
-            nonce = "123432421212",
             attributes = listOf(field_name, field_status),
             predicates = listOf(CredentialPredicate(field_age, 18), CredentialPredicate(field_period, 5)),
             nonRevoked = null

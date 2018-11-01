@@ -100,7 +100,6 @@ object VerifyCredentialFlow {
                 val proofRequest = IndyUser.createProofRequest(
                     version = "0.1",
                     name = "proof_req_0.1",
-                    nonce = "123432421212",
                     attributes = fieldRefAttr,
                     predicates = fieldRefPred,
                     nonRevoked = nonRevoked

@@ -134,7 +134,6 @@ open class IndyUser : IndyIssuer, IndyProver, IndyTrustee {
         override fun createProofRequest(
             version: String,
             name: String,
-            nonce: String,
             attributes: List<CredentialFieldReference>,
             predicates: List<CredentialPredicate>,
             nonRevoked: Interval?
@@ -159,6 +158,8 @@ open class IndyUser : IndyIssuer, IndyProver, IndyTrustee {
                         predicate.value.fieldReference.schemaId
                     )
                 }
+
+            val nonce = "123123123123"
 
             return ProofRequest(version, name, nonce, requestedAttributes, requestedPredicates, nonRevoked)
         }
