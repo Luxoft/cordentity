@@ -102,7 +102,7 @@ class LedgerService(private val did: String, private val wallet: Wallet, private
     /**
      * Shortcut to [LedgerService.addNym]
      */
-    fun addNym(about: IndyUser.IdentityDetails) = LedgerService.addNym(did, pool, wallet, about)
+    fun addNym(about: IdentityDetails) = LedgerService.addNym(did, pool, wallet, about)
 
     companion object {
         val logger = LoggerFactory.getLogger(IndyUser::class.java.name)!!
@@ -118,7 +118,7 @@ class LedgerService(private val did: String, private val wallet: Wallet, private
          * @param wallet        trustee wallet handle
          * @param about         identity details about entity that trustee wants to trust
          */
-        fun addNym(did: String, pool: Pool, wallet: Wallet, about: IndyUser.IdentityDetails) {
+        fun addNym(did: String, pool: Pool, wallet: Wallet, about: IdentityDetails) {
             val nymRequest = Ledger.buildNymRequest(
                 did,
                 about.did,

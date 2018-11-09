@@ -1,6 +1,6 @@
 package com.luxoft.blockchainlab.hyperledger.indy.roles
 
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
+import com.luxoft.blockchainlab.hyperledger.indy.IdentityDetails
 
 
 /**
@@ -14,12 +14,12 @@ interface IndyTrustee : IndyWalletHolder {
      *
      * @param identityDetails
      */
-    fun setPermissionsFor(identityDetails: IndyUser.IdentityDetails)
+    fun setPermissionsFor(identityDetails: IdentityDetails)
 
     /**
      * Adds provided identity to whitelist
      *
      * @param identityDetails
      */
-    fun addKnownIdentities(identityDetails: IndyUser.IdentityDetails)
+    fun addKnownIdentities(identityDetails: IdentityDetails)
 }

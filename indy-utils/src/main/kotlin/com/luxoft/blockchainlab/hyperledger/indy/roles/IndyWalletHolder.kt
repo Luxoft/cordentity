@@ -1,6 +1,6 @@
 package com.luxoft.blockchainlab.hyperledger.indy.roles
 
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
+import com.luxoft.blockchainlab.hyperledger.indy.IdentityDetails
 
 
 /**
@@ -21,7 +21,7 @@ interface IndyWalletHolder {
      *
      * @return              identity details
      */
-    fun getIdentity(did: String): IndyUser.IdentityDetails
+    fun getIdentity(did: String): IdentityDetails
 
     /**
      * Creates temporary did which can be used by identity to perform some any operations
@@ -30,7 +30,7 @@ interface IndyWalletHolder {
      *
      * @return                          newly created did
      */
-    fun createSessionDid(identityRecord: IndyUser.IdentityDetails): String
+    fun createSessionDid(identityRecord: IdentityDetails): String
 }
 
 /**
