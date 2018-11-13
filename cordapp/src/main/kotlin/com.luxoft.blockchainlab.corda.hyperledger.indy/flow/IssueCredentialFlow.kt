@@ -5,10 +5,7 @@ import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndyCredentialCo
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndyCredentialDefinitionContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredential
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredentialDefinition
-import com.luxoft.blockchainlab.hyperledger.indy.CredentialOffer
-import com.luxoft.blockchainlab.hyperledger.indy.CredentialRequestInfo
-import com.luxoft.blockchainlab.hyperledger.indy.IndyCredentialDefinitionNotFoundException
-import com.luxoft.blockchainlab.hyperledger.indy.IndyCredentialMaximumReachedException
+import com.luxoft.blockchainlab.hyperledger.indy.*
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -53,7 +50,7 @@ object IssueCredentialFlow {
     open class Issuer(
         private val identifier: String,
         private val credentialProposal: String,
-        private val credentialDefinitionId: String,
+        private val credentialDefinitionId: CredentialDefinitionId,
         private val proverName: CordaX500Name
     ) : FlowLogic<Unit>() {
 
@@ -66,16 +63,17 @@ object IssueCredentialFlow {
                 // checking if cred def exists and can produce new credentials
                 val originalCredentialDefIn = getCredentialDefinitionById(credentialDefinitionId)
                     ?: throw IndyCredentialDefinitionNotFoundException(
-                        credentialDefinitionId,
+                        credentialDefinitionId.toString(),
                         "State doesn't exist in Corda vault"
                     )
                 val originalCredentialDef = originalCredentialDefIn.state.data
 
                 if (!originalCredentialDef.canProduceCredentials())
-                    throw IndyCredentialMaximumReachedException(originalCredentialDef.revRegId)
+                    throw IndyCredentialMaximumReachedException(originalCredentialDef.revocationRegistryDefinitionId.toString())
 
                 // issue credential
-                val offer = indyUser().createCredentialOffer(originalCredentialDef.credentialDefId)
+                val offer =
+                    indyUser().createCredentialOffer(credentialDefinitionId)
 
                 val signers = listOf(ourIdentity.owningKey, prover.owningKey)
                 val newCredentialOut =
@@ -84,7 +82,7 @@ object IssueCredentialFlow {
                             credentialReq,
                             credentialProposal,
                             offer,
-                            originalCredentialDef.revRegId
+                            originalCredentialDef.revocationRegistryDefinitionId
                         )
                         val credentialOut = IndyCredential(
                             identifier,
@@ -142,7 +140,8 @@ object IssueCredentialFlow {
                 val offer = flowSession.receive<CredentialOffer>().unwrap { offer -> offer }
                 val sessionDid = subFlow(CreatePairwiseFlow.Prover(issuer))
 
-                val credentialRequestInfo = indyUser().createCredentialRequest(sessionDid, offer, indyUser().defaultMasterSecretId)
+                val credentialRequestInfo =
+                    indyUser().createCredentialRequest(sessionDid, offer, indyUser().defaultMasterSecretId)
                 flowSession.send(credentialRequestInfo)
 
                 val flow = object : SignTransactionFlow(flowSession) {

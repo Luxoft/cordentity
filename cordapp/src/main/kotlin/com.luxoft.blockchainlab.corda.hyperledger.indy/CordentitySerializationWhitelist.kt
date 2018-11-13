@@ -43,6 +43,9 @@ class CordentitySerializationWhitelist : SerializationWhitelist {
         RevocationRegistryEntry::class.java,
         RevocationState::class.java,
         DataUsedInProofJson::class.java,
-        IdentityDetails::class.java
+        IdentityDetails::class.java,
+        RevocationRegistryDefinitionId::class.java,
+        CredentialDefinitionId::class.java,
+        SchemaId::class.java
     )
 }

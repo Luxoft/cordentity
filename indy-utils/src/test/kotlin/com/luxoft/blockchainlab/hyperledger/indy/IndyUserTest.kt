@@ -43,18 +43,19 @@ class IndyUserTest {
     fun `check schema id format wasnt changed`() {
         val name = "unitTestSchema"
         val version = "1.0"
-        val utilsId = IndyUser.buildSchemaId(indyUser.did, name, version)
+        val utilsId = SchemaId(indyUser.did, name, version)
 
         val schemaInfo = Anoncreds.issuerCreateSchema(
             indyUser.did, name, version, """["attr1"]"""
         ).get()
-        assert(utilsId == schemaInfo.schemaId) { "Generated schema ID doesn't match SDK' ID anymore" }
+        assert(utilsId.toString() == schemaInfo.schemaId) { "Generated schema ID doesn't match SDK' ID anymore" }
     }
 
     @Test
     fun `check definition id format wasnt changed`() {
         val schemaSeqNo = 14
-        val utilsId = IndyUser.buildCredentialDefinitionId(indyUser.did, schemaSeqNo)
+        val schemaId = SchemaId.fromString("V4SGRU86Z58d6TV7PBUe6f:2:schema_education:1.0")
+        val utilsId = CredentialDefinitionId(indyUser.did, schemaId, IndyUser.TAG)
 
         val schemaJson = """{
             "ver":"1.0",
@@ -67,6 +68,6 @@ class IndyUserTest {
         val credDefInfo = Anoncreds.issuerCreateAndStoreCredentialDef(
             wallet, indyUser.did, schemaJson, IndyUser.TAG, IndyUser.SIGNATURE_TYPE, null
         ).get()
-        assert(utilsId == credDefInfo.credDefId) { "Generated credDef ID doesn't match SDK' ID anymore" }
+        assert(utilsId.toString() == credDefInfo.credDefId) { "Generated credDef ID doesn't match SDK' ID anymore" }
     }
 }

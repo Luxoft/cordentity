@@ -21,38 +21,32 @@ object VerifyCredentialFlow {
 
     /**
      * A proof of a string Attribute with an optional check against [value]
-     * The Attribute is contained in a field [field] in a schema by [schemaId] in a credential definition by [credDefOwner]
+     * The Attribute is contained in a field [field] in a credential definition by [credentialDefinitionId]
      *
-     * @param value             an optional value the Attribute is checked against
-     * @param field             the name of the field that provides this Attribute
-     * @param schemaId          id of the Schema that contains field [field]
-     * @param credDefId         id of the Credential Definition that produced by issuer
-     * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaId]
+     * @param value                         an optional value the Attribute is checked against
+     * @param field                         the name of the field that provides this Attribute
+     * @param credentialDefinitionId        id of the Credential Definition that produced by issuer
      * */
     @CordaSerializable
     data class ProofAttribute(
-        val schemaId: String,
-        val credDefId: String,
-        val credDefOwner: String,
+        val credentialDefinitionId: CredentialDefinitionId,
+        val schemaId: SchemaId,
         val field: String,
         val value: String = ""
     )
 
     /**
      * A proof of a logical Predicate on an integer Attribute in the form `Attribute >= [value]`
-     * The Attribute is contained in a field [field] in a schema by [schemaId] in a credential definition by [credDefOwner]
+     * The Attribute is contained in a field [field] in a credential definition by [credentialDefinitionId]
      *
-     * @param value             value in the predicate to compare the Attribute against
-     * @param field             the name of the field that provides the Attribute
-     * @param schemaId          id of the Schema that contains field [field]
-     * @param credDefId         id of the Credential Definition that produced by issuer
-     * @param credDefOwner      owner of the Credential Definition that contains Schema [schemaId]
+     * @param value                         value in the predicate to compare the Attribute against
+     * @param field                         the name of the field that provides the Attribute
+     * @param credentialDefinitionId        id of the Credential Definition that produced by issuer
      * */
     @CordaSerializable
     data class ProofPredicate(
-        val schemaId: String,
-        val credDefId: String,
-        val credDefOwner: String,
+        val credentialDefinitionId: CredentialDefinitionId,
+        val schemaId: SchemaId,
         val field: String,
         val value: Int
     )
@@ -89,11 +83,19 @@ object VerifyCredentialFlow {
                 val flowSession: FlowSession = initiateFlow(prover)
 
                 val fieldRefAttr = attributes.map {
-                    CredentialFieldReference(it.field, it.schemaId, it.credDefId)
+                    CredentialFieldReference(
+                        it.field,
+                        it.schemaId.toString(),
+                        it.credentialDefinitionId.toString()
+                    )
                 }
 
                 val fieldRefPred = predicates.map {
-                    val fieldRef = CredentialFieldReference(it.field, it.schemaId, it.credDefId)
+                    val fieldRef = CredentialFieldReference(
+                        it.field,
+                        it.schemaId.toString(),
+                        it.credentialDefinitionId.toString()
+                    )
                     CredentialPredicate(fieldRef, it.value)
                 }
 

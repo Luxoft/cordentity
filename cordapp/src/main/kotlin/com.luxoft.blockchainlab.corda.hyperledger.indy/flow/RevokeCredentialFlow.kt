@@ -2,6 +2,7 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndyCredentialContract
+import com.luxoft.blockchainlab.hyperledger.indy.RevocationRegistryDefinitionId
 import net.corda.core.contracts.Command
 import net.corda.core.flows.*
 import net.corda.core.transactions.TransactionBuilder
@@ -32,7 +33,7 @@ object RevokeCredentialFlow {
                 val credRevId = credential.credentialInfo.credRevocId!!
 
                 // revoke that credential
-                indyUser().revokeCredential(revRegId, credRevId)
+                indyUser().revokeCredential(RevocationRegistryDefinitionId.fromString(revRegId), credRevId)
 
                 val commandType = IndyCredentialContract.Command.Revoke()
                 val signers = listOf(ourIdentity.owningKey)

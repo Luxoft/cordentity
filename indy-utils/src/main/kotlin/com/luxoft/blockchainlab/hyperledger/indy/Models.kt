@@ -817,3 +817,54 @@ data class IdentityDetails(
     @JsonIgnore
     fun getIdentityRecord() = """{"did":"$did","verkey":"$verkey"}"""
 }
+
+class SchemaId(val did: String, val name: String, val version: String) {
+    override fun toString() = "$did:2:$name:$version"
+
+    companion object {
+        fun fromString(str: String): SchemaId {
+            val (did, _, name, version) = str.split(":")
+
+            return SchemaId(did, name, version)
+        }
+    }
+}
+
+data class CredentialDefinitionId(val did: String, val schemaSeqNo: Int, val tag: String) {
+    override fun toString() = "$did:3:CL:$schemaSeqNo:$tag"
+
+    companion object {
+        fun fromString(str: String): CredentialDefinitionId {
+            val strSplitted = str.split(":")
+
+            val didCred = strSplitted[0]
+            val tag = strSplitted[strSplitted.lastIndex]
+
+            val seqNo = strSplitted[3].toInt()
+
+            return CredentialDefinitionId(didCred, seqNo, tag)
+        }
+    }
+}
+
+data class RevocationRegistryDefinitionId(
+    val did: String,
+    val credentialDefinitionId: CredentialDefinitionId,
+    val tag: String
+) {
+    override fun toString() = "$did:4:$credentialDefinitionId:CL_ACCUM:$tag"
+
+    companion object {
+        fun fromString(str: String): RevocationRegistryDefinitionId {
+            val strSplitted = str.split(":")
+            val didRev = strSplitted[0]
+            val tagRev = strSplitted[strSplitted.lastIndex]
+            val didCred = strSplitted[2]
+            val tagCred = strSplitted[strSplitted.lastIndex - 2]
+
+            val seqNo = strSplitted[5].toInt()
+
+            return RevocationRegistryDefinitionId(didRev, CredentialDefinitionId(didCred, seqNo, tagCred), tagRev)
+        }
+    }
+}
