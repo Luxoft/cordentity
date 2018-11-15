@@ -685,7 +685,7 @@ open class IndyUser : IndyIssuer, IndyProver, IndyTrustee {
     ): List<ProofDataEntry> {
 
         return collectionFromCreds.map { attribute ->
-            val credDefId = CredentialDefinitionId.fromString(attribute.credentialInfo.credentialDefinitionId)
+            val credDefId = attribute.credentialInfo.getCredentialDefinitionId()
 
             val keys = collectionFromRequest.entries
                 .filter { it.value.schemaId == attribute.credentialInfo.schemaId }
@@ -695,7 +695,7 @@ open class IndyUser : IndyIssuer, IndyProver, IndyTrustee {
 
             val credRevId = attribute.credentialInfo.credentialRevocationId
             val revRegId = attribute.credentialInfo.revocationRegistryId
-            val schemaId = SchemaId.fromString(attribute.credentialInfo.schemaId)
+            val schemaId = attribute.credentialInfo.getSchemaId()
 
             if (nonRevoked == null || credRevId == null || revRegId == null) {
                 return@map ProofDataEntry(schemaId, credDefId, referentCredentials, null)
