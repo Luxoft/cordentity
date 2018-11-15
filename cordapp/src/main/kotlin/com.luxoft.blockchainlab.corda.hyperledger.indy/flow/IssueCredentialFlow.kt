@@ -69,7 +69,11 @@ object IssueCredentialFlow {
                 val originalCredentialDef = originalCredentialDefIn.state.data
 
                 if (!originalCredentialDef.canProduceCredentials())
-                    throw IndyCredentialMaximumReachedException(originalCredentialDef.revocationRegistryDefinitionId.toString())
+                    throw IndyCredentialMaximumReachedException(
+                        originalCredentialDef.credentialDefinitionId.getRevocationRegistryDefinitionId(
+                            IndyUser.REVOCATION_TAG
+                        ).toString()
+                    )
 
                 // issue credential
                 val offer =
@@ -81,8 +85,7 @@ object IssueCredentialFlow {
                         val credential = indyUser().issueCredential(
                             credentialReq,
                             credentialProposal,
-                            offer,
-                            originalCredentialDef.revocationRegistryDefinitionId
+                            offer
                         )
                         val credentialOut = IndyCredential(
                             identifier,

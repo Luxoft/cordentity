@@ -60,15 +60,13 @@ interface IndyIssuer : IndyWalletHolder {
      * @param credentialRequest         credential request and all reliable info
      * @param proposal                  credential proposal
      * @param offer                     credential offer
-     * @param revocationRegistryId      <optional> revocation registry definition ID
      *
      * @return                          credential and all reliable info
      */
     fun issueCredential(
         credentialRequest: CredentialRequestInfo,
         proposal: String,
-        offer: CredentialOffer,
-        revocationRegistryId: RevocationRegistryDefinitionId?
+        offer: CredentialOffer
     ): CredentialInfo
 
     /**

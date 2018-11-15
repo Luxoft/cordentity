@@ -278,7 +278,7 @@ open class IndyUser : IndyIssuer, IndyProver, IndyTrustee {
         val revRegDefConfigJson = SerializationUtils.anyToJSON(revRegDefConfig)
         val tailsWriter = getTailsHandler().writer
 
-        val revRegId = RevocationRegistryDefinitionId(did, credentialDefinitionId, REVOCATION_TAG)
+        val revRegId = credentialDefinitionId.getRevocationRegistryDefinitionId(REVOCATION_TAG)
         val definitionFromLedger = ledgerService.retrieveRevocationRegistryDefinition(revRegId.toString())
 
         if (definitionFromLedger == null) {
@@ -356,25 +356,32 @@ open class IndyUser : IndyIssuer, IndyProver, IndyTrustee {
     override fun issueCredential(
         credentialRequest: CredentialRequestInfo,
         proposal: String,
-        offer: CredentialOffer,
-        revocationRegistryId: RevocationRegistryDefinitionId?
+        offer: CredentialOffer
     ): CredentialInfo {
         val credentialRequestJson = SerializationUtils.anyToJSON(credentialRequest.request)
         val credentialOfferJson = SerializationUtils.anyToJSON(offer)
         val tailsReaderHandle = getTailsHandler().reader.blobStorageReaderHandle
+
+        var revocationRegistryId: RevocationRegistryDefinitionId? =
+            credentialRequest.request.getCredentialDefinitionId().getRevocationRegistryDefinitionId(REVOCATION_TAG)
+
+        if (ledgerService.retrieveRevocationRegistryDefinition(revocationRegistryId.toString()) == null)
+            revocationRegistryId = null
 
         val createCredentialResult = Anoncreds.issuerCreateCredential(
             wallet,
             credentialOfferJson,
             credentialRequestJson,
             proposal,
-            revocationRegistryId.toString(),
+            revocationRegistryId?.toString(),
             tailsReaderHandle
         ).get()
 
         val credential = SerializationUtils.jSONToAny<Credential>(createCredentialResult.credentialJson)
 
-        if (revocationRegistryId != null) {
+        val revocationRegistry = ledgerService.retrieveRevocationRegistryDefinition(revocationRegistryId.toString())
+
+        if (revocationRegistry != null) {
             val revocationRegistryDefinition =
                 ledgerService.retrieveRevocationRegistryDefinition(revocationRegistryId.toString())
                     ?: throw IndyRevRegNotFoundException(

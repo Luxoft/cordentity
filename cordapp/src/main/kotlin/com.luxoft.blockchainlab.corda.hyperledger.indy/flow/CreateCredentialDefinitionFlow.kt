@@ -25,25 +25,24 @@ object CreateCredentialDefinitionFlow {
     @InitiatingFlow
     @StartableByRPC
     class Authority(private val schemaId: SchemaId, private val credentialsLimit: Int = 100) :
-        FlowLogic<RevocationRegistryDefinitionId>() {
+        FlowLogic<CredentialDefinitionId>() {
 
         @Suspendable
-        override fun call(): RevocationRegistryDefinitionId {
+        override fun call(): CredentialDefinitionId {
             try {
                 checkNoCredentialDefinitionOnCorda()
                 checkNoCredentialDefinitionOnIndy()
 
                 // create indy stuff
                 val credentialDefinitionObj = indyUser().createCredentialDefinition(schemaId, true)
-                val credentialDefinitionId = CredentialDefinitionId.fromString(credentialDefinitionObj.id)
-                val revocationRegistry = indyUser().createRevocationRegistry(credentialDefinitionId, credentialsLimit)
+                val credentialDefinitionId = credentialDefinitionObj.getCredentialDefinitionId()
+                indyUser().createRevocationRegistry(credentialDefinitionId, credentialsLimit)
 
                 val signers = listOf(ourIdentity.owningKey)
-                val revRegId = RevocationRegistryDefinitionId.fromString(revocationRegistry.definition.id)
                 // create new credential definition state
                 val credentialDefinition = IndyCredentialDefinition(
                     schemaId,
-                    revRegId,
+                    credentialDefinitionId,
                     credentialsLimit,
                     listOf(ourIdentity)
                 )
@@ -80,7 +79,7 @@ object CreateCredentialDefinitionFlow {
 
                 subFlow(FinalityFlow(selfSignedTx))
 
-                return revRegId
+                return credentialDefinitionId
 
             } catch (t: Throwable) {
                 logger.error("New credential definition has been failed", t)
