@@ -2,7 +2,9 @@ package com.luxoft.blockchainlab.corda.hyperledger.indy
 
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
+import com.luxoft.blockchainlab.hyperledger.indy.CredentialDefinitionId
 import com.luxoft.blockchainlab.hyperledger.indy.Interval
+import com.luxoft.blockchainlab.hyperledger.indy.SchemaId
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.utilities.getOrThrow
 import net.corda.node.internal.StartedNode
@@ -37,7 +39,7 @@ class CordentityE2E : CordaTestBase() {
         setPermissions(bob, trustee)
     }
 
-    private fun issueSchema(schemaOwner: StartedNode<MockNode>, schema: Schema): String {
+    private fun issueSchema(schemaOwner: StartedNode<MockNode>, schema: Schema): SchemaId {
         val schemaFuture = schemaOwner.services.startFlow(
             CreateSchemaFlow.Authority(schema.schemaName, schema.schemaVersion, schema.schemaAttrs)
         ).resultFuture
@@ -45,7 +47,10 @@ class CordentityE2E : CordaTestBase() {
         return schemaFuture.getOrThrow(Duration.ofSeconds(30))
     }
 
-    private fun issueCredentialDefinition(credentialDefOwner: StartedNode<MockNode>, schemaId: String): String {
+    private fun issueCredentialDefinition(
+        credentialDefOwner: StartedNode<MockNode>,
+        schemaId: SchemaId
+    ): CredentialDefinitionId {
         val credentialDefFuture = credentialDefOwner.services.startFlow(
             CreateCredentialDefinitionFlow.Authority(schemaId)
         ).resultFuture
@@ -57,7 +62,7 @@ class CordentityE2E : CordaTestBase() {
         credentialProver: StartedNode<MockNode>,
         credentialIssuer: StartedNode<MockNode>,
         credentialProposal: String,
-        credentialDefId: String
+        credentialDefId: CredentialDefinitionId
     ): String {
 
         val identifier = UUID.randomUUID().toString()
@@ -139,14 +144,12 @@ class CordentityE2E : CordaTestBase() {
             VerifyCredentialFlow.ProofAttribute(
                 personSchemaId,
                 personCredentialDefId,
-                issuer.getPartyDid(),
                 schemaPerson.schemaAttr1,
                 attr1.value
             ),
             VerifyCredentialFlow.ProofAttribute(
                 educationSchemaId,
                 educationCredentialDefId,
-                bob.getPartyDid(),
                 schemaEducation.schemaAttr1,
                 attr2.value
             )
@@ -156,14 +159,12 @@ class CordentityE2E : CordaTestBase() {
             VerifyCredentialFlow.ProofPredicate(
                 personSchemaId,
                 personCredentialDefId,
-                issuer.getPartyDid(),
                 schemaPerson.schemaAttr2,
                 pred1.value.toInt()
             ),
             VerifyCredentialFlow.ProofPredicate(
                 educationSchemaId,
                 educationCredentialDefId,
-                bob.getPartyDid(),
                 schemaEducation.schemaAttr2,
                 pred2.value.toInt()
             )
@@ -239,7 +240,6 @@ class CordentityE2E : CordaTestBase() {
             VerifyCredentialFlow.ProofAttribute(
                 schemaId,
                 credentialDefId,
-                issuer.getPartyDid(),
                 schemaPerson.schemaAttr1,
                 "John Smith"
             )
@@ -250,7 +250,6 @@ class CordentityE2E : CordaTestBase() {
             VerifyCredentialFlow.ProofPredicate(
                 schemaId,
                 credentialDefId,
-                issuer.getPartyDid(),
                 schemaPerson.schemaAttr2,
                 schemaAttrInt.toInt() - 10
             )
@@ -269,20 +268,20 @@ class CordentityE2E : CordaTestBase() {
         val schemaId = issueSchema(issuer, schemaPerson)
 
         // issuer credential definition
-        val credentialDefId = issueCredentialDefinition(issuer, schemaId)
+        val credentialDefinitionId = issueCredentialDefinition(issuer, schemaId)
 
         // Issue credential
         val schemaAttrInt = "1988"
         val credentialProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        val credentialId = issueCredential(alice, issuer, credentialProposal, credentialDefId)
+        val credentialId =
+            issueCredential(alice, issuer, credentialProposal, credentialDefinitionId)
 
         // Verify credential
         val attributes = listOf(
             VerifyCredentialFlow.ProofAttribute(
                 schemaId,
-                credentialDefId,
-                issuer.getPartyDid(),
+                credentialDefinitionId,
                 schemaPerson.schemaAttr1,
                 "John Smith"
             )
@@ -292,8 +291,7 @@ class CordentityE2E : CordaTestBase() {
             // -10 to check >=
             VerifyCredentialFlow.ProofPredicate(
                 schemaId,
-                credentialDefId,
-                issuer.getPartyDid(),
+                credentialDefinitionId,
                 schemaPerson.schemaAttr2,
                 schemaAttrInt.toInt() - 10
             )
@@ -345,14 +343,12 @@ class CordentityE2E : CordaTestBase() {
             VerifyCredentialFlow.ProofAttribute(
                 personSchemaId,
                 personCredentialDefId,
-                issuer.getPartyDid(),
                 schemaPerson.schemaAttr1,
                 "John Smith"
             ),
             VerifyCredentialFlow.ProofAttribute(
                 educationSchemaId,
                 educationCredentialDefId,
-                issuer.getPartyDid(),
                 schemaEducation.schemaAttr1,
                 "University"
             )
@@ -363,14 +359,12 @@ class CordentityE2E : CordaTestBase() {
             VerifyCredentialFlow.ProofPredicate(
                 personSchemaId,
                 personCredentialDefId,
-                issuer.getPartyDid(),
                 schemaPerson.schemaAttr2,
                 schemaPersonAttrInt.toInt() - 10
             ),
             VerifyCredentialFlow.ProofPredicate(
                 educationSchemaId,
                 educationCredentialDefId,
-                issuer.getPartyDid(),
                 schemaEducation.schemaAttr2,
                 schemaEducationAttrInt.toInt() - 10
             )
@@ -399,7 +393,6 @@ class CordentityE2E : CordaTestBase() {
             VerifyCredentialFlow.ProofAttribute(
                 schemaId,
                 credentialDefId,
-                issuer.getPartyDid(),
                 schemaPerson.schemaAttr1,
                 "John Smith"
             )
@@ -428,14 +421,12 @@ class CordentityE2E : CordaTestBase() {
             VerifyCredentialFlow.ProofAttribute(
                 schemaId,
                 credentialDefId,
-                issuer.getPartyDid(),
                 schemaPerson.schemaAttr1,
                 "John Smith"
             ),
             VerifyCredentialFlow.ProofAttribute(
                 schemaId,
                 credentialDefId,
-                issuer.getPartyDid(),
                 schemaPerson.schemaAttr2,
                 ""
             )

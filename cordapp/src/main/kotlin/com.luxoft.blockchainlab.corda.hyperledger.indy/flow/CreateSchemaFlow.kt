@@ -4,6 +4,8 @@ import co.paralleluniverse.fibers.Suspendable
 import com.luxoft.blockchainlab.corda.hyperledger.indy.contract.IndySchemaContract
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndySchema
 import com.luxoft.blockchainlab.hyperledger.indy.IndySchemaAlreadyExistsException
+import com.luxoft.blockchainlab.hyperledger.indy.SchemaId
+import com.luxoft.blockchainlab.hyperledger.indy.getSchemaId
 import net.corda.core.contracts.Command
 import net.corda.core.contracts.StateAndContract
 import net.corda.core.flows.*
@@ -28,10 +30,10 @@ object CreateSchemaFlow {
         private val schemaName: String,
         private val schemaVersion: String,
         private val schemaAttributes: List<String>
-    ) : FlowLogic<String>() {
+    ) : FlowLogic<SchemaId>() {
 
         @Suspendable
-        override fun call(): String {
+        override fun call(): SchemaId {
             try {
                 // check if schema already exists
                 if (indyUser().isSchemaExist(schemaName, schemaVersion))
@@ -56,7 +58,7 @@ object CreateSchemaFlow {
 
                 subFlow(FinalityFlow(selfSignedTx))
 
-                return schema.id
+                return schemaObj.getSchemaId()
 
             } catch (t: Throwable) {
                 logger.error("New schema creating has been failed", t)

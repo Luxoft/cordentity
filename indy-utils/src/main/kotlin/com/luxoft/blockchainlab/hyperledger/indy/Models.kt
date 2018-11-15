@@ -39,10 +39,35 @@ data class Interval(val from: Long?, val to: Long) {
  */
 data class ParsedPairwise(@JsonProperty("my_did") val myDid: String, val metadata: String)
 
+interface ContainsSchemaId {
+    val schemaId: String
+}
+
+fun ContainsSchemaId.getSchemaId() = SchemaId.fromString(schemaId)
+
+interface ContainsCredentialDefinitionId {
+    val credentialDefinitionId: String
+}
+
+fun ContainsCredentialDefinitionId.getCredentialDefinitionId() =
+    CredentialDefinitionId.fromString(credentialDefinitionId)
+
+interface ContainsRevocationRegistryId {
+    val revocationRegistryId: String?
+}
+
+fun ContainsRevocationRegistryId.getRevocationRegistryId() =
+    if (revocationRegistryId == null) null else RevocationRegistryDefinitionId.fromString(revocationRegistryId!!)
+
+
 /**
  * Represents a particular attribute of a credential
  */
-data class CredentialFieldReference(val fieldName: String, val schemaId: String, val credentialDefinitionId: String)
+data class CredentialFieldReference(
+    val fieldName: String,
+    @JsonProperty("schema_id") override val schemaId: String,
+    @JsonProperty("credential_definition_id") override val credentialDefinitionId: String
+) : ContainsSchemaId, ContainsCredentialDefinitionId
 
 /**
  * Represents predicate
@@ -82,11 +107,11 @@ data class CredentialPredicate(val fieldReference: CredentialFieldReference, val
  * }
  */
 data class CredentialOffer(
-    val schemaId: String,
-    @JsonProperty("cred_def_id") val credentialDefinitionId: String,
+    override val schemaId: String,
+    @JsonProperty("cred_def_id") override val credentialDefinitionId: String,
     val keyCorrectnessProof: KeyCorrectnessProof,
     val nonce: String
-)
+) : ContainsSchemaId, ContainsCredentialDefinitionId
 
 data class KeyCorrectnessProof(val c: String, val xzCap: String, val xrCap: List<List<String>>)
 
@@ -134,15 +159,15 @@ data class KeyCorrectnessProof(val c: String, val xzCap: String, val xrCap: List
  *  }
  */
 data class Credential(
-    val schemaId: String,
-    @JsonProperty("cred_def_id") val credentialDefinitionId: String,
+    override val schemaId: String,
+    @JsonProperty("cred_def_id") override val credentialDefinitionId: String,
     @JsonProperty("rev_reg") val revocationRegistry: RawJsonMap?,
     val witness: RawJsonMap?,
-    @JsonProperty("rev_reg_id") val revocationRegistryId: String?,
+    @JsonProperty("rev_reg_id") override val revocationRegistryId: String?,
     val values: Map<String, CredentialValue>,
     val signature: Map<String, RawJsonMap?>,
     val signatureCorrectnessProof: RawJsonMap
-)
+) : ContainsSchemaId, ContainsCredentialDefinitionId, ContainsRevocationRegistryId
 
 data class CredentialValue(val raw: String, val encoded: String)
 
@@ -175,11 +200,11 @@ data class CredentialRequestInfo(
 
 data class CredentialRequest(
     val proverDid: String,
-    @JsonProperty("cred_def_id") val credentialDefinitionId: String,
+    @JsonProperty("cred_def_id") override val credentialDefinitionId: String,
     val blindedMs: RawJsonMap,
     val blindedMsCorrectnessProof: RawJsonMap,
     val nonce: String
-)
+) : ContainsCredentialDefinitionId
 
 /**
  * Represents credential request metadata
@@ -296,13 +321,13 @@ data class CredentialReferenceInfo(
 )
 
 data class CredentialReference(
-    val schemaId: String,
-    @JsonProperty("cred_def_id") val credentialDefinitionId: String,
+    override val schemaId: String,
+    @JsonProperty("cred_def_id") override val credentialDefinitionId: String,
     val referent: String,
     @JsonProperty("attrs") val attributes: RawJsonMap,
     @JsonProperty("cred_rev_id") val credentialRevocationId: String?,
-    @JsonProperty("rev_reg_id") val revocationRegistryId: String?
-)
+    @JsonProperty("rev_reg_id") override val revocationRegistryId: String?
+) : ContainsSchemaId, ContainsCredentialDefinitionId, ContainsRevocationRegistryId
 
 data class RequestedCredentials(
     val requestedAttributes: Map<String, RequestedAttributeInfo>,
@@ -406,8 +431,8 @@ data class CredentialPredicateReference(
 
 abstract class AbstractCredentialReference(
     open val name: String,
-    open val schemaId: String
-)
+    override val schemaId: String
+) : ContainsSchemaId
 
 /**
  * Represents proof
@@ -587,11 +612,11 @@ data class ProofInfo(
 }
 
 data class ProofIdentifier(
-    val schemaId: String,
-    @JsonProperty("cred_def_id") val credentialDefinitionId: String,
-    @JsonProperty("rev_reg_id") val revocationRegistryId: String?,
+    override val schemaId: String,
+    @JsonProperty("cred_def_id") override val credentialDefinitionId: String,
+    @JsonProperty("rev_reg_id") override val revocationRegistryId: String?,
     val timestamp: Long?
-)
+) : ContainsSchemaId, ContainsRevocationRegistryId, ContainsCredentialDefinitionId
 
 data class Proof(val proofs: List<ProofDetails>, val aggregatedProof: Any)
 
@@ -624,8 +649,9 @@ data class Schema(
     val name: String,
     val version: String,
     @JsonProperty("attrNames") val attributeNames: List<String>,
-    @JsonProperty("seqNo") val seqNo: Int?
-) {
+    @JsonProperty("seqNo") val seqNo: Int?,
+    @JsonIgnore override val schemaId: String = id
+) : ContainsSchemaId {
     @JsonIgnore
     fun getOwner() = id.split(":").first()
 
@@ -666,11 +692,12 @@ data class Schema(
 data class CredentialDefinition(
     val ver: String,
     val id: String,
-    @JsonProperty("schemaId") val schemaId: String,
+    @JsonProperty("schemaId") override val schemaId: String,
     val type: String,
     val tag: String,
-    val value: CredentialPubKeys
-) {
+    val value: CredentialPubKeys,
+    @JsonIgnore override val credentialDefinitionId: String = id
+) : ContainsSchemaId, ContainsCredentialDefinitionId {
     @JsonIgnore
     fun getOwner() = id.split(":").first()
 
@@ -725,9 +752,10 @@ data class RevocationRegistryDefinition(
     val id: String,
     @JsonProperty("revocDefType") val revocationRegistryDefinitionType: String,
     val tag: String,
-    @JsonProperty("credDefId") val credentialDefinitionId: String,
-    val value: RawJsonMap
-)
+    @JsonProperty("credDefId") override val credentialDefinitionId: String,
+    val value: RawJsonMap,
+    @JsonIgnore override val revocationRegistryId: String? = id
+) : ContainsCredentialDefinitionId, ContainsRevocationRegistryId
 
 /**
  * Represents revocation registry entry
@@ -749,8 +777,8 @@ data class RevocationState(
     val witness: RawJsonMap,
     @JsonProperty("rev_reg") val revocationRegistry: RawJsonMap,
     val timestamp: Long,
-    @JsonIgnore var revocationRegistryId: String? = null
-)
+    @JsonIgnore override var revocationRegistryId: String? = null
+) : ContainsRevocationRegistryId
 
 /**
  * Abstracts blob storage reader and writer which are used for tails file management
@@ -816,4 +844,63 @@ data class IdentityDetails(
 ) {
     @JsonIgnore
     fun getIdentityRecord() = """{"did":"$did","verkey":"$verkey"}"""
+}
+
+class SchemaId(val did: String, val name: String, val version: String) {
+    override fun toString() = "$did:2:$name:$version"
+
+    companion object : FromString<SchemaId> {
+        override fun fromString(str: String): SchemaId {
+            val (did, _, name, version) = str.split(":")
+
+            return SchemaId(did, name, version)
+        }
+    }
+}
+
+data class CredentialDefinitionId(val did: String, val schemaSeqNo: Int, val tag: String) {
+    override fun toString() = "$did:3:CL:$schemaSeqNo:$tag"
+
+    fun getRevocationRegistryDefinitionId(revTag: String) = RevocationRegistryDefinitionId(did, this, revTag)
+
+    companion object : FromString<CredentialDefinitionId> {
+        override fun fromString(str: String): CredentialDefinitionId {
+            val strSplitted = str.split(":")
+
+            val didCred = strSplitted[0]
+            val tag = strSplitted[strSplitted.lastIndex]
+
+            val seqNo = strSplitted[3].toInt()
+
+            return CredentialDefinitionId(didCred, seqNo, tag)
+        }
+    }
+}
+
+data class RevocationRegistryDefinitionId(
+    val did: String,
+    private val credentialDefinitionId: CredentialDefinitionId,
+    val tag: String
+) {
+    override fun toString() = "$did:4:$credentialDefinitionId:CL_ACCUM:$tag"
+
+    fun getCredentialDefinitionId() = credentialDefinitionId
+
+    companion object : FromString<RevocationRegistryDefinitionId> {
+        override fun fromString(str: String): RevocationRegistryDefinitionId {
+            val strSplitted = str.split(":")
+            val didRev = strSplitted[0]
+            val tagRev = strSplitted[strSplitted.lastIndex]
+            val didCred = strSplitted[2]
+            val tagCred = strSplitted[strSplitted.lastIndex - 2]
+
+            val seqNo = strSplitted[5].toInt()
+
+            return RevocationRegistryDefinitionId(didRev, CredentialDefinitionId(didCred, seqNo, tagCred), tagRev)
+        }
+    }
+}
+
+interface FromString<T : Any> {
+    fun fromString(str: String): T
 }

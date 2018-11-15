@@ -28,7 +28,7 @@ interface IndyIssuer : IndyWalletHolder {
      *
      * @return                          created credential definition
      */
-    fun createCredentialDefinition(schemaId: String, enableRevocation: Boolean): CredentialDefinition
+    fun createCredentialDefinition(schemaId: SchemaId, enableRevocation: Boolean): CredentialDefinition
 
     /**
      * Creates revocation registry for credential definition if there's no one in ledger
@@ -40,7 +40,10 @@ interface IndyIssuer : IndyWalletHolder {
      *
      * @return                          created
      */
-    fun createRevocationRegistry(credentialDefinitionId: String, maxCredentialNumber: Int = 5): RevocationRegistryInfo
+    fun createRevocationRegistry(
+        credentialDefinitionId: CredentialDefinitionId,
+        maxCredentialNumber: Int = 5
+    ): RevocationRegistryInfo
 
     /**
      * Creates credential offer
@@ -49,7 +52,7 @@ interface IndyIssuer : IndyWalletHolder {
      *
      * @return                          created credential offer
      */
-    fun createCredentialOffer(credentialDefinitionId: String): CredentialOffer
+    fun createCredentialOffer(credentialDefinitionId: CredentialDefinitionId): CredentialOffer
 
     /**
      * Issues credential by credential request. If revocation is enabled it will hold one of [maxCredentialNumber].
@@ -57,15 +60,13 @@ interface IndyIssuer : IndyWalletHolder {
      * @param credentialRequest         credential request and all reliable info
      * @param proposal                  credential proposal
      * @param offer                     credential offer
-     * @param revocationRegistryId      <optional> revocation registry definition ID
      *
      * @return                          credential and all reliable info
      */
     fun issueCredential(
         credentialRequest: CredentialRequestInfo,
         proposal: String,
-        offer: CredentialOffer,
-        revocationRegistryId: String?
+        offer: CredentialOffer
     ): CredentialInfo
 
     /**
@@ -74,5 +75,5 @@ interface IndyIssuer : IndyWalletHolder {
      * @param revocationRegistryId      revocation registry definition id
      * @param credentialRevocationId    revocation registry credential index
      */
-    fun revokeCredential(revocationRegistryId: String, credentialRevocationId: String)
+    fun revokeCredential(revocationRegistryId: RevocationRegistryDefinitionId, credentialRevocationId: String)
 }

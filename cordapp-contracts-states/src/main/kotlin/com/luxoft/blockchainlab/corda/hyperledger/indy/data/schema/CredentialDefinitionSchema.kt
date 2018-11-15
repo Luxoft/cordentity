@@ -1,6 +1,7 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredentialDefinition
+import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
 import net.corda.core.schemas.MappedSchema
 import net.corda.core.schemas.PersistentState
 import javax.persistence.Column
@@ -23,9 +24,9 @@ object CredentialDefinitionSchemaV1 : MappedSchema(
 
     ) : PersistentState() {
         constructor(credentialDef: IndyCredentialDefinition) : this(
-            credentialDef.credentialDefId,
-            credentialDef.schemaId,
-            credentialDef.revRegId,
+            credentialDef.credentialDefinitionId.toString(),
+            credentialDef.schemaId.toString(),
+            credentialDef.credentialDefinitionId.getRevocationRegistryDefinitionId(IndyUser.REVOCATION_TAG).toString(),
             credentialDef.currentCredNumber
         )
     }
