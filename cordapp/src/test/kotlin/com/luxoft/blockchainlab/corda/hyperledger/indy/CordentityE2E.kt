@@ -1,13 +1,21 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy
 
 
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.CredentialSchemaV1
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.state.IndyCredential
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
 import com.luxoft.blockchainlab.hyperledger.indy.CredentialDefinitionId
 import com.luxoft.blockchainlab.hyperledger.indy.Interval
 import com.luxoft.blockchainlab.hyperledger.indy.SchemaId
+import net.corda.core.contracts.StateAndRef
 import net.corda.core.identity.CordaX500Name
+import net.corda.core.node.services.Vault
+import net.corda.core.node.services.queryBy
+import net.corda.core.node.services.vault.Builder.equal
+import net.corda.core.node.services.vault.QueryCriteria
 import net.corda.core.utilities.getOrThrow
 import net.corda.node.internal.StartedNode
+import net.corda.node.services.api.VaultServiceInternal
 import net.corda.testing.node.internal.InternalMockNetwork.MockNode
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -63,13 +71,9 @@ class CordentityE2E : CordaTestBase() {
         credentialIssuer: StartedNode<MockNode>,
         credentialProposal: String,
         credentialDefId: CredentialDefinitionId
-    ): String {
-
-        val identifier = UUID.randomUUID().toString()
-
+    ) {
         val credentialFuture = credentialIssuer.services.startFlow(
             IssueCredentialFlow.Issuer(
-                identifier,
                 credentialProposal,
                 credentialDefId,
                 credentialProver.getName()
@@ -77,16 +81,14 @@ class CordentityE2E : CordaTestBase() {
         ).resultFuture
 
         credentialFuture.getOrThrow(Duration.ofSeconds(30))
-
-        return identifier
     }
 
     private fun revokeCredential(
         issuer: StartedNode<MockNode>,
-        credentialId: String
+        credentialStateIn: StateAndRef<IndyCredential>
     ) {
         val flowResult = issuer.services.startFlow(
-            RevokeCredentialFlow.Issuer(credentialId)
+            RevokeCredentialFlow.Issuer(credentialStateIn)
         ).resultFuture
 
         flowResult.getOrThrow(Duration.ofSeconds(30))
@@ -274,8 +276,7 @@ class CordentityE2E : CordaTestBase() {
         val schemaAttrInt = "1988"
         val credentialProposal = schemaPerson.formatProposal("John Smith", "119191919", schemaAttrInt, schemaAttrInt)
 
-        val credentialId =
-            issueCredential(alice, issuer, credentialProposal, credentialDefinitionId)
+        issueCredential(alice, issuer, credentialProposal, credentialDefinitionId)
 
         // Verify credential
         val attributes = listOf(
@@ -300,7 +301,12 @@ class CordentityE2E : CordaTestBase() {
         val credentialVerified = verifyCredential(bob, alice, attributes, predicates, Interval.allTime())
         assertTrue(credentialVerified)
 
-        revokeCredential(issuer, credentialId)
+        val states = issuer.database.transaction {
+            issuer.services.vaultService.getIndyCredentialsByProver(alice.getPartyDid())
+        }
+        assert(states.size == 1) { "Invalid claims count" }
+
+        revokeCredential(issuer, states.first())
 
         Thread.sleep(3000)
 
@@ -435,4 +441,15 @@ class CordentityE2E : CordaTestBase() {
         val credentialVerified = verifyCredential(bob, alice, attributes, emptyList(), Interval.allTime())
         assertTrue(credentialVerified)
     }
+}
+
+fun VaultServiceInternal.getIndyCredentialsByProver(proverDid: String): List<StateAndRef<IndyCredential>> {
+    val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+    val existingId =
+        QueryCriteria.VaultCustomQueryCriteria(CredentialSchemaV1.PersistentCredential::proverDid.equal(proverDid))
+
+    val criteria = generalCriteria.and(existingId)
+    val result = queryBy<IndyCredential>(criteria)
+
+    return result.states
 }

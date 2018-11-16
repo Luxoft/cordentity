@@ -73,7 +73,6 @@ class ReadmeExampleTest : CordaTestBase() {
 
         ministry.services.startFlow(
             IssueCredentialFlow.Issuer(
-                UUID.randomUUID().toString(),
                 credentialProposal,
                 credentialDefinitionId,
                 aliceX500

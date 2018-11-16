@@ -23,11 +23,6 @@ object IssueCredentialFlow {
     /**
      * A flow to issue an Indy credential based on proposal [credProposal]
      *
-     * [identifier] must be unique for the given Indy user to allow searching Credentials by `(identifier, issuerDID)`
-     *
-     * @param identifier                new unique ID for the new credential.
-     *                                  Must be unique for the given Indy user to allow searching Credentials by `(identifier, issuerDID)`
-     *
      * @param credentialDefinitionId    id of the credential definition to create new statement (credential)
      * @param credentialProposal        credential JSON containing attribute values for each of requested attribute names.
      *                                  Example:
@@ -48,7 +43,6 @@ object IssueCredentialFlow {
     @InitiatingFlow
     @StartableByRPC
     open class Issuer(
-        private val identifier: String,
         private val credentialProposal: String,
         private val credentialDefinitionId: CredentialDefinitionId,
         private val proverName: CordaX500Name
@@ -88,10 +82,10 @@ object IssueCredentialFlow {
                             offer
                         )
                         val credentialOut = IndyCredential(
-                            identifier,
                             credentialReq,
                             credential,
                             indyUser().did,
+                            credentialReq.request.proverDid,
                             listOf(ourIdentity, prover)
                         )
                         StateAndContract(credentialOut, IndyCredentialContract::class.java.name)
@@ -138,13 +132,10 @@ object IssueCredentialFlow {
         @Suspendable
         override fun call() {
             try {
-                val issuer = flowSession.counterparty.name
-
                 val offer = flowSession.receive<CredentialOffer>().unwrap { offer -> offer }
-                val sessionDid = subFlow(CreatePairwiseFlow.Prover(issuer))
 
                 val credentialRequestInfo =
-                    indyUser().createCredentialRequest(sessionDid, offer, indyUser().defaultMasterSecretId)
+                    indyUser().createCredentialRequest(indyUser().did, offer, indyUser().defaultMasterSecretId)
                 flowSession.send(credentialRequestInfo)
 
                 val flow = object : SignTransactionFlow(flowSession) {
