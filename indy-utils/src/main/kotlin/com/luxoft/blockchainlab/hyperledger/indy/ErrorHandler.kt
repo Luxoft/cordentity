@@ -26,7 +26,7 @@ fun handleIndyError(execResult: String) {
 
 typealias IndyParser = (msg: String) -> CompletableFuture<LedgerResults.ParseResponseResult>
 
-inline fun <reified T: Any> extractIndyResult(execResult: String, indyParser: IndyParser): T {
+inline fun <reified T : Any> extractIndyResult(execResult: String, indyParser: IndyParser): T {
     handleIndyError(execResult)
 
     try {

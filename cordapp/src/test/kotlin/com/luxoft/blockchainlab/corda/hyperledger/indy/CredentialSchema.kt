@@ -9,19 +9,19 @@ interface Schema {
 }
 
 abstract class TwoAttrSchema(
-        override val schemaName: String,
-        override val schemaVersion: String,
-        val schemaAttr1: String,
-        val schemaAttr2: String
+    override val schemaName: String,
+    override val schemaVersion: String,
+    val schemaAttr1: String,
+    val schemaAttr2: String
 ) : Schema {
 
     override val schemaAttrs = listOf(schemaAttr1, schemaAttr2)
 
     override fun formatProposal(vararg attrValues: String): String =
-            formatProposal(attrValues[0], attrValues[1], attrValues[2], attrValues[3])
+        formatProposal(attrValues[0], attrValues[1], attrValues[2], attrValues[3])
 
     fun formatProposal(value1: String, encoded1: String, value2: String, encoded2: String): String =
-            """ {"$schemaAttr1":{"raw":"$value1", "encoded":"$encoded1"}, "$schemaAttr2":{"raw":"$value2", "encoded":"$encoded2"} }"""
+        """ {"$schemaAttr1":{"raw":"$value1", "encoded":"$encoded1"}, "$schemaAttr2":{"raw":"$value2", "encoded":"$encoded2"} }"""
 }
 
 class SchemaPerson : TwoAttrSchema("schema_name", "1.0", "attr1", "attr2")

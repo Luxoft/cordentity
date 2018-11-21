@@ -74,7 +74,7 @@ task deployNodes(type: net.corda.plugins.Cordform, group: "corda") {
 
     node {
         name "O=Issuer,L=London,C=GB"
-        notary = [validating : true]
+        notary = [validating: true]
         p2pPort 10001
         rpcSettings {
             address("localhost:10002")
@@ -103,7 +103,7 @@ task deployNodes(type: net.corda.plugins.Cordform, group: "corda") {
             adminAddress("localhost:10203")
         }
         cordapps = []
-        rpcUsers = [[user: "user1", "password": "test", "permissions": [ "ALL" ]]]
+        rpcUsers = [[user: "user1", "password": "test", "permissions": ["ALL"]]]
     }
 
 }

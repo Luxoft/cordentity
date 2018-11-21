@@ -76,15 +76,15 @@ For some networks you can find Genesis files in the [genesis directory](../genes
 
 - [AssignPermissionsFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/AssignPermissionsFlow.kt) - changes permissions of another Corda party
 
-- [CreateClaimDefFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateClaimDefFlow.kt) - creates a credential definition for schema and registers it
+- [CreateCredentialDefinitionFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateCredentialDefinitionFlow.kt) - creates a credential definition for schema and registers it
 
 - [CreateSchemaFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateSchemaFlow.kt) - creates an Indy scheme and registers it
 
 - [GetDidFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/GetDidFlow.kt) -  requests DID of another Corda party
 
-- [IssueClaimFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/IssueClaimFlow.kt) - issues an Indy credential based on a proposal
+- [IssueCredentialFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/IssueCredentialFlow.kt) - issues an Indy credential based on a proposal
 
-- [VerifyClaimFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyClaimFlow.kt) - verifies a set of predicates
+- [VerifyCredentialFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyCredentialFlow.kt) - verifies a set of predicates
 
 ### Utility Flows
 
@@ -104,3 +104,11 @@ A Corda service for dealing with Indy Ledger infrastructure such as pools, crede
 The system assumes that the Corda network contains several [IndyService](#services) nodes that correspond to business entities. 
 
 At least one node must be a Trustee to be able to grant permissions to other nodes. In the current realisation a Trustee must have `indyuser.seed=000000000000000000000000Trustee1` in its configuration file. 
+
+## Typical flow
+
+1. Add permissions to issue from TRUSTEE to every verified issuer in your system with [AssignPermissionsFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/AssignPermissionsFlow.kt)
+2. Create some schemas and credential definitions by specific issuers with [CreateSchemaFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateSchemaFlow.kt) and [CreateCredentialDefinitionFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/CreateCredentialDefinitionFlow.kt)
+3. Issue credential to some provers with [IssueCredentialFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/IssueCredentialFlow.kt)
+4. Verify these credentials by some verifiers with [VerifyCredentialFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/VerifyCredentialFlow.kt)
+5. Revoke outdated credentials by issuer with [RevokeCredentialFlow](src/main/kotlin/com.luxoft.blockchainlab.corda.hyperledger.indy/flow/RevokeCredentialFlow.kt)

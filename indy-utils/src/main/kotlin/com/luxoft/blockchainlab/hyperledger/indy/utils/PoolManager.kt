@@ -18,9 +18,10 @@ object PoolManager {
 
     private val openIndyPools = ConcurrentHashMap<String, Pool>()
 
-    fun openIndyPool(genesisFile: File,
-                     poolName: String = DEFAULT_POOL_NAME,
-                     poolConfig: OpenPoolLedgerJSONParameter = OpenPoolLedgerJSONParameter(null, null)
+    fun openIndyPool(
+        genesisFile: File,
+        poolName: String = DEFAULT_POOL_NAME,
+        poolConfig: OpenPoolLedgerJSONParameter = OpenPoolLedgerJSONParameter(null, null)
     ): Pool {
         val pool = openIndyPools.getOrPut(poolName) {
             val ledgerConfig = PoolJSONParameters.CreatePoolLedgerConfigJSONParameter(genesisFile.absolutePath)
@@ -28,7 +29,7 @@ object PoolManager {
             try {
                 Pool.createPoolLedgerConfig(poolName, ledgerConfig.toJson()).get()
             } catch (e: ExecutionException) {
-                if(e.cause !is PoolLedgerConfigExistsException) throw e
+                if (e.cause !is PoolLedgerConfigExistsException) throw e
                 // ok
             }
 

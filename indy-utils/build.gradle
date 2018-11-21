@@ -1,6 +1,5 @@
 dependencies {
     compile group: 'org.hyperledger', name: 'indy', version: "$indy_version"
-    compile "$corda_release_group:corda-core:$corda_release_version"
 
     compile "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
     compile "com.fasterxml.jackson.module:jackson-module-kotlin:$jackson_version"

@@ -1,6 +1,8 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.data.state
 
-import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.ClaimDefinitionSchemaV1
+import com.luxoft.blockchainlab.corda.hyperledger.indy.data.schema.CredentialDefinitionSchemaV1
+import com.luxoft.blockchainlab.hyperledger.indy.CredentialDefinitionId
+import com.luxoft.blockchainlab.hyperledger.indy.SchemaId
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.AbstractParty
@@ -12,17 +14,15 @@ import net.corda.core.schemas.QueryableState
 /**
  * A Corda record of an indy credential definition.
  *
- * @param schemaId              id of schema coupled with this credential definition
- * @param claimDefId            id of this credential definition
- * @param revRegId              id of revocation registry coupled with this credential definition
- * @param credentialsLimit      maximum number of credential which can be issued using this credential definition
- * @param participants          corda participants
- * @param currentCredNumber     current number of credentials issued using this credential definition
+ * @param schemaId                          id of schema associated with this credential definition
+ * @param credentialDefinitionId            id of this credential definition
+ * @param credentialsLimit                  maximum number of credential which can be issued using this credential definition
+ * @param participants                      corda participants
+ * @param currentCredNumber                 current number of credentials issued using this credential definition
  */
-data class IndyClaimDefinition(
-    val schemaId: String,
-    val claimDefId: String,
-    val revRegId: String,
+data class IndyCredentialDefinition(
+    val schemaId: SchemaId,
+    val credentialDefinitionId: CredentialDefinitionId,
     val credentialsLimit: Int,
     override val participants: List<AbstractParty>,
     val currentCredNumber: Int = 0
@@ -32,12 +32,12 @@ data class IndyClaimDefinition(
 
     override fun generateMappedObject(schema: MappedSchema): PersistentState {
         return when (schema) {
-            is ClaimDefinitionSchemaV1 -> ClaimDefinitionSchemaV1.PersistentClaimDefinition(this)
+            is CredentialDefinitionSchemaV1 -> CredentialDefinitionSchemaV1.PersistentCredentialDefinition(this)
             else -> throw IllegalArgumentException("Unrecognised schema: $schema")
         }
     }
 
-    override fun supportedSchemas() = listOf(ClaimDefinitionSchemaV1)
+    override fun supportedSchemas() = listOf(CredentialDefinitionSchemaV1)
 
     /**
      * Returns true if this credential definition is able to hold 1 more credential

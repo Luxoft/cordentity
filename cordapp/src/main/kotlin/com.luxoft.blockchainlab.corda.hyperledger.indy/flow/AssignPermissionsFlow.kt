@@ -1,7 +1,7 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
+import com.luxoft.blockchainlab.hyperledger.indy.IdentityDetails
 import net.corda.core.flows.*
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
@@ -22,10 +22,10 @@ object AssignPermissionsFlow {
     @CordaSerializable
     // TODO: make private
     data class IndyPermissionsRequest(
-            val did: String = "",
-            val verkey: String = "",
-            val alias: String?,
-            val role: String?
+        val did: String = "",
+        val verkey: String = "",
+        val alias: String?,
+        val role: String?
     )
 
     /**
@@ -38,9 +38,9 @@ object AssignPermissionsFlow {
     @InitiatingFlow
     @StartableByRPC
     open class Issuer(
-            private val alias: String? = null,
-            private val role: String? = null,
-            private val authority: CordaX500Name
+        private val alias: String? = null,
+        private val role: String? = null,
+        private val authority: CordaX500Name
     ) : FlowLogic<Unit>() {
 
         @Suspendable
@@ -68,12 +68,12 @@ object AssignPermissionsFlow {
                 flowSession.receive(IndyPermissionsRequest::class.java).unwrap { indyPermissions ->
                     // FIXME: parameters `role` and `alias` are mixed up
                     indyUser().setPermissionsFor(
-                            IndyUser.IdentityDetails(
-                                    indyPermissions.did,
-                                    indyPermissions.verkey,
-                                    indyPermissions.role,
-                                    indyPermissions.alias
-                            )
+                        IdentityDetails(
+                            indyPermissions.did,
+                            indyPermissions.verkey,
+                            indyPermissions.role,
+                            indyPermissions.alias
+                        )
                     )
                 }
 

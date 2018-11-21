@@ -2,14 +2,13 @@ package com.luxoft.blockchainlab.hyperledger.indy
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
-import net.corda.core.serialization.CordaSerializable
 import org.hyperledger.indy.sdk.blob_storage.BlobStorageReader
 import org.hyperledger.indy.sdk.blob_storage.BlobStorageWriter
 
 /**
  * This file contains different data classes which are used to:
  *  1. Parse different indy responses from JSON
- *  2. Pass this data with corda
+ *  2. Pass this data with some transport to other nodes
  */
 
 /**
@@ -27,7 +26,6 @@ object Timestamp {
 /**
  * Represents time interval used for non-revocation proof request creation
  */
-@CordaSerializable
 data class Interval(val from: Long?, val to: Long) {
     companion object {
         fun recent() = Interval(Timestamp.now() - 1, Timestamp.now())
@@ -41,20 +39,43 @@ data class Interval(val from: Long?, val to: Long) {
  */
 data class ParsedPairwise(@JsonProperty("my_did") val myDid: String, val metadata: String)
 
+interface ContainsSchemaId {
+    val schemaId: String
+}
+
+fun ContainsSchemaId.getSchemaId() = SchemaId.fromString(schemaId)
+
+interface ContainsCredentialDefinitionId {
+    val credentialDefinitionId: String
+}
+
+fun ContainsCredentialDefinitionId.getCredentialDefinitionId() =
+    CredentialDefinitionId.fromString(credentialDefinitionId)
+
+interface ContainsRevocationRegistryId {
+    val revocationRegistryId: String?
+}
+
+fun ContainsRevocationRegistryId.getRevocationRegistryId() =
+    if (revocationRegistryId == null) null else RevocationRegistryDefinitionId.fromString(revocationRegistryId!!)
+
+
 /**
  * Represents a particular attribute of a credential
  */
-@CordaSerializable
-data class CredFieldRef(val fieldName: String, val schemaId: String, val credDefId: String)
+data class CredentialFieldReference(
+    val fieldName: String,
+    @JsonProperty("schema_id") override val schemaId: String,
+    @JsonProperty("credential_definition_id") override val credentialDefinitionId: String
+) : ContainsSchemaId, ContainsCredentialDefinitionId
 
 /**
  * Represents predicate
  */
-@CordaSerializable
-data class CredPredicate(val fieldRef: CredFieldRef, val value: Int, val type: String = ">=")
+data class CredentialPredicate(val fieldReference: CredentialFieldReference, val value: Int, val type: String = ">=")
 
 /**
- * Represents claim offer structure from.
+ * Represents credential offer structure from.
  *
  * Example:
  * {
@@ -85,15 +106,13 @@ data class CredPredicate(val fieldRef: CredFieldRef, val value: Int, val type: S
  *  "nonce":"107428647282355717425385"
  * }
  */
-@CordaSerializable
-data class ClaimOffer(
-        val schemaId: String,
-        val credDefId: String,
-        val keyCorrectnessProof: KeyCorrectnessProof,
-        val nonce: String
-)
+data class CredentialOffer(
+    override val schemaId: String,
+    @JsonProperty("cred_def_id") override val credentialDefinitionId: String,
+    val keyCorrectnessProof: KeyCorrectnessProof,
+    val nonce: String
+) : ContainsSchemaId, ContainsCredentialDefinitionId
 
-@CordaSerializable
 data class KeyCorrectnessProof(val c: String, val xzCap: String, val xrCap: List<List<String>>)
 
 /**
@@ -139,23 +158,20 @@ data class KeyCorrectnessProof(val c: String, val xzCap: String, val xrCap: List
  *   "witness":null
  *  }
  */
-@CordaSerializable
-data class Claim(
-        val schemaId: String,
-        val credDefId: String,
-        val revReg: RawJsonMap?,
-        val witness: RawJsonMap?,
-        val revRegId: String?,
-        val values: Map<String, ClaimValue>,
-        val signature: Map<String, RawJsonMap?>,
-        val signatureCorrectnessProof: RawJsonMap
-)
+data class Credential(
+    override val schemaId: String,
+    @JsonProperty("cred_def_id") override val credentialDefinitionId: String,
+    @JsonProperty("rev_reg") val revocationRegistry: RawJsonMap?,
+    val witness: RawJsonMap?,
+    @JsonProperty("rev_reg_id") override val revocationRegistryId: String?,
+    val values: Map<String, CredentialValue>,
+    val signature: Map<String, RawJsonMap?>,
+    val signatureCorrectnessProof: RawJsonMap
+) : ContainsSchemaId, ContainsCredentialDefinitionId, ContainsRevocationRegistryId
 
-@CordaSerializable
-data class ClaimValue(val raw: String, val encoded: String)
+data class CredentialValue(val raw: String, val encoded: String)
 
-@CordaSerializable
-data class ClaimInfo(val claim: Claim, val credRevocId: String?, val revocRegDeltaJson: String?)
+data class CredentialInfo(val credential: Credential, val credRevocId: String?, val revocRegDeltaJson: String?)
 
 /**
  * Represents credential request
@@ -177,23 +193,21 @@ data class ClaimInfo(val claim: Claim, val credRevocId: String?, val revocRegDel
  * }
  *
  */
-@CordaSerializable
-data class ClaimRequestInfo(
-        val request: ClaimRequest,
-        val metadata: ClaimRequestMetadata
+data class CredentialRequestInfo(
+    val request: CredentialRequest,
+    val metadata: CredentialRequestMetadata
 )
 
-@CordaSerializable
-data class ClaimRequest(
-        val proverDid: String,
-        val credDefId: String,
-        val blindedMs: RawJsonMap,
-        val blindedMsCorrectnessProof: RawJsonMap,
-        val nonce: String
-)
+data class CredentialRequest(
+    val proverDid: String,
+    @JsonProperty("cred_def_id") override val credentialDefinitionId: String,
+    val blindedMs: RawJsonMap,
+    val blindedMsCorrectnessProof: RawJsonMap,
+    val nonce: String
+) : ContainsCredentialDefinitionId
 
 /**
- * Represents claim request metadata
+ * Represents credential request metadata
  *
  * Example:
  * {
@@ -205,11 +219,10 @@ data class ClaimRequest(
  *  "master_secret_name":"masterSecretId"
  * }
  */
-@CordaSerializable
-data class ClaimRequestMetadata(
-        val masterSecretBlindingData: RawJsonMap,
-        val masterSecretName: String,
-        val nonce: String
+data class CredentialRequestMetadata(
+    val masterSecretBlindingData: RawJsonMap,
+    val masterSecretName: String,
+    val nonce: String
 )
 
 /**
@@ -291,49 +304,46 @@ data class ClaimRequestMetadata(
  *  }
  * }
  */
-@CordaSerializable
 data class ProofRequestCredentials(
-        val attrs: Map<String, List<ClaimReferenceInfo>>,
-        val predicates: Map<String, List<ClaimReferenceInfo>>
+    @JsonProperty("attrs") val attributes: Map<String, List<CredentialReferenceInfo>>,
+    val predicates: Map<String, List<CredentialReferenceInfo>>
 )
 
 /**
- * Reference to a claim with additional data that is used to create proof request
+ * Reference to a credential with additional data that is used to create proof request
  *
- * @param credInfo              claim reference itself
+ * @param credentialInfo        credential reference itself
  * @param interval              interval of non-revocation, can be null if revocation is disabled
  */
-@CordaSerializable
-data class ClaimReferenceInfo(val credInfo: ClaimReference, val interval: Interval? = null)
-
-@CordaSerializable
-data class ClaimReference(
-        val schemaId: String,
-        val credDefId: String,
-        val referent: String,
-        val attrs: RawJsonMap,
-        val credRevId: String?,
-        val revRegId: String?
+data class CredentialReferenceInfo(
+    @JsonProperty("cred_info") val credentialInfo: CredentialReference,
+    val interval: Interval? = null
 )
 
-@CordaSerializable
+data class CredentialReference(
+    override val schemaId: String,
+    @JsonProperty("cred_def_id") override val credentialDefinitionId: String,
+    val referent: String,
+    @JsonProperty("attrs") val attributes: RawJsonMap,
+    @JsonProperty("cred_rev_id") val credentialRevocationId: String?,
+    @JsonProperty("rev_reg_id") override val revocationRegistryId: String?
+) : ContainsSchemaId, ContainsCredentialDefinitionId, ContainsRevocationRegistryId
+
 data class RequestedCredentials(
-        val requestedAttributes: Map<String, RequestedAttributeInfo>,
-        val requestedPredicates: Map<String, RequestedPredicateInfo>,
-        val selfAttestedAttributes: Map<String, String> = hashMapOf()
+    val requestedAttributes: Map<String, RequestedAttributeInfo>,
+    val requestedPredicates: Map<String, RequestedPredicateInfo>,
+    val selfAttestedAttributes: Map<String, String> = hashMapOf()
 )
 
-@CordaSerializable
 data class RequestedAttributeInfo(
-        val credId: String,
-        val revealed: Boolean = true,
-        val timestamp: Long?
+    @JsonProperty("cred_id") val credentialId: String,
+    val revealed: Boolean = true,
+    val timestamp: Long?
 )
 
-@CordaSerializable
 data class RequestedPredicateInfo(
-        val credId: String,
-        val timestamp: Long?
+    @JsonProperty("cred_id") val credentialId: String,
+    val timestamp: Long?
 )
 
 /**
@@ -398,34 +408,31 @@ data class RequestedPredicateInfo(
  *         "cred_def_id": string, (Optional)
  *     }
  */
-@CordaSerializable
 data class ProofRequest(
-        val version: String,
-        val name: String,
-        val nonce: String,
-        val requestedAttributes: Map<String, ClaimFieldReference>,
-        val requestedPredicates: Map<String, ClaimPredicateReference>,
-        val nonRevoked: Interval? = null
+    val version: String,
+    val name: String,
+    val nonce: String,
+    val requestedAttributes: Map<String, CredentialAttributeReference>,
+    val requestedPredicates: Map<String, CredentialPredicateReference>,
+    val nonRevoked: Interval? = null
 )
 
-@CordaSerializable
-data class ClaimFieldReference(
-        override val name: String,
-        @JsonIgnore override val schemaId: String
-) : AbstractClaimReference(name, schemaId)
+data class CredentialAttributeReference(
+    override val name: String,
+    @JsonIgnore override val schemaId: String
+) : AbstractCredentialReference(name, schemaId)
 
-@CordaSerializable
-data class ClaimPredicateReference(
-        override val name: String,
-        val p_type: String,
-        val p_value: Int,
-        @JsonIgnore override val schemaId: String
-) : AbstractClaimReference(name, schemaId)
+data class CredentialPredicateReference(
+    override val name: String,
+    val p_type: String,
+    val p_value: Int,
+    @JsonIgnore override val schemaId: String
+) : AbstractCredentialReference(name, schemaId)
 
-abstract class AbstractClaimReference(
-        open val name: String,
-        open val schemaId: String
-)
+abstract class AbstractCredentialReference(
+    open val name: String,
+    override val schemaId: String
+) : ContainsSchemaId
 
 /**
  * Represents proof
@@ -588,66 +595,71 @@ abstract class AbstractClaimReference(
  *  ]
  * }
  */
-@CordaSerializable
 data class ParsedProof(
-        val proof: Proof,
-        val requestedProof: RequestedProof,
-        val identifiers: List<ProofIdentifier>
+    val proof: Proof,
+    val requestedProof: RequestedProof,
+    val identifiers: List<ProofIdentifier>
 )
 
-@CordaSerializable
 data class ProofInfo(
-        val proofData: ParsedProof
+    val proofData: ParsedProof
 ) {
-    @JsonIgnore fun isAttributeExists(value: String) = proofData.requestedProof.revealedAttrs.values.any { it.raw == value }
-    @JsonIgnore fun getAttribyteValue(attrName: String) = proofData.requestedProof.revealedAttrs[attrName]
+    @JsonIgnore
+    fun isAttributeExists(value: String) = proofData.requestedProof.revealedAttrs.values.any { it.raw == value }
+
+    @JsonIgnore
+    fun getAttribyteValue(attrName: String) = proofData.requestedProof.revealedAttrs[attrName]
 }
 
-@CordaSerializable
-data class ProofIdentifier(val schemaId: String, val credDefId: String, val revRegId: String?, val timestamp: Long?)
+data class ProofIdentifier(
+    override val schemaId: String,
+    @JsonProperty("cred_def_id") override val credentialDefinitionId: String,
+    @JsonProperty("rev_reg_id") override val revocationRegistryId: String?,
+    val timestamp: Long?
+) : ContainsSchemaId, ContainsRevocationRegistryId, ContainsCredentialDefinitionId
 
-@CordaSerializable
 data class Proof(val proofs: List<ProofDetails>, val aggregatedProof: Any)
 
-@CordaSerializable
 data class RevealedAttributeReference(val subProofIndex: Int, val raw: String, val encoded: String)
 
-@CordaSerializable
 data class RevealedPredicateReference(@JsonProperty("sub_proof_index") val subProofIndex: Int)
 
-@CordaSerializable
 data class RequestedProof(
-        val revealedAttrs: Map<String, RevealedAttributeReference>,
-        val selfAttestedAttrs: Map<String, RevealedAttributeReference>, // not tested
-        val unrevealedAttrs: Map<String, ClaimReference>, // not tested
-        val predicates: Map<String, RevealedPredicateReference>
+    val revealedAttrs: Map<String, RevealedAttributeReference>,
+    val selfAttestedAttrs: Map<String, RevealedAttributeReference>, // not tested
+    val unrevealedAttrs: Map<String, CredentialReference>, // not tested
+    val predicates: Map<String, RevealedPredicateReference>
 )
 
-@CordaSerializable
-data class ProofDetails(val primaryProof: Any, val nonRevocProof: Any?)
+data class ProofDetails(val primaryProof: Any, @JsonProperty("non_revoc_proof") val nonRevokedProof: Any?)
 
 /**
  * Represents indy schema
  *
  * @param id                identifier of schema
- * @param attrNames         an array of attribute name strings
+ * @param attributeNames    an array of attribute name strings
  * @param seqNo             ??? Int
  * @param name              Schema's name string
  * @param version           Schema's version string
  * @param ver              Version of the Schema json
  */
-@CordaSerializable
 data class Schema(
-        val ver: String,
-        val id: String,
-        val name: String,
-        val version: String,
-        @JsonProperty("attrNames") val attrNames: List<String>,
-        @JsonProperty("seqNo") val seqNo: Int?
-) {
-    @JsonIgnore fun getOwner() = id.split(":").first()
-    @JsonIgnore fun isValid() = seqNo != null
-    @JsonIgnore fun getFilter() = """{name:$name,version:$version,owner:${getOwner()}}"""
+    val ver: String,
+    val id: String,
+    val name: String,
+    val version: String,
+    @JsonProperty("attrNames") val attributeNames: List<String>,
+    @JsonProperty("seqNo") val seqNo: Int?,
+    @JsonIgnore override val schemaId: String = id
+) : ContainsSchemaId {
+    @JsonIgnore
+    fun getOwner() = id.split(":").first()
+
+    @JsonIgnore
+    fun isValid() = seqNo != null
+
+    @JsonIgnore
+    fun getFilter() = """{name:$name,version:$version,owner:${getOwner()}}"""
 }
 
 /**
@@ -677,30 +689,33 @@ data class Schema(
  *  }
  * }
  */
-@CordaSerializable
 data class CredentialDefinition(
-        val ver: String,
-        val id: String,
-        @JsonProperty("schemaId") val schemaId: String,
-        val type: String,
-        val tag: String,
-        val value: CredentialPubKeys
-) {
-    @JsonIgnore fun getOwner() = id.split(":").first()
-    @JsonIgnore fun getSchemaSeqNo() = schemaId
-    @JsonIgnore fun getFilter() = """{schemaSeqNo:${getSchemaSeqNo()},owner:${getOwner()}}"""
+    val ver: String,
+    val id: String,
+    @JsonProperty("schemaId") override val schemaId: String,
+    val type: String,
+    val tag: String,
+    val value: CredentialPubKeys,
+    @JsonIgnore override val credentialDefinitionId: String = id
+) : ContainsSchemaId, ContainsCredentialDefinitionId {
+    @JsonIgnore
+    fun getOwner() = id.split(":").first()
+
+    @JsonIgnore
+    fun getSchemaSeqNo() = schemaId
+
+    @JsonIgnore
+    fun getFilter() = """{schemaSeqNo:${getSchemaSeqNo()},owner:${getOwner()}}"""
 }
 
-@CordaSerializable
 data class CredentialPubKeys(
-        val primary: Any,
-        val revocation: Any?
+    val primary: Any,
+    val revocation: Any?
 )
 
-@CordaSerializable
 data class RevocationRegistryConfig(
-        val issuanceType: String,
-        val maxCredNum: Int
+    val issuanceType: String,
+    @JsonProperty("max_cred_num") val maximumCredentialNumber: Int
 )
 
 /**
@@ -727,21 +742,20 @@ data class RevocationRegistryConfig(
  * }
  */
 
-@CordaSerializable
 data class RevocationRegistryInfo(
-        val definition: RevocationRegistryDefinition,
-        val entry: RevocationRegistryEntry
+    val definition: RevocationRegistryDefinition,
+    val entry: RevocationRegistryEntry
 )
 
-@CordaSerializable
 data class RevocationRegistryDefinition(
-        val ver: String,
-        val id: String,
-        @JsonProperty("revocDefType") val revDefType: String,
-        val tag: String,
-        @JsonProperty("credDefId") val credDefId: String,
-        val value: RawJsonMap
-)
+    val ver: String,
+    val id: String,
+    @JsonProperty("revocDefType") val revocationRegistryDefinitionType: String,
+    val tag: String,
+    @JsonProperty("credDefId") override val credentialDefinitionId: String,
+    val value: RawJsonMap,
+    @JsonIgnore override val revocationRegistryId: String? = id
+) : ContainsCredentialDefinitionId, ContainsRevocationRegistryId
 
 /**
  * Represents revocation registry entry
@@ -754,19 +768,17 @@ data class RevocationRegistryDefinition(
  *  }
  * }
  */
-@CordaSerializable
 data class RevocationRegistryEntry(
-        val ver: String,
-        val value: RawJsonMap
+    val ver: String,
+    val value: RawJsonMap
 )
 
-@CordaSerializable
 data class RevocationState(
-        val witness: RawJsonMap,
-        val revReg: RawJsonMap,
-        val timestamp: Long,
-        @JsonIgnore var revRegId: String? = null
-)
+    val witness: RawJsonMap,
+    @JsonProperty("rev_reg") val revocationRegistry: RawJsonMap,
+    val timestamp: Long,
+    @JsonIgnore override var revocationRegistryId: String? = null
+) : ContainsRevocationRegistryId
 
 /**
  * Abstracts blob storage reader and writer which are used for tails file management
@@ -776,38 +788,119 @@ data class BlobStorageHandler(val reader: BlobStorageReader, val writer: BlobSto
 /**
  * Represents credential reference
  */
-data class ReferentClaim(val key: String, val claimUuid: String)
+data class ReferentCredential(val key: String, val credentialUUID: String)
 
 /**
  * Represents data which is needed for verifier to verify proof
  * Data in this data class is stored as JSON
  */
-@CordaSerializable
-data class DataUsedInProofJson(val schemas: String, val claimDefs: String, val revRegDefs: String, val revRegs: String)
+data class DataUsedInProofJson(
+    val schemas: String,
+    val credentialDefinitions: String,
+    val revocationRegistryDefinitions: String,
+    val revocationRegistries: String
+)
 
 data class StorageConfig(val path: String)
 
 /**
-* {
-*     "id": string, Identifier of the wallet. Configured storage uses this identifier to lookup exact wallet data placement.
-*
-*     "storage_type": optional<string>, Type of the wallet storage. Defaults to 'default'.
-*     'Default' storage type allows to store wallet data in the local file.
-*     Custom storage types can be registered with indy_register_wallet_storage call.
-*
-*     "storage_config": optional<object>, Storage configuration json. Storage type defines set of supported keys.
-*     Can be optional if storage supports default configuration.
-*
-*     For 'default' storage type configuration is:
-*     {
-*         "path": optional<string>, Path to the directory with wallet files.
-*         Defaults to $HOME/.indy_client/wallets.
-*         Wallet will be stored in the file {path}/{id}/sqlite.db
-*     }
-* }
-*/
+ * {
+ *     "id": string, Identifier of the wallet. Configured storage uses this identifier to lookup exact wallet data placement.
+ *
+ *     "storage_type": optional<string>, Type of the wallet storage. Defaults to 'default'.
+ *     'Default' storage type allows to store wallet data in the local file.
+ *     Custom storage types can be registered with indy_register_wallet_storage call.
+ *
+ *     "storage_config": optional<object>, Storage configuration json. Storage type defines set of supported keys.
+ *     Can be optional if storage supports default configuration.
+ *
+ *     For 'default' storage type configuration is:
+ *     {
+ *         "path": optional<string>, Path to the directory with wallet files.
+ *         Defaults to $HOME/.indy_client/wallets.
+ *         Wallet will be stored in the file {path}/{id}/sqlite.db
+ *     }
+ * }
+ */
 data class WalletConfig(
-        val id: String,
-        val storageType: String = "default",
-        val storageConfig: StorageConfig? = null
+    val id: String,
+    val storageType: String = "default",
+    val storageConfig: StorageConfig? = null
 )
+
+/**
+ * Represents some details of a particular identity
+ *
+ * @param did: [String]             did of this identity
+ * @param verkey: [String]          verification key of this identity
+ * @param alias: [String]           <optional> additional alias of this identity
+ * @param role: [String]            <optional> role of this identity (e.g. TRUSTEE)
+ */
+data class IdentityDetails(
+    val did: String,
+    val verkey: String,
+    @JsonIgnore val alias: String?,
+    @JsonIgnore val role: String?
+) {
+    @JsonIgnore
+    fun getIdentityRecord() = """{"did":"$did","verkey":"$verkey"}"""
+}
+
+class SchemaId(val did: String, val name: String, val version: String) {
+    override fun toString() = "$did:2:$name:$version"
+
+    companion object : FromString<SchemaId> {
+        override fun fromString(str: String): SchemaId {
+            val (did, _, name, version) = str.split(":")
+
+            return SchemaId(did, name, version)
+        }
+    }
+}
+
+data class CredentialDefinitionId(val did: String, val schemaSeqNo: Int, val tag: String) {
+    override fun toString() = "$did:3:CL:$schemaSeqNo:$tag"
+
+    fun getRevocationRegistryDefinitionId(revTag: String) = RevocationRegistryDefinitionId(did, this, revTag)
+
+    companion object : FromString<CredentialDefinitionId> {
+        override fun fromString(str: String): CredentialDefinitionId {
+            val strSplitted = str.split(":")
+
+            val didCred = strSplitted[0]
+            val tag = strSplitted[strSplitted.lastIndex]
+
+            val seqNo = strSplitted[3].toInt()
+
+            return CredentialDefinitionId(didCred, seqNo, tag)
+        }
+    }
+}
+
+data class RevocationRegistryDefinitionId(
+    val did: String,
+    private val credentialDefinitionId: CredentialDefinitionId,
+    val tag: String
+) {
+    override fun toString() = "$did:4:$credentialDefinitionId:CL_ACCUM:$tag"
+
+    fun getCredentialDefinitionId() = credentialDefinitionId
+
+    companion object : FromString<RevocationRegistryDefinitionId> {
+        override fun fromString(str: String): RevocationRegistryDefinitionId {
+            val strSplitted = str.split(":")
+            val didRev = strSplitted[0]
+            val tagRev = strSplitted[strSplitted.lastIndex]
+            val didCred = strSplitted[2]
+            val tagCred = strSplitted[strSplitted.lastIndex - 2]
+
+            val seqNo = strSplitted[5].toInt()
+
+            return RevocationRegistryDefinitionId(didRev, CredentialDefinitionId(didCred, seqNo, tagCred), tagRev)
+        }
+    }
+}
+
+interface FromString<T : Any> {
+    fun fromString(str: String): T
+}

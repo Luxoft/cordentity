@@ -1,7 +1,8 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy.flow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.luxoft.blockchainlab.hyperledger.indy.IndyUser
+import com.luxoft.blockchainlab.hyperledger.indy.IdentityDetails
+import com.luxoft.blockchainlab.hyperledger.indy.roles.getIdentity
 import com.luxoft.blockchainlab.hyperledger.indy.utils.SerializationUtils
 import net.corda.core.flows.*
 import net.corda.core.identity.CordaX500Name
@@ -29,7 +30,7 @@ object CreatePairwiseFlow {
                 val flowSession: FlowSession = initiateFlow(otherSide)
 
                 val sessionDid = flowSession.receive<String>().unwrap { theirIdentityRecord ->
-                    val identityDetails = SerializationUtils.jSONToAny<IndyUser.IdentityDetails>(theirIdentityRecord)
+                    val identityDetails = SerializationUtils.jSONToAny<IdentityDetails>(theirIdentityRecord)
 
                     indyUser().createSessionDid(identityDetails)
                 }
@@ -54,7 +55,7 @@ object CreatePairwiseFlow {
                 val myIdentityRecord = indyUser().getIdentity().getIdentityRecord()
 
                 flowSession.sendAndReceive<String>(myIdentityRecord).unwrap { theirIdentityRecord ->
-                    val identityDetails = SerializationUtils.jSONToAny<IndyUser.IdentityDetails>(theirIdentityRecord)
+                    val identityDetails = SerializationUtils.jSONToAny<IdentityDetails>(theirIdentityRecord)
 
                     indyUser().addKnownIdentities(identityDetails)
                 }
