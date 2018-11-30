@@ -84,7 +84,9 @@ using [VerifyCredentialFlow](cordapp/README.md#flows):
                     UUID.randomUUID().toString(),
                     emptyList(),
                     listOf(legalAgePredicate),
-                    aliceX500)).resultFuture.get()
+                    aliceX500),
+                    Interval.recent()
+            ).resultFuture.get()
 
 If the verification succeeds, the store can be sure that Alice's age is above 18.
 
@@ -112,8 +114,8 @@ Thanks to our Indy CorDapp solution, patient’s personal data is disclosed only
     }
 
     dependencies {
-        cordapp "com.github.Luxoft.cordentity:cordapp:0.4.11"
-        cordapp "com.github.Luxoft.cordentity:cordapp-contracts-states:0.4.11"
+        cordapp "com.github.Luxoft.cordentity:cordapp:0.5.0"
+        cordapp "com.github.Luxoft.cordentity:cordapp-contracts-states:0.5.0"
     }
 
 On all machines that are going to run [IndyService](cordapp/README.md#services) install the `libindy` package:
@@ -137,7 +139,7 @@ for installation instructions for Windows, iOS, Android and MacOS.
 
 ## External dependancies
 
-Version cordapp 0.4.11 requires installation of indy-sdk version 1.6.4.
+Version cordapp 0.5.0 requires installation of indy-sdk version 1.6.4.
 
 ## Build
 
