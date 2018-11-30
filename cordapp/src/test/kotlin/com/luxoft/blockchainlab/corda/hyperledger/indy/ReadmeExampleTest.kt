@@ -1,6 +1,7 @@
 package com.luxoft.blockchainlab.corda.hyperledger.indy
 
 import com.luxoft.blockchainlab.corda.hyperledger.indy.flow.*
+import com.luxoft.blockchainlab.hyperledger.indy.Interval
 import net.corda.core.identity.CordaX500Name
 import net.corda.node.internal.StartedNode
 import net.corda.testing.core.singleIdentity
@@ -92,7 +93,8 @@ class ReadmeExampleTest : CordaTestBase() {
                 UUID.randomUUID().toString(),
                 emptyList(),
                 listOf(legalAgePredicate),
-                aliceX500
+                aliceX500,
+                Interval.recent()
             )
         ).resultFuture.get()
 
