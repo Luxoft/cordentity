@@ -11,19 +11,19 @@ import net.corda.core.schemas.PersistentState
 import net.corda.core.schemas.QueryableState
 
 /**
- * A Corda record of an Indy Credential [credential] issued on request [credentialRequest]
+ * A Corda record of an Indy Credential issued on request [CredentialRequestInfo]
  *
- * @param id                        credential persistent id
  * @param credentialRequestInfo     indy credential request
  * @param credentialInfo            indy credential
  * @param issuerDid                 did of an entity issued credential
+ * @param proverDid                 did of an entity received credential
  * @param participants              corda participants
  */
 open class IndyCredential(
-    val id: String,
     val credentialRequestInfo: CredentialRequestInfo,
     val credentialInfo: CredentialInfo,
     val issuerDid: String,
+    val proverDid: String,
     override val participants: List<AbstractParty>
 ) : LinearState, QueryableState {
 

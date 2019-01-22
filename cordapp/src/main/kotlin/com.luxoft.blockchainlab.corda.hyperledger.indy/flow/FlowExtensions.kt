@@ -14,6 +14,8 @@ import net.corda.core.contracts.StateAndRef
 import net.corda.core.flows.FlowLogic
 import net.corda.core.identity.CordaX500Name
 import net.corda.core.identity.Party
+import net.corda.core.messaging.CordaRPCOps
+import net.corda.core.messaging.vaultQueryBy
 import net.corda.core.node.services.Vault
 import net.corda.core.node.services.queryBy
 import net.corda.core.node.services.vault.Builder.equal
@@ -40,18 +42,59 @@ fun FlowLogic<Any>.indyUser(): IndyUser {
 /**
  * This method is used to get indy credential state from vault
  *
- * @param id                id of credential
+ * @param proverDid       Did of the receiver
  *
  * @return                  corda state of indy credential or null if none exists
  */
-fun FlowLogic<Any>.getIndyCredentialState(id: String): StateAndRef<IndyCredential>? {
+fun FlowLogic<Any>.getIndyCredentialsByProver(proverDid: String): List<StateAndRef<IndyCredential>> {
     val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
-    val existingId = QueryCriteria.VaultCustomQueryCriteria(CredentialSchemaV1.PersistentCredential::id.equal(id))
+    val existingId =
+        QueryCriteria.VaultCustomQueryCriteria(CredentialSchemaV1.PersistentCredential::proverDid.equal(proverDid))
 
     val criteria = generalCriteria.and(existingId)
     val result = serviceHub.vaultService.queryBy<IndyCredential>(criteria)
 
-    return result.states.firstOrNull()
+    return result.states
+}
+
+/**
+ * This method is used to get indy credential state from vault
+ *
+ * @param issuerDid         Did of the issuer
+ *
+ * @return                  corda state of indy credential or null if none exists
+ */
+fun FlowLogic<Any>.getIndyCredentialsByIssuer(issuerDid: String): List<StateAndRef<IndyCredential>> {
+    val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+    val existingId =
+        QueryCriteria.VaultCustomQueryCriteria(CredentialSchemaV1.PersistentCredential::issuerDid.equal(issuerDid))
+
+    val criteria = generalCriteria.and(existingId)
+    val result = serviceHub.vaultService.queryBy<IndyCredential>(criteria)
+
+    return result.states
+}
+
+fun CordaRPCOps.getIndyCredentialsByIssuer(issuerDid: String): List<StateAndRef<IndyCredential>> {
+    val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+    val existingId =
+        QueryCriteria.VaultCustomQueryCriteria(CredentialSchemaV1.PersistentCredential::issuerDid.equal(issuerDid))
+
+    val criteria = generalCriteria.and(existingId)
+    val result = vaultQueryBy<IndyCredential>(criteria)
+
+    return result.states
+}
+
+fun CordaRPCOps.getIndyCredentialsByProver(proverDid: String): List<StateAndRef<IndyCredential>> {
+    val generalCriteria = QueryCriteria.VaultQueryCriteria(Vault.StateStatus.UNCONSUMED)
+    val existingId =
+        QueryCriteria.VaultCustomQueryCriteria(CredentialSchemaV1.PersistentCredential::proverDid.equal(proverDid))
+
+    val criteria = generalCriteria.and(existingId)
+    val result = vaultQueryBy<IndyCredential>(criteria)
+
+    return result.states
 }
 
 private fun FlowLogic<Any>.getUnconsumedCredentialDefinitionByCriteria(
