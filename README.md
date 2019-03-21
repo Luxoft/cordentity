@@ -1,5 +1,8 @@
 # Cordentity
 
+**Note:** This is a **deprecated** of the formal [Hyperledger Labs](https://github.com/hyperledger-labs/cordentity) repository,
+where active development is ongoing. Issue tracking is handled in [Issues](https://github.com/hyperledger-labs/cordentity/issues)
+
 ![logo](03_cordentity_app_LOGO_color.svg)
 
 The Cordentity project integrates [Hyperledger Indy](https://www.hyperledger.org/projects/hyperledger-indy) capabilities into the [Corda Platform](https://www.corda.net/index.html).
